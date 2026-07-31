@@ -480,3 +480,11 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Runtime SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Public sanitized demo database
+!samples/database/facility-inspection-demo.db

@@ -1,17 +1,23 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Data;
+using FacilityInspection.Domain.Equipments;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using System.IO;
+using System.Threading.Tasks;
+using DomainEquipment =
+    FacilityInspection.Domain.Equipments.Equipment;
 
 namespace FacilityInspection.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
     private readonly EquipmentRepository _repository;
+
     private bool _initialized;
+    private Guid _defaultLocationId;
 
     public MainViewModel()
     {
@@ -27,12 +33,22 @@ public partial class MainViewModel : ViewModelBase
         _repository = new EquipmentRepository(DatabasePath);
     }
 
-    public ObservableCollection<Equipment> Equipments { get; } = [];
+    public ObservableCollection<DomainEquipment> Equipments { get; } = [];
+
+    public IReadOnlyList<EquipmentType> EquipmentTypes { get; } =
+        Enum.GetValues<EquipmentType>();
 
     public string DatabasePath { get; }
 
     [ObservableProperty]
+    private string newEquipmentCode = string.Empty;
+
+    [ObservableProperty]
     private string newEquipmentName = string.Empty;
+
+    [ObservableProperty]
+    private EquipmentType selectedEquipmentType =
+        EquipmentType.AirCompressor;
 
     [ObservableProperty]
     private string statusMessage =
@@ -43,7 +59,14 @@ public partial class MainViewModel : ViewModelBase
     {
         try
         {
+            var equipmentCode = NewEquipmentCode.Trim();
             var equipmentName = NewEquipmentName.Trim();
+
+            if (string.IsNullOrWhiteSpace(equipmentCode))
+            {
+                StatusMessage = "設備コードを入力してください。";
+                return;
+            }
 
             if (string.IsNullOrWhiteSpace(equipmentName))
             {
@@ -53,14 +76,23 @@ public partial class MainViewModel : ViewModelBase
 
             await EnsureInitializedAsync();
 
-            await _repository.AddAsync(equipmentName);
+            await _repository.AddAsync(
+                locationId: _defaultLocationId,
+                equipmentCode: equipmentCode,
+                equipmentName: equipmentName,
+                equipmentType: SelectedEquipmentType);
 
+            NewEquipmentCode = string.Empty;
             NewEquipmentName = string.Empty;
 
             await ReloadCoreAsync();
 
             StatusMessage =
                 $"保存成功：現在{Equipments.Count}件です。";
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusMessage = $"保存できません：{ex.Message}";
         }
         catch (Exception ex)
         {
@@ -75,7 +107,6 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             await EnsureInitializedAsync();
-
             await ReloadCoreAsync();
 
             StatusMessage =
@@ -96,6 +127,10 @@ public partial class MainViewModel : ViewModelBase
         }
 
         await _repository.InitializeAsync();
+
+        _defaultLocationId =
+            await _repository.GetDefaultLocationIdAsync();
+
         _initialized = true;
     }
 

@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FacilityInspection.Domain.Equipments;
+using FacilityInspection.Domain.Locations;
+using FacilityInspection.Domain.Sites;
+using Microsoft.EntityFrameworkCore;
 using System;
 
 namespace FacilityInspection.Data;
@@ -13,6 +16,10 @@ public sealed class InspectionDbContext : DbContext
         _databasePath = databasePath;
     }
 
+    public DbSet<FactorySite> FactorySites => Set<FactorySite>();
+
+    public DbSet<Location> Locations => Set<Location>();
+
     public DbSet<Equipment> Equipments => Set<Equipment>();
 
     protected override void OnConfiguring(
@@ -25,18 +32,7 @@ public sealed class InspectionDbContext : DbContext
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Equipment>(entity =>
-        {
-            entity.ToTable("Equipments");
-
-            entity.HasKey(x => x.Id);
-
-            entity.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(100);
-
-            entity.Property(x => x.CreatedAtUtc)
-                .IsRequired();
-        });
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(InspectionDbContext).Assembly);
     }
 }
