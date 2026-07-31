@@ -1,0 +1,95 @@
+﻿<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    xmlns:data="using:FacilityInspection.Data"
+    x:Class="FacilityInspection.Views.MainView"
+    x:DataType="vm:MainViewModel">
+
+    <ScrollViewer>
+        <StackPanel
+            Margin="24"
+            Spacing="12">
+
+            <TextBlock
+                Text="Facility Inspection App"
+                FontSize="26"
+                FontWeight="Bold" />
+
+            <TextBlock
+                Text="Windows / Android SQLite動作確認"
+                FontSize="16" />
+
+            <Border
+                Padding="12"
+                CornerRadius="6"
+                Background="#18000000">
+
+                <StackPanel Spacing="4">
+                    <TextBlock
+                        Text="SQLite保存先"
+                        FontWeight="Bold" />
+
+                    <TextBlock
+                        Text="{Binding DatabasePath}"
+                        TextWrapping="Wrap"
+                        FontSize="12" />
+                </StackPanel>
+            </Border>
+
+            <TextBox
+                Text="{Binding NewEquipmentName, Mode=TwoWay}"
+                Watermark="設備名を入力してください"
+                MaxLength="100" />
+
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="8">
+
+                <Button
+                    Content="SQLiteへ保存"
+                    Command="{Binding SaveCommand}" />
+
+                <Button
+                    Content="再読込"
+                    Command="{Binding ReloadCommand}" />
+            </StackPanel>
+
+            <TextBlock
+                Text="{Binding StatusMessage}"
+                TextWrapping="Wrap"
+                FontWeight="Bold" />
+
+            <TextBlock
+                Text="登録済み設備"
+                Margin="0,12,0,0"
+                FontSize="18"
+                FontWeight="Bold" />
+
+            <ItemsControl ItemsSource="{Binding Equipments}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="data:Equipment">
+                        <Border
+                            Margin="0,0,0,8"
+                            Padding="12"
+                            BorderBrush="#40000000"
+                            BorderThickness="1"
+                            CornerRadius="6">
+
+                            <StackPanel>
+                                <TextBlock
+                                    Text="{Binding Name}"
+                                    FontWeight="Bold" />
+
+                                <TextBlock
+                                    Text="{Binding Id}"
+                                    FontSize="12" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

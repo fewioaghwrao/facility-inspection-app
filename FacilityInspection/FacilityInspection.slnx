@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="FacilityInspection/FacilityInspection.Android/FacilityInspection.Android.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="FacilityInspection/FacilityInspection.Browser/FacilityInspection.Browser.csproj" />
+  <Project Path="FacilityInspection/FacilityInspection.Desktop/FacilityInspection.Desktop.csproj" />
+  <Project Path="FacilityInspection/FacilityInspection.iOS/FacilityInspection.iOS.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="FacilityInspection/FacilityInspection/FacilityInspection.csproj" />
+</Solution>
