@@ -21,4 +21,10 @@
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Views\EquipmentManagementView.axaml.cs">
+      <DependentUpon>EquipmentManagementView.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>
