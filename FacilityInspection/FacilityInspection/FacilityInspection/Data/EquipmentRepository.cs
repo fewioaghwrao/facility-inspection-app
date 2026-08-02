@@ -38,11 +38,58 @@ public sealed class EquipmentRepository
         await using var dbContext =
             new InspectionDbContext(DatabasePath);
 
+        // FactorySiteConfiguration・LocationConfigurationの
+        // HasDataも初回DB作成時に反映される
         await dbContext.Database.EnsureCreatedAsync();
-
-        await SeedInitialDataAsync(dbContext);
     }
 
+    /// <summary>
+    /// 有効な工場を取得する。
+    /// </summary>
+    public async Task<IReadOnlyList<FactorySite>>
+        GetFactorySitesAsync()
+    {
+        await using var dbContext =
+            new InspectionDbContext(DatabasePath);
+
+        return await dbContext.FactorySites
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.Code)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// 指定した工場に所属する有効な設置場所を取得する。
+    /// </summary>
+    public async Task<IReadOnlyList<Location>>
+        GetLocationsByFactorySiteIdAsync(
+            Guid factorySiteId)
+    {
+        if (factorySiteId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "工場IDを指定してください。",
+                nameof(factorySiteId));
+        }
+
+        await using var dbContext =
+            new InspectionDbContext(DatabasePath);
+
+        return await dbContext.Locations
+            .AsNoTracking()
+            .Where(x =>
+                x.FactorySiteId == factorySiteId &&
+                x.IsActive)
+            .OrderBy(x => x.Floor)
+            .ThenBy(x => x.Code)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// 初期表示などで使用する既定の設置場所IDを取得する。
+    /// ComboBox対応完了後は削除可能。
+    /// </summary>
     public async Task<Guid> GetDefaultLocationIdAsync()
     {
         await using var dbContext =
@@ -90,6 +137,12 @@ public sealed class EquipmentRepository
                 nameof(locationId));
         }
 
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            equipmentCode);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            equipmentName);
+
         await using var dbContext =
             new InspectionDbContext(DatabasePath);
 
@@ -101,7 +154,7 @@ public sealed class EquipmentRepository
         if (!locationExists)
         {
             throw new InvalidOperationException(
-                "指定された設置場所が存在しません。");
+                "指定された設置場所が存在しないか、無効になっています。");
         }
 
         var normalizedCode =
@@ -120,39 +173,10 @@ public sealed class EquipmentRepository
         var equipment = new DomainEquipment(
             locationId: locationId,
             equipmentCode: normalizedCode,
-            name: equipmentName,
+            name: equipmentName.Trim(),
             equipmentType: equipmentType);
 
         dbContext.Equipments.Add(equipment);
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task SeedInitialDataAsync(
-        InspectionDbContext dbContext)
-    {
-        if (await dbContext.FactorySites.AnyAsync())
-        {
-            return;
-        }
-
-        var factorySite = new FactorySite(
-            code: "SITE-01",
-            name: "第1工場",
-            description: "設備点検アプリの初期データ");
-
-        dbContext.FactorySites.Add(factorySite);
-
-        await dbContext.SaveChangesAsync();
-
-        var location = new Location(
-            factorySiteId: factorySite.Id,
-            code: "LOC-01",
-            name: "コンプレッサー室",
-            floor: "1F",
-            description: "初期設備登録用の設置場所");
-
-        dbContext.Locations.Add(location);
 
         await dbContext.SaveChangesAsync();
     }
