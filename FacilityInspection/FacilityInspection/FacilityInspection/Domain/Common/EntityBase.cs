@@ -10,16 +10,17 @@ public abstract class EntityBase
 
     public DateTime UpdatedAtUtc { get; private set; }
 
-    // EF Core用
     protected EntityBase()
+        : this(null)
     {
     }
 
-    protected EntityBase(Guid? id = null)
+    protected EntityBase(Guid? id)
     {
         Id = id ?? Guid.NewGuid();
 
         var now = DateTime.UtcNow;
+
         CreatedAtUtc = now;
         UpdatedAtUtc = now;
     }
