@@ -1,0 +1,239 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.LoginView"
+    x:DataType="vm:LoginViewModel"
+    Background="#F3F6FA">
+
+    <UserControl.Styles>
+
+        <!-- 入力欄 -->
+        <Style Selector="TextBox.formField">
+            <Setter Property="MinHeight" Value="46" />
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#CBD5E1" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
+        <!-- ログインボタン -->
+        <Style Selector="Button.primary">
+            <Setter Property="MinHeight" Value="48" />
+            <Setter Property="Padding" Value="16,11" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter
+                Property="HorizontalContentAlignment"
+                Value="Center" />
+        </Style>
+
+        <!-- パスワード表示切替 -->
+        <Style Selector="ToggleButton.passwordToggle">
+            <Setter Property="MinWidth" Value="54" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="#E2E8F0" />
+            <Setter Property="Foreground" Value="#334155" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+    </UserControl.Styles>
+
+    <ScrollViewer
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+
+        <Border
+            Width="440"
+            MaxWidth="440"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Margin="20,32"
+            Padding="36"
+            Background="#FFFFFF"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
+            CornerRadius="18"
+            BoxShadow="0 12 32 0 #240F172A">
+
+            <StackPanel Spacing="20">
+
+                <!-- アプリ名 -->
+                <StackPanel Spacing="12">
+
+                    <Border
+                        Width="52"
+                        Height="52"
+                        HorizontalAlignment="Left"
+                        Background="#2563EB"
+                        CornerRadius="14">
+
+                        <TextBlock
+                            Text="FI"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="#FFFFFF"
+                            FontSize="18"
+                            FontWeight="Bold" />
+
+                    </Border>
+
+                    <TextBlock
+                        Text="設備点検・保守記録"
+                        Foreground="#0F172A"
+                        FontSize="25"
+                        FontWeight="Bold" />
+
+                    <TextBlock
+                        Text="アカウント情報を入力してログインしてください"
+                        Foreground="#64748B"
+                        FontSize="13"
+                        TextWrapping="Wrap" />
+
+                </StackPanel>
+
+                <!-- ログインID -->
+                <StackPanel Spacing="7">
+
+                    <TextBlock
+                        Text="ログインID"
+                        Foreground="#334155"
+                        FontSize="13"
+                        FontWeight="SemiBold" />
+
+                    <TextBox
+                        Classes="formField"
+                        Text="{Binding LoginId, Mode=TwoWay}"
+                        Watermark="ログインIDを入力" />
+
+                </StackPanel>
+
+                <!-- パスワード -->
+                <StackPanel Spacing="7">
+
+                    <TextBlock
+                        Text="パスワード"
+                        Foreground="#334155"
+                        FontSize="13"
+                        FontWeight="SemiBold" />
+
+                    <Grid>
+
+                        <TextBox
+                            Classes="formField"
+                            Text="{Binding Password, Mode=TwoWay}"
+                            PasswordChar="●"
+                            RevealPassword="{Binding IsPasswordVisible}"
+                            Watermark="パスワードを入力"
+                            Padding="12,10,76,10" />
+
+                        <ToggleButton
+                            Classes="passwordToggle"
+                            Content="{Binding PasswordToggleLabel}"
+                            IsChecked="{Binding IsPasswordVisible,
+                                                Mode=TwoWay}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="0,0,7,0" />
+
+                    </Grid>
+
+                </StackPanel>
+
+                <!-- エラー表示 -->
+                <Border
+                    IsVisible="{Binding HasError}"
+                    Padding="12"
+                    Background="#FEF2F2"
+                    BorderBrush="#FECACA"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        Foreground="#B91C1C"
+                        FontSize="13"
+                        TextWrapping="Wrap" />
+
+                </Border>
+
+                <!-- 処理中 -->
+                <ProgressBar
+                    IsVisible="{Binding IsBusy}"
+                    IsIndeterminate="True"
+                    Height="4" />
+
+                <!-- ログイン -->
+                <Button
+                    Classes="primary"
+                    Content="ログイン"
+                    Command="{Binding LoginCommand}"
+                    HorizontalAlignment="Stretch" />
+
+                <!-- デモアカウント -->
+                <Border
+                    Padding="14"
+                    Background="#F8FAFC"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="10">
+
+                    <StackPanel Spacing="7">
+
+                        <TextBlock
+                            Text="デモ用アカウント"
+                            Foreground="#334155"
+                            FontSize="13"
+                            FontWeight="SemiBold" />
+
+                        <Grid ColumnDefinitions="100,*">
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="保全責任者"
+                                Foreground="#64748B"
+                                FontSize="12" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="manager / Demo1234!"
+                                Foreground="#334155"
+                                FontSize="12"
+                                FontFamily="Consolas" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="100,*">
+                            <TextBlock
+                                Grid.Column="0"
+                                Text="点検担当者"
+                                Foreground="#64748B"
+                                FontSize="12" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="inspector / Demo1234!"
+                                Foreground="#334155"
+                                FontSize="12"
+                                FontFamily="Consolas" />
+                        </Grid>
+
+                    </StackPanel>
+
+                </Border>
+
+            </StackPanel>
+
+        </Border>
+
+    </ScrollViewer>
+
+</UserControl>
