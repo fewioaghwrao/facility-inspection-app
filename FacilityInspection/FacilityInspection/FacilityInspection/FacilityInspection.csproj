@@ -20,11 +20,15 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+	<PackageReference Include="Microsoft.Extensions.Identity.Core" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Update="Views\EquipmentManagementView.axaml.cs">
       <DependentUpon>EquipmentManagementView.axaml</DependentUpon>
+    </Compile>
+    <Compile Update="Views\AdminDashboardView.axaml.cs">
+      <DependentUpon>AdminDashboardView.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>

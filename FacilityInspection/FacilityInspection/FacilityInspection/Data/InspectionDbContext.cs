@@ -1,5 +1,6 @@
 ﻿using FacilityInspection.Domain.Equipments;
 using FacilityInspection.Domain.Locations;
+using FacilityInspection.Domain.Operators;
 using FacilityInspection.Domain.Sites;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -21,6 +22,8 @@ public sealed class InspectionDbContext : DbContext
     public DbSet<Location> Locations => Set<Location>();
 
     public DbSet<Equipment> Equipments => Set<Equipment>();
+
+    public DbSet<Operator> Operators => Set<Operator>();
 
     protected override void OnConfiguring(
         DbContextOptionsBuilder optionsBuilder)
