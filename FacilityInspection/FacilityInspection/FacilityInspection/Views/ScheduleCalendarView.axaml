@@ -1,0 +1,117 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.ScheduleCalendarView"
+    x:DataType="vm:ScheduleCalendarViewModel"
+    Background="#F8FAFC">
+
+    <ScrollViewer
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
+
+        <StackPanel
+            Margin="32"
+            Spacing="20">
+
+            <!-- 画面タイトル -->
+            <StackPanel Spacing="5">
+
+                <TextBlock
+                    Text="{Binding Title}"
+                    FontSize="28"
+                    FontWeight="Bold"
+                    Foreground="#0F172A" />
+
+                <TextBlock
+                    Text="{Binding Description}"
+                    FontSize="14"
+                    Foreground="#64748B" />
+
+            </StackPanel>
+
+            <!-- 仮のカレンダー領域 -->
+            <Border
+                Padding="24"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12"
+                BoxShadow="0 4 14 0 #160F172A">
+
+                <StackPanel Spacing="18">
+
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+
+                        <Button
+                            Grid.Column="0"
+                            Content="‹ 前月"
+                            MinWidth="90"
+                            MinHeight="38"
+                            HorizontalContentAlignment="Center" />
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="点検予定カレンダー"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="20"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <Button
+                            Grid.Column="2"
+                            Content="次月 ›"
+                            MinWidth="90"
+                            MinHeight="38"
+                            HorizontalContentAlignment="Center" />
+
+                    </Grid>
+
+                    <Border
+                        MinHeight="360"
+                        Padding="24"
+                        Background="#F8FAFC"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10">
+
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="10">
+
+                            <TextBlock
+                                Text="📅"
+                                HorizontalAlignment="Center"
+                                FontSize="42" />
+
+                            <TextBlock
+                                Text="{Binding InformationMessage}"
+                                HorizontalAlignment="Center"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap"
+                                FontSize="15"
+                                Foreground="#475569" />
+
+                            <TextBlock
+                                Text="点検予定エンティティの作成後、月別・日別予定を表示します。"
+                                HorizontalAlignment="Center"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap"
+                                FontSize="13"
+                                Foreground="#94A3B8" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                </StackPanel>
+
+            </Border>
+
+        </StackPanel>
+
+    </ScrollViewer>
+
+</UserControl>
