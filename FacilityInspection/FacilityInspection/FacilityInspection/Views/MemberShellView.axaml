@@ -1,0 +1,296 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.MemberShellView"
+    x:DataType="vm:MemberShellViewModel"
+    Background="#F8FAFC">
+
+    <Grid ColumnDefinitions="220,*">
+
+        <!-- 共通サイドメニュー -->
+        <Border
+            Grid.Column="0"
+            Background="#0F172A">
+
+            <Grid
+                Margin="16"
+                RowDefinitions="Auto,*,Auto">
+
+                <!-- アプリ名 -->
+                <StackPanel
+                    Grid.Row="0"
+                    Margin="8,16,8,24"
+                    Spacing="6">
+
+                    <TextBlock
+                        Text="設備点検・保守記録"
+                        FontSize="20"
+                        FontWeight="Bold"
+                        Foreground="#FFFFFF" />
+
+                    <TextBlock
+                        Text="点検担当者メニュー"
+                        FontSize="12"
+                        Foreground="#94A3B8" />
+
+                </StackPanel>
+
+                <!-- メニュー -->
+                <StackPanel
+                    Grid.Row="1"
+                    Spacing="8">
+
+                    <TextBlock
+                        Margin="12,0,0,8"
+                        Text="MENU"
+                        FontSize="11"
+                        FontWeight="SemiBold"
+                        Foreground="#64748B" />
+
+                    <Button
+                        Height="46"
+                        Padding="16,0"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="8"
+                        Command="{Binding OpenDashboardCommand}">
+
+                        <TextBlock
+                            Text="ダッシュボード"
+                            FontSize="14"
+                            Foreground="#CBD5E1" />
+
+                    </Button>
+
+                    <Button
+                        Height="46"
+                        Padding="16,0"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="8"
+                        Command="{Binding OpenEquipmentManagementCommand}">
+
+                        <TextBlock
+                            Text="設備台帳"
+                            FontSize="14"
+                            Foreground="#CBD5E1" />
+
+                    </Button>
+
+                    <Button
+                        Height="46"
+                        Padding="16,0"
+                        HorizontalContentAlignment="Left"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="8"
+                        Command="{Binding OpenScheduleCalendarCommand}">
+
+                        <TextBlock
+                            Text="予定カレンダー"
+                            FontSize="14"
+                            Foreground="#CBD5E1" />
+
+                    </Button>
+
+                </StackPanel>
+
+                <!-- ログアウト -->
+                <Button
+                    Grid.Row="2"
+                    Height="46"
+                    Padding="16,0"
+                    Margin="0,16,0,8"
+                    HorizontalContentAlignment="Left"
+                    Background="#7F1D1D"
+                    BorderThickness="0"
+                    CornerRadius="8"
+                    Command="{Binding OpenLogoutDialogCommand}">
+
+                    <TextBlock
+                        Text="ログアウト"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="#FFFFFF" />
+
+                </Button>
+
+            </Grid>
+
+        </Border>
+
+        <!-- 右側 -->
+        <Grid
+            Grid.Column="1"
+            RowDefinitions="Auto,*">
+
+            <!-- 共通ヘッダー -->
+            <Border
+                Grid.Row="0"
+                Padding="32,16"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="0,0,0,1">
+
+                <Grid ColumnDefinitions="*,Auto">
+
+                    <TextBlock
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Text="点検担当者メニュー"
+                        FontSize="15"
+                        FontWeight="SemiBold"
+                        Foreground="#475569" />
+
+                    <StackPanel
+                        Grid.Column="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+
+                        <Border
+                            Width="34"
+                            Height="34"
+                            CornerRadius="17"
+                            Background="#DBEAFE">
+
+                            <TextBlock
+                                Text="点"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Foreground="#1D4ED8" />
+
+                        </Border>
+
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            Spacing="1">
+
+                            <TextBlock
+                                Text="{Binding OperatorName}"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#0F172A" />
+
+                            <TextBlock
+                                Text="設備点検担当者"
+                                FontSize="11"
+                                Foreground="#64748B" />
+
+                        </StackPanel>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </Border>
+
+            <!-- 各画面を表示 -->
+            <ContentControl
+                Grid.Row="1"
+                Content="{Binding CurrentContent}" />
+
+        </Grid>
+
+        <!-- 共通ログアウト確認 -->
+        <Border
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            IsVisible="{Binding IsLogoutDialogOpen}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#990F172A">
+
+            <Border
+                Width="420"
+                Padding="28"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="16"
+                BoxShadow="0 16 40 0 #59000000">
+
+                <StackPanel Spacing="20">
+
+                    <Border
+                        Width="52"
+                        Height="52"
+                        HorizontalAlignment="Center"
+                        Background="#FEE2E2"
+                        CornerRadius="26">
+
+                        <TextBlock
+                            Text="⎋"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="25"
+                            FontWeight="Bold"
+                            Foreground="#DC2626" />
+
+                    </Border>
+
+                    <StackPanel Spacing="8">
+
+                        <TextBlock
+                            Text="ログアウトしますか？"
+                            HorizontalAlignment="Center"
+                            FontSize="21"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Text="現在のログイン状態を終了し、ログイン画面に戻ります。"
+                            HorizontalAlignment="Center"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap"
+                            FontSize="13"
+                            Foreground="#64748B" />
+
+                    </StackPanel>
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="12">
+
+                        <Button
+                            Grid.Column="0"
+                            Content="キャンセル"
+                            Command="{Binding CancelLogoutCommand}"
+                            MinHeight="44"
+                            HorizontalContentAlignment="Center"
+                            Background="#FFFFFF"
+                            Foreground="#334155"
+                            BorderBrush="#CBD5E1"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                        <Button
+                            Grid.Column="1"
+                            Content="ログアウト"
+                            Command="{Binding ConfirmLogoutCommand}"
+                            MinHeight="44"
+                            HorizontalContentAlignment="Center"
+                            Background="#DC2626"
+                            Foreground="#FFFFFF"
+                            BorderBrush="#DC2626"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                    </Grid>
+
+                </StackPanel>
+
+            </Border>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>

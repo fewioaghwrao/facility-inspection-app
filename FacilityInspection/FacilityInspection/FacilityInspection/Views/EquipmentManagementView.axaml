@@ -6,314 +6,458 @@
     xmlns:site="using:FacilityInspection.Domain.Sites"
     xmlns:location="using:FacilityInspection.Domain.Locations"
     x:Class="FacilityInspection.Views.EquipmentManagementView"
-    x:DataType="vm:EquipmentManagementViewModel">
+    x:DataType="vm:EquipmentManagementViewModel"
+    Background="#F8FAFC">
+      
 
-    <ScrollViewer>
-        <StackPanel
-            Margin="24"
-            Spacing="16">
+            <!-- =====================================================
+                 設備台帳本体
+                 ===================================================== -->
+            <ScrollViewer
+                Grid.Row="1"
+                HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
 
-            <!-- 画面タイトル -->
-            <StackPanel Spacing="4">
-                <TextBlock
-                    Text="設備台帳"
-                    FontSize="28"
-                    FontWeight="Bold" />
+                <StackPanel
+                    Margin="32"
+                    Spacing="20">
 
-                <TextBlock
-                    Text="工場ユーティリティ・付帯設備の登録と管理"
-                    FontSize="15"
-                    Opacity="0.75" />
-            </StackPanel>
-
-            <!-- 設備登録フォーム -->
-            <Border
-                Padding="16"
-                CornerRadius="8"
-                BorderBrush="#30000000"
-                BorderThickness="1">
-
-                <StackPanel Spacing="12">
-
-                    <TextBlock
-                        Text="設備を登録"
-                        FontSize="20"
-                        FontWeight="Bold" />
-
-                    <!-- 工場 -->
+                    <!-- 画面タイトル -->
                     <StackPanel Spacing="4">
-                        <TextBlock
-                            Text="工場"
-                            FontWeight="SemiBold" />
-
-                        <ComboBox
-                            ItemsSource="{Binding FactorySites}"
-                            SelectedItem="{Binding SelectedFactorySite, Mode=TwoWay}"
-                            HorizontalAlignment="Stretch">
-
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="site:FactorySite">
-                                    <StackPanel
-                                        Orientation="Horizontal"
-                                        Spacing="8">
-
-                                        <TextBlock
-                                            Text="{Binding Code}"
-                                            Opacity="0.65" />
-
-                                        <TextBlock
-                                            Text="{Binding Name}"
-                                            FontWeight="SemiBold" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <!-- 設置場所 -->
-                    <StackPanel Spacing="4">
-                        <TextBlock
-                            Text="設置場所"
-                            FontWeight="SemiBold" />
-
-                        <ComboBox
-                            ItemsSource="{Binding Locations}"
-                            SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"
-                            HorizontalAlignment="Stretch">
-
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="location:Location">
-                                    <StackPanel
-                                        Orientation="Horizontal"
-                                        Spacing="6">
-
-                                        <TextBlock
-                                            Text="{Binding Floor}"
-                                            FontWeight="SemiBold" />
-
-                                        <TextBlock
-                                            Text="{Binding Name}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
 
                         <TextBlock
-                            Text="工場を変更すると、選択可能な設置場所が切り替わります。"
-                            FontSize="12"
-                            Opacity="0.65"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
+                            Text="設備台帳"
+                            FontSize="28"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
 
-                    <!-- 設備コード -->
-                    <StackPanel Spacing="4">
                         <TextBlock
-                            Text="設備コード"
-                            FontWeight="SemiBold" />
+                            Text="工場ユーティリティ・付帯設備の登録と管理"
+                            FontSize="15"
+                            Foreground="#64748B" />
 
-                        <TextBox
-                            Text="{Binding NewEquipmentCode, Mode=TwoWay}"
-                            Watermark="例：EQ-001"
-                            MaxLength="30" />
                     </StackPanel>
 
-                    <!-- 設備名 -->
-                    <StackPanel Spacing="4">
-                        <TextBlock
-                            Text="設備名"
-                            FontWeight="SemiBold" />
+                    <!-- =================================================
+                         設備登録フォーム
+                         ================================================= -->
+                    <Border
+                        Padding="20"
+                        CornerRadius="12"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        BoxShadow="0 4 14 0 #160F172A">
 
-                        <TextBox
-                            Text="{Binding NewEquipmentName, Mode=TwoWay}"
-                            Watermark="例：第1エアコンプレッサー"
-                            MaxLength="100" />
-                    </StackPanel>
+                        <StackPanel Spacing="14">
 
-                    <!-- 設備種別 -->
-                    <StackPanel Spacing="4">
-                        <TextBlock
-                            Text="設備種別"
-                            FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="設備を登録"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
 
-                        <ComboBox
-                            ItemsSource="{Binding EquipmentTypes}"
-                            SelectedItem="{Binding SelectedEquipmentType, Mode=TwoWay}"
-                            HorizontalAlignment="Stretch" />
-                    </StackPanel>
+                            <TextBlock
+                                Text="点検対象となる設備の基本情報を入力してください。"
+                                FontSize="13"
+                                Foreground="#64748B" />
 
-                    <!-- 操作ボタン -->
-                    <StackPanel
-                        Orientation="Horizontal"
-                        Spacing="8">
+                            <!-- 工場 -->
+                            <StackPanel Spacing="5">
 
-                        <Button
-                            Content="設備を登録"
-                            Command="{Binding SaveCommand}"
-                            MinWidth="120" />
+                                <TextBlock
+                                    Text="工場"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
 
-                        <Button
-                            Content="再読込"
-                            Command="{Binding ReloadCommand}"
-                            MinWidth="90" />
-                    </StackPanel>
+                                <ComboBox
+                                    ItemsSource="{Binding FactorySites}"
+                                    SelectedItem="{Binding SelectedFactorySite, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch">
 
-                    <TextBlock
-                        Text="{Binding StatusMessage}"
-                        TextWrapping="Wrap"
-                        FontWeight="SemiBold" />
-                </StackPanel>
-            </Border>
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="site:FactorySite">
 
-            <!-- 設備一覧 -->
-            <StackPanel Spacing="10">
+                                            <StackPanel
+                                                Orientation="Horizontal"
+                                                Spacing="8">
 
-                <TextBlock
-                    Text="登録済み設備"
-                    FontSize="20"
-                    FontWeight="Bold" />
+                                                <TextBlock
+                                                    Text="{Binding Code}"
+                                                    Foreground="#64748B" />
 
-                <ItemsControl ItemsSource="{Binding Equipments}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="equipment:Equipment">
+                                                <TextBlock
+                                                    Text="{Binding Name}"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#0F172A" />
 
+                                            </StackPanel>
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                            </StackPanel>
+
+                            <!-- 設置場所 -->
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="設置場所"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding Locations}"
+                                    SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch">
+
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="location:Location">
+
+                                            <StackPanel
+                                                Orientation="Horizontal"
+                                                Spacing="6">
+
+                                                <TextBlock
+                                                    Text="{Binding Floor}"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#0F172A" />
+
+                                                <TextBlock
+                                                    Text="{Binding Name}"
+                                                    Foreground="#475569" />
+
+                                            </StackPanel>
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                                <TextBlock
+                                    Text="工場を変更すると、選択可能な設置場所が切り替わります。"
+                                    FontSize="12"
+                                    Foreground="#64748B"
+                                    TextWrapping="Wrap" />
+
+                            </StackPanel>
+
+                            <!-- 設備コード -->
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="設備コード"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <TextBox
+                                    Text="{Binding NewEquipmentCode, Mode=TwoWay}"
+                                    Watermark="例：EQ-001"
+                                    MaxLength="30" />
+
+                            </StackPanel>
+
+                            <!-- 設備名 -->
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="設備名"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <TextBox
+                                    Text="{Binding NewEquipmentName, Mode=TwoWay}"
+                                    Watermark="例：第1エアコンプレッサー"
+                                    MaxLength="100" />
+
+                            </StackPanel>
+
+                            <!-- 設備種別 -->
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="設備種別"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding EquipmentTypes}"
+                                    SelectedItem="{Binding SelectedEquipmentType, Mode=TwoWay}"
+                                    HorizontalAlignment="Stretch" />
+
+                            </StackPanel>
+
+                            <!-- 操作ボタン -->
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="10">
+
+                                <Button
+                                    Content="設備を登録"
+                                    Command="{Binding SaveCommand}"
+                                    MinWidth="120"
+                                    MinHeight="40"
+                                    HorizontalContentAlignment="Center"
+                                    Background="#2563EB"
+                                    Foreground="#FFFFFF"
+                                    BorderBrush="#2563EB"
+                                    BorderThickness="1"
+                                    CornerRadius="7" />
+
+                                <Button
+                                    Content="再読込"
+                                    Command="{Binding ReloadCommand}"
+                                    MinWidth="90"
+                                    MinHeight="40"
+                                    HorizontalContentAlignment="Center"
+                                    Background="#FFFFFF"
+                                    Foreground="#334155"
+                                    BorderBrush="#CBD5E1"
+                                    BorderThickness="1"
+                                    CornerRadius="7" />
+
+                            </StackPanel>
+
+                            <!-- ステータスメッセージ -->
                             <Border
-                                Margin="0,0,0,8"
-                                Padding="14"
-                                CornerRadius="8"
-                                BorderBrush="#30000000"
-                                BorderThickness="1">
+                                Padding="12"
+                                CornerRadius="7"
+                                Background="#F1F5F9">
 
-                                <Grid
-                                    ColumnDefinitions="Auto,*"
-                                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
-                                    ColumnSpacing="12"
-                                    RowSpacing="4">
+                                <TextBlock
+                                    Text="{Binding StatusMessage}"
+                                    TextWrapping="Wrap"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#475569" />
 
-                                    <!-- 設備名 -->
-                                    <TextBlock
-                                        Grid.Row="0"
-                                        Grid.Column="0"
-                                        Text="設備名"
-                                        FontSize="12"
-                                        Opacity="0.65" />
-
-                                    <TextBlock
-                                        Grid.Row="0"
-                                        Grid.Column="1"
-                                        Text="{Binding Name}"
-                                        FontWeight="Bold"
-                                        TextWrapping="Wrap" />
-
-                                    <!-- 設備コード -->
-                                    <TextBlock
-                                        Grid.Row="1"
-                                        Grid.Column="0"
-                                        Text="設備コード"
-                                        FontSize="12"
-                                        Opacity="0.65" />
-
-                                    <TextBlock
-                                        Grid.Row="1"
-                                        Grid.Column="1"
-                                        Text="{Binding EquipmentCode}"
-                                        TextWrapping="Wrap" />
-
-                                    <!-- 工場 -->
-                                    <TextBlock
-                                        Grid.Row="2"
-                                        Grid.Column="0"
-                                        Text="工場"
-                                        FontSize="12"
-                                        Opacity="0.65" />
-
-                                    <TextBlock
-                                        Grid.Row="2"
-                                        Grid.Column="1"
-                                        Text="{Binding Location.FactorySite.Name}"
-                                        TextWrapping="Wrap" />
-
-                                    <!-- 設置場所 -->
-                                    <TextBlock
-                                        Grid.Row="3"
-                                        Grid.Column="0"
-                                        Text="設置場所"
-                                        FontSize="12"
-                                        Opacity="0.65" />
-
-                                    <StackPanel
-                                        Grid.Row="3"
-                                        Grid.Column="1"
-                                        Orientation="Horizontal"
-                                        Spacing="6">
-
-                                        <TextBlock
-                                            Text="{Binding Location.Floor}" />
-
-                                        <TextBlock
-                                            Text="/" />
-
-                                        <TextBlock
-                                            Text="{Binding Location.Name}"
-                                            TextWrapping="Wrap" />
-                                    </StackPanel>
-
-                                    <!-- 設備種別 -->
-                                    <TextBlock
-                                        Grid.Row="4"
-                                        Grid.Column="0"
-                                        Text="設備種別"
-                                        FontSize="12"
-                                        Opacity="0.65" />
-
-                                    <TextBlock
-                                        Grid.Row="4"
-                                        Grid.Column="1"
-                                        Text="{Binding EquipmentType}"
-                                        TextWrapping="Wrap" />
-
-                                    <!-- 稼働状態 -->
-                                    <TextBlock
-                                        Grid.Row="5"
-                                        Grid.Column="0"
-                                        Text="稼働状態"
-                                        FontSize="12"
-                                        Opacity="0.65" />
-
-                                    <TextBlock
-                                        Grid.Row="5"
-                                        Grid.Column="1"
-                                        Text="{Binding Status}"
-                                        TextWrapping="Wrap" />
-
-                                </Grid>
                             </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
 
-            <!-- 開発用情報 -->
-            <Expander Header="開発用情報">
+                        </StackPanel>
 
-                <Border
-                    Margin="0,8,0,0"
-                    Padding="12"
-                    CornerRadius="6"
-                    Background="#10000000">
+                    </Border>
 
-                    <StackPanel Spacing="4">
-                        <TextBlock
-                            Text="SQLite保存先"
-                            FontWeight="Bold" />
+                    <!-- =================================================
+                         設備一覧
+                         ================================================= -->
+                    <Border
+                        Padding="20"
+                        CornerRadius="12"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        BoxShadow="0 4 14 0 #160F172A">
 
-                        <TextBlock
-                            Text="{Binding DatabasePath}"
-                            TextWrapping="Wrap"
-                            FontSize="12" />
-                    </StackPanel>
-                </Border>
-            </Expander>
+                        <StackPanel Spacing="14">
 
-        </StackPanel>
-    </ScrollViewer>
+                            <Grid ColumnDefinitions="*,Auto">
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    Spacing="3">
+
+                                    <TextBlock
+                                        Text="登録済み設備"
+                                        FontSize="20"
+                                        FontWeight="Bold"
+                                        Foreground="#0F172A" />
+
+                                    <TextBlock
+                                        Text="SQLiteに登録されている設備を表示します。"
+                                        FontSize="13"
+                                        Foreground="#64748B" />
+
+                                </StackPanel>
+
+                                <Button
+                                    Grid.Column="1"
+                                    Content="最新情報に更新"
+                                    Command="{Binding ReloadCommand}"
+                                    MinHeight="38"
+                                    Padding="14,6"
+                                    VerticalAlignment="Center"
+                                    Background="#FFFFFF"
+                                    Foreground="#334155"
+                                    BorderBrush="#CBD5E1"
+                                    BorderThickness="1"
+                                    CornerRadius="7" />
+
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding Equipments}">
+
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="equipment:Equipment">
+
+                                        <Border
+                                            Margin="0,0,0,10"
+                                            Padding="16"
+                                            CornerRadius="10"
+                                            Background="#F8FAFC"
+                                            BorderBrush="#E2E8F0"
+                                            BorderThickness="1">
+
+                                            <Grid
+                                                ColumnDefinitions="120,*"
+                                                RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                                ColumnSpacing="14"
+                                                RowSpacing="7">
+
+                                                <!-- 設備名 -->
+                                                <TextBlock
+                                                    Grid.Row="0"
+                                                    Grid.Column="0"
+                                                    Text="設備名"
+                                                    FontSize="12"
+                                                    Foreground="#64748B" />
+
+                                                <TextBlock
+                                                    Grid.Row="0"
+                                                    Grid.Column="1"
+                                                    Text="{Binding Name}"
+                                                    FontWeight="Bold"
+                                                    Foreground="#0F172A"
+                                                    TextWrapping="Wrap" />
+
+                                                <!-- 設備コード -->
+                                                <TextBlock
+                                                    Grid.Row="1"
+                                                    Grid.Column="0"
+                                                    Text="設備コード"
+                                                    FontSize="12"
+                                                    Foreground="#64748B" />
+
+                                                <TextBlock
+                                                    Grid.Row="1"
+                                                    Grid.Column="1"
+                                                    Text="{Binding EquipmentCode}"
+                                                    Foreground="#334155"
+                                                    TextWrapping="Wrap" />
+
+                                                <!-- 工場 -->
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Grid.Column="0"
+                                                    Text="工場"
+                                                    FontSize="12"
+                                                    Foreground="#64748B" />
+
+                                                <TextBlock
+                                                    Grid.Row="2"
+                                                    Grid.Column="1"
+                                                    Text="{Binding Location.FactorySite.Name}"
+                                                    Foreground="#334155"
+                                                    TextWrapping="Wrap" />
+
+                                                <!-- 設置場所 -->
+                                                <TextBlock
+                                                    Grid.Row="3"
+                                                    Grid.Column="0"
+                                                    Text="設置場所"
+                                                    FontSize="12"
+                                                    Foreground="#64748B" />
+
+                                                <StackPanel
+                                                    Grid.Row="3"
+                                                    Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6">
+
+                                                    <TextBlock
+                                                        Text="{Binding Location.Floor}"
+                                                        Foreground="#334155" />
+
+                                                    <TextBlock
+                                                        Text="/"
+                                                        Foreground="#94A3B8" />
+
+                                                    <TextBlock
+                                                        Text="{Binding Location.Name}"
+                                                        Foreground="#334155"
+                                                        TextWrapping="Wrap" />
+
+                                                </StackPanel>
+
+                                                <!-- 設備種別 -->
+                                                <TextBlock
+                                                    Grid.Row="4"
+                                                    Grid.Column="0"
+                                                    Text="設備種別"
+                                                    FontSize="12"
+                                                    Foreground="#64748B" />
+
+                                                <TextBlock
+                                                    Grid.Row="4"
+                                                    Grid.Column="1"
+                                                    Text="{Binding EquipmentType}"
+                                                    Foreground="#334155"
+                                                    TextWrapping="Wrap" />
+
+                                                <!-- 稼働状態 -->
+                                                <TextBlock
+                                                    Grid.Row="5"
+                                                    Grid.Column="0"
+                                                    Text="稼働状態"
+                                                    FontSize="12"
+                                                    Foreground="#64748B" />
+
+                                                <TextBlock
+                                                    Grid.Row="5"
+                                                    Grid.Column="1"
+                                                    Text="{Binding Status}"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#15803D"
+                                                    TextWrapping="Wrap" />
+
+                                            </Grid>
+
+                                        </Border>
+
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+
+                            </ItemsControl>
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <!-- =================================================
+                         開発用情報
+                         ================================================= -->
+                    <Expander Header="開発用情報">
+
+                        <Border
+                            Margin="0,8,0,0"
+                            Padding="14"
+                            CornerRadius="8"
+                            Background="#F1F5F9"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1">
+
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="SQLite保存先"
+                                    FontWeight="Bold"
+                                    Foreground="#334155" />
+
+                                <TextBlock
+                                    Text="{Binding DatabasePath}"
+                                    TextWrapping="Wrap"
+                                    FontSize="12"
+                                    Foreground="#64748B" />
+
+                            </StackPanel>
+
+                        </Border>
+
+                    </Expander>
+
+                </StackPanel>
+
+            </ScrollViewer>
+
 </UserControl>

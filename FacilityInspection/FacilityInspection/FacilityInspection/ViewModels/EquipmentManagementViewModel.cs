@@ -35,6 +35,33 @@ public partial class EquipmentManagementViewModel : ViewModelBase
 
         _repository =
             new EquipmentRepository(DatabasePath);
+
+
+    }
+
+    public EquipmentManagementViewModel(
+    string operatorName,
+    Action openDashboard,
+    Action openEquipmentManagement,
+    Action openScheduleCalendar,
+    Action logout)
+    : this()
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            operatorName);
+
+        ArgumentNullException.ThrowIfNull(
+            openDashboard);
+
+        ArgumentNullException.ThrowIfNull(
+            openEquipmentManagement);
+
+        ArgumentNullException.ThrowIfNull(
+            openScheduleCalendar);
+
+        ArgumentNullException.ThrowIfNull(
+            logout);
+
     }
 
     public ObservableCollection<DomainEquipment> Equipments { get; } = [];

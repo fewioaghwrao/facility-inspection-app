@@ -30,5 +30,8 @@
     <Compile Update="Views\AdminDashboardView.axaml.cs">
       <DependentUpon>AdminDashboardView.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Views\ScheduleCalendarView.axaml.cs">
+      <DependentUpon>ScheduleCalendarView.axaml</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

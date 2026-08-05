@@ -3,6 +3,11 @@ using FacilityInspection.Domain.Operators;
 using FacilityInspection.Services.Authentication;
 using System;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+using FacilityInspection.Domain.Operators;
+using FacilityInspection.Services.Authentication;
+using System;
+
 namespace FacilityInspection.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
@@ -44,7 +49,9 @@ public partial class MainViewModel : ViewModelBase
             signedInOperator.Role switch
             {
                 OperatorRole.Inspector =>
-                    new EquipmentManagementViewModel(),
+                    new MemberShellViewModel(
+                        signedInOperator.DisplayName,
+                        Logout),
 
                 OperatorRole.MaintenanceManager =>
                     new AdminDashboardViewModel(
@@ -61,7 +68,8 @@ public partial class MainViewModel : ViewModelBase
     public void NavigateTo(
         ViewModelBase destination)
     {
-        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(
+            destination);
 
         CurrentPage = destination;
     }
