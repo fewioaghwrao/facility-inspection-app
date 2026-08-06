@@ -1,9 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using FacilityInspection.Domain.Operators;
-using FacilityInspection.Services.Authentication;
-using System;
-
-using CommunityToolkit.Mvvm.ComponentModel;
+using FacilityInspection.Data;
 using FacilityInspection.Domain.Operators;
 using FacilityInspection.Services.Authentication;
 using System;
@@ -14,18 +10,28 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly IAuthenticationService _authenticationService;
     private readonly CurrentUserSession _currentUserSession;
+    private readonly InspectionTemplateRepository
+    _inspectionTemplateRepository;
 
     [ObservableProperty]
-    private ViewModelBase currentPage;
+    private ViewModelBase currentPage = null!;
 
     public MainViewModel(
-        IAuthenticationService authenticationService,
-        CurrentUserSession currentUserSession)
+       IAuthenticationService authenticationService,
+       CurrentUserSession currentUserSession,
+       InspectionTemplateRepository inspectionTemplateRepository)
     {
+        ArgumentNullException.ThrowIfNull(authenticationService);
+        ArgumentNullException.ThrowIfNull(currentUserSession);
+        ArgumentNullException.ThrowIfNull(
+            inspectionTemplateRepository);
+
         _authenticationService = authenticationService;
         _currentUserSession = currentUserSession;
+        _inspectionTemplateRepository =
+            inspectionTemplateRepository;
 
-        currentPage = CreateLoginViewModel();
+        CurrentPage = CreateLoginViewModel();
     }
 
     private LoginViewModel CreateLoginViewModel()
@@ -42,6 +48,8 @@ public partial class MainViewModel : ViewModelBase
     private void OnLoginSucceeded(
         SignedInOperator signedInOperator)
     {
+        ArgumentNullException.ThrowIfNull(signedInOperator);
+
         _currentUserSession.SignIn(
             signedInOperator);
 
@@ -49,14 +57,12 @@ public partial class MainViewModel : ViewModelBase
             signedInOperator.Role switch
             {
                 OperatorRole.Inspector =>
-                    new MemberShellViewModel(
-                        signedInOperator.DisplayName,
-                        Logout),
+                    CreateMemberShellViewModel(
+                        signedInOperator),
 
                 OperatorRole.MaintenanceManager =>
-                    new AdminDashboardViewModel(
-                        signedInOperator.DisplayName,
-                        Logout),
+                    CreateAdminShellViewModel(
+                        signedInOperator),
 
                 _ => throw new InvalidOperationException(
                     $"未対応の権限です: {signedInOperator.Role}")
@@ -65,11 +71,44 @@ public partial class MainViewModel : ViewModelBase
         NavigateTo(destination);
     }
 
+    private MemberShellViewModel CreateMemberShellViewModel(
+        SignedInOperator signedInOperator)
+    {
+        return new MemberShellViewModel(
+            signedInOperator.DisplayName,
+            Logout);
+    }
+
+    private AdminShellViewModel CreateAdminShellViewModel(
+        SignedInOperator signedInOperator)
+    {
+        var adminDashboardViewModel =
+            new AdminDashboardViewModel(
+                signedInOperator.DisplayName);
+
+        var equipmentManagementViewModel =
+            new EquipmentManagementViewModel();
+
+        var scheduleCalendarViewModel =
+            new ScheduleCalendarViewModel();
+
+        var inspectionTemplateManagementViewModel =
+            new InspectionTemplateManagementViewModel(
+                _inspectionTemplateRepository);
+
+        return new AdminShellViewModel(
+            signedInOperator.DisplayName,
+            adminDashboardViewModel,
+            equipmentManagementViewModel,
+            scheduleCalendarViewModel,
+            inspectionTemplateManagementViewModel,
+            Logout);
+    }
+
     public void NavigateTo(
         ViewModelBase destination)
     {
-        ArgumentNullException.ThrowIfNull(
-            destination);
+        ArgumentNullException.ThrowIfNull(destination);
 
         CurrentPage = destination;
     }
