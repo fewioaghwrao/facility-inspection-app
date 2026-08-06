@@ -38,4 +38,13 @@ internal static class SeedDataIds
     public static readonly Guid SecondFactoryOutdoorAreaId =
         Guid.Parse(
             "20000000-0000-0000-0000-000000000006");
+
+    public static readonly Guid AirCompressorTemplateId =
+    Guid.Parse("20000000-0000-0000-0000-000000000001");
+
+    public static readonly Guid CoolingWaterPumpTemplateId =
+        Guid.Parse("20000000-0000-0000-0000-000000000002");
+
+    public static readonly Guid VentilationTemplateId =
+        Guid.Parse("20000000-0000-0000-0000-000000000003");
 }
