@@ -1,22 +1,14 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System;
+﻿using System;
 
 namespace FacilityInspection.ViewModels;
 
-public sealed partial class AdminDashboardViewModel : ViewModelBase
+public sealed class AdminDashboardViewModel : ViewModelBase
 {
-    private readonly Action _logoutRequested;
-
-    public AdminDashboardViewModel(
-        string displayName,
-        Action logoutRequested)
+    public AdminDashboardViewModel(string displayName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
-        ArgumentNullException.ThrowIfNull(logoutRequested);
 
         DisplayName = displayName;
-        _logoutRequested = logoutRequested;
     }
 
     public string DisplayName { get; }
@@ -37,27 +29,4 @@ public sealed partial class AdminDashboardViewModel : ViewModelBase
     public int AlertCount => 2;
 
     public int OperatorCount => 5;
-
-    [ObservableProperty]
-    private bool isLogoutDialogOpen;
-
-    [RelayCommand]
-    private void OpenLogoutDialog()
-    {
-        IsLogoutDialogOpen = true;
-    }
-
-    [RelayCommand]
-    private void CancelLogout()
-    {
-        IsLogoutDialogOpen = false;
-    }
-
-    [RelayCommand]
-    private void ConfirmLogout()
-    {
-        IsLogoutDialogOpen = false;
-
-        _logoutRequested();
-    }
 }

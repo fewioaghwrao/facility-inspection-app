@@ -8,67 +8,6 @@
 
     <UserControl.Styles>
 
-        <!-- 左端のアイコンボタン -->
-        <Style Selector="Button.railButton">
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="48" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,3" />
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="Foreground" Value="#CBD5E1" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter
-                Property="HorizontalContentAlignment"
-                Value="Center" />
-            <Setter
-                Property="VerticalContentAlignment"
-                Value="Center" />
-        </Style>
-
-        <Style Selector="Button.railButton:pointerover">
-            <Setter Property="Background" Value="#334155" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-        </Style>
-
-        <!-- 右側の詳細メニュー -->
-        <Style Selector="Button.menuButton">
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="Margin" Value="0,2" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#334155" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="7" />
-            <Setter
-                Property="HorizontalContentAlignment"
-                Value="Left" />
-        </Style>
-
-        <Style Selector="Button.menuButton:pointerover">
-            <Setter Property="Background" Value="#E2E8F0" />
-            <Setter Property="Foreground" Value="#0F172A" />
-        </Style>
-
-        <!-- 選択中のメニュー -->
-        <Style Selector="Button.menuButtonSelected">
-            <Setter Property="MinHeight" Value="40" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="Margin" Value="0,2" />
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#1D4ED8" />
-            <Setter Property="Background" Value="#DBEAFE" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="7" />
-            <Setter
-                Property="HorizontalContentAlignment"
-                Value="Left" />
-        </Style>
-
-        <!-- 集計カード -->
         <Style Selector="Border.summaryCard">
             <Setter Property="Padding" Value="18" />
             <Setter Property="Background" Value="#FFFFFF" />
@@ -82,536 +21,65 @@
 
     </UserControl.Styles>
 
-    <!--
-        左：アイコンバー
-        中：管理メニュー
-        右：メインコンテンツ
-    -->
-    <Grid ColumnDefinitions="64,240,*">
+    <ScrollViewer
+        HorizontalScrollBarVisibility="Disabled"
+        VerticalScrollBarVisibility="Auto">
 
-        <!-- 左端のアイコンバー -->
-        <Border
-            Grid.Column="0"
-            Background="#172033">
+        <StackPanel
+            Margin="28"
+            Spacing="22">
 
-            <Grid
-                Margin="8"
-                RowDefinitions="Auto,*,Auto">
+            <!-- ここに現在の管理者ダッシュボード本体を残す -->
 
-                <!-- アプリアイコン -->
-                <Border
-                    Grid.Row="0"
-                    Width="48"
-                    Height="48"
-                    Margin="0,6,0,18"
-                    CornerRadius="10"
-                    ClipToBounds="True">
+            <Grid ColumnDefinitions="*,Auto">
 
-                    <Image
-                        Source="/Assets/facility-inspection.png"
-                        Stretch="UniformToFill" />
-
-                </Border>
-
-                <!-- メインカテゴリー -->
                 <StackPanel
-                    Grid.Row="1"
-                    HorizontalAlignment="Center"
-                    Spacing="3">
-
-                    <Button
-                        Classes="railButton"
-                        Content="⌂"
-                        ToolTip.Tip="ダッシュボード" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="✓"
-                        ToolTip.Tip="点検管理" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="⚙"
-                        ToolTip.Tip="設備管理" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="♙"
-                        ToolTip.Tip="担当者管理" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="≡"
-                        ToolTip.Tip="操作履歴" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="↻"
-                        ToolTip.Tip="バックアップ・復元" />
-
-                </StackPanel>
-
-                <!-- 下部 -->
-                <StackPanel
-                    Grid.Row="2"
-                    HorizontalAlignment="Center"
-                    Spacing="4">
-
-                    <Button
-                        Classes="railButton"
-                        Content="?"
-                        ToolTip.Tip="ヘルプ" />
-
-<Button
-    Classes="railButton"
-    Content="⎋"
-    Command="{Binding OpenLogoutDialogCommand}"
-    ToolTip.Tip="ログアウト" />
-
-                </StackPanel>
-
-            </Grid>
-
-        </Border>
-
-        <!-- 中央の詳細メニュー -->
-        <Border
-            Grid.Column="1"
-            Background="#F8FAFC"
-            BorderBrush="#E2E8F0"
-            BorderThickness="0,0,1,0">
-
-            <Grid
-                Margin="16"
-                RowDefinitions="Auto,*,Auto">
-
-                <!-- ユーザー情報 -->
-                <StackPanel
-                    Grid.Row="0"
-                    Margin="0,6,0,16"
-                    Spacing="4">
+                    Grid.Column="0"
+                    Spacing="5">
 
                     <TextBlock
-                        Text="管理メニュー"
-                        FontSize="19"
+                        Text="保全責任者"
+                        FontSize="28"
                         FontWeight="Bold"
                         Foreground="#0F172A" />
 
                     <TextBlock
-                        Text="{Binding DisplayName}"
-                        FontSize="13"
-                        Foreground="#475569" />
-
-                    <TextBlock
-                        Text="保全責任者"
-                        FontSize="12"
-                        Foreground="#2563EB" />
+                        Text="{Binding WelcomeMessage}"
+                        FontSize="14"
+                        Foreground="#64748B" />
 
                 </StackPanel>
 
-                <!-- 機能一覧 -->
-                <ScrollViewer
-                    Grid.Row="1"
-                    VerticalScrollBarVisibility="Auto">
-
-                    <StackPanel Spacing="2">
-
-                        <Button
-                            Classes="menuButtonSelected"
-                            Content="ダッシュボード" />
-
-                        <TextBlock
-                            Text="点検管理"
-                            Margin="10,16,0,5"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="#64748B" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="├─ 点検実施状況" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="├─ 異常一覧" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="├─ 対応中一覧" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="├─ 再点検待ち" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="├─ 完了承認" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="└─ 差し戻し" />
-
-                        <Border
-                            Height="1"
-                            Margin="4,14"
-                            Background="#E2E8F0" />
-
-                        <TextBlock
-                            Text="マスター・システム管理"
-                            Margin="10,0,0,5"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="#64748B" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="設備台帳管理" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="点検票テンプレート管理" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="点検予定管理" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="担当者管理" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="操作履歴" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="バックアップ・復元" />
-
-                    </StackPanel>
-
-                </ScrollViewer>
-
-                <!-- ログアウト -->
-<Button
-    Grid.Row="2"
-    Margin="0,12,0,4"
-    MinHeight="40"
-    Content="ログアウト"
-    Command="{Binding OpenLogoutDialogCommand}"
-    HorizontalContentAlignment="Center"
-    Background="#FFFFFF"
-    Foreground="#475569"
-    BorderBrush="#CBD5E1"
-    BorderThickness="1"
-    CornerRadius="7" />
-
-            </Grid>
-
-        </Border>
-
-        <!-- 右側メインコンテンツ -->
-        <ScrollViewer
-            Grid.Column="2"
-            HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto">
-
-            <StackPanel
-                Margin="28"
-                Spacing="22">
-
-                <!-- ヘッダー -->
-                <Grid ColumnDefinitions="*,Auto">
+                <Border
+                    Grid.Column="1"
+                    Padding="14,8"
+                    Background="#DBEAFE"
+                    CornerRadius="8"
+                    VerticalAlignment="Center">
 
                     <StackPanel
-                        Grid.Column="0"
-                        Spacing="5">
+                        Orientation="Horizontal"
+                        Spacing="8">
 
                         <TextBlock
-                            Text="管理者ダッシュボード"
-                            FontSize="28"
-                            FontWeight="Bold"
-                            Foreground="#0F172A" />
+                            Text="保全責任者"
+                            Foreground="#1D4ED8"
+                            FontWeight="SemiBold" />
 
                         <TextBlock
-                            Text="{Binding WelcomeMessage}"
-                            FontSize="14"
-                            Foreground="#64748B" />
-
-                    </StackPanel>
-
-                    <Border
-                        Grid.Column="1"
-                        Padding="14,8"
-                        Background="#DBEAFE"
-                        CornerRadius="8"
-                        VerticalAlignment="Center">
-
-                        <StackPanel
-                            Orientation="Horizontal"
-                            Spacing="8">
-
-                            <TextBlock
-                                Text="保全責任者"
-                                Foreground="#1D4ED8"
-                                FontWeight="SemiBold" />
-
-                            <TextBlock
-                                Text="{Binding CurrentDateText}"
-                                Foreground="#475569" />
-
-                        </StackPanel>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- 集計 -->
-                <Grid
-                    ColumnDefinitions="*,*,*,*"
-                    ColumnSpacing="14">
-
-                    <Border
-                        Grid.Column="0"
-                        Classes="summaryCard">
-
-                        <StackPanel Spacing="7">
-
-                            <TextBlock
-                                Text="登録設備"
-                                Foreground="#64748B" />
-
-                            <TextBlock
-                                Text="{Binding EquipmentCount}"
-                                FontSize="30"
-                                FontWeight="Bold"
-                                Foreground="#2563EB" />
-
-                            <TextBlock
-                                Text="台"
-                                Foreground="#64748B" />
-
-                        </StackPanel>
-
-                    </Border>
-
-                    <Border
-                        Grid.Column="1"
-                        Classes="summaryCard">
-
-                        <StackPanel Spacing="7">
-
-                            <TextBlock
-                                Text="本日の点検"
-                                Foreground="#64748B" />
-
-                            <TextBlock
-                                Text="{Binding TodayInspectionCount}"
-                                FontSize="30"
-                                FontWeight="Bold"
-                                Foreground="#0F766E" />
-
-                            <TextBlock
-                                Text="件"
-                                Foreground="#64748B" />
-
-                        </StackPanel>
-
-                    </Border>
-
-                    <Border
-                        Grid.Column="2"
-                        Classes="summaryCard">
-
-                        <StackPanel Spacing="7">
-
-                            <TextBlock
-                                Text="点検完了"
-                                Foreground="#64748B" />
-
-                            <TextBlock
-                                Text="{Binding CompletedInspectionCount}"
-                                FontSize="30"
-                                FontWeight="Bold"
-                                Foreground="#15803D" />
-
-                            <TextBlock
-                                Text="件"
-                                Foreground="#64748B" />
-
-                        </StackPanel>
-
-                    </Border>
-
-                    <Border
-                        Grid.Column="3"
-                        Classes="summaryCard">
-
-                        <StackPanel Spacing="7">
-
-                            <TextBlock
-                                Text="要確認"
-                                Foreground="#64748B" />
-
-                            <TextBlock
-                                Text="{Binding AlertCount}"
-                                FontSize="30"
-                                FontWeight="Bold"
-                                Foreground="#DC2626" />
-
-                            <TextBlock
-                                Text="件"
-                                Foreground="#64748B" />
-
-                        </StackPanel>
-
-                    </Border>
-
-                </Grid>
-
-                <!-- 本日の状況 -->
-                <Border
-                    Padding="22"
-                    Background="#FFFFFF"
-                    BorderBrush="#E2E8F0"
-                    BorderThickness="1"
-                    CornerRadius="14">
-
-                    <StackPanel Spacing="14">
-
-                        <TextBlock
-                            Text="本日の状況"
-                            FontSize="20"
-                            FontWeight="Bold"
-                            Foreground="#0F172A" />
-
-                        <Border
-                            Padding="14"
-                            Background="#FFF7ED"
-                            CornerRadius="8">
-
-                            <TextBlock
-                                Text="冷却水ポンプ No.2 の点検結果に要確認項目があります。"
-                                Foreground="#9A3412"
-                                TextWrapping="Wrap" />
-
-                        </Border>
-
-                        <Border
-                            Padding="14"
-                            Background="#F0FDF4"
-                            CornerRadius="8">
-
-                            <TextBlock
-                                Text="第1工場の定期点検 5件が完了しています。"
-                                Foreground="#166534"
-                                TextWrapping="Wrap" />
-
-                        </Border>
+                            Text="{Binding CurrentDateText}"
+                            Foreground="#475569" />
 
                     </StackPanel>
 
                 </Border>
 
-            </StackPanel>
-
-        </ScrollViewer>
-        <!-- ログアウト確認ダイアログ -->
-<Border
-    Grid.Column="0"
-    Grid.ColumnSpan="3"
-    ZIndex="100"
-    IsVisible="{Binding IsLogoutDialogOpen}"
-    HorizontalAlignment="Stretch"
-    VerticalAlignment="Stretch"
-    Background="#990F172A">
-
-    <Border
-        Width="420"
-        Padding="28"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center"
-        Background="#FFFFFF"
-        BorderBrush="#E2E8F0"
-        BorderThickness="1"
-        CornerRadius="16"
-        BoxShadow="0 16 40 0 #59000000">
-
-        <StackPanel Spacing="20">
-
-            <!-- アイコン -->
-            <Border
-                Width="52"
-                Height="52"
-                HorizontalAlignment="Center"
-                Background="#FEE2E2"
-                CornerRadius="26">
-
-                <TextBlock
-                    Text="⎋"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    FontSize="25"
-                    FontWeight="Bold"
-                    Foreground="#DC2626" />
-
-            </Border>
-
-            <!-- メッセージ -->
-            <StackPanel Spacing="8">
-
-                <TextBlock
-                    Text="ログアウトしますか？"
-                    HorizontalAlignment="Center"
-                    FontSize="21"
-                    FontWeight="Bold"
-                    Foreground="#0F172A" />
-
-                <TextBlock
-                    Text="現在のログイン状態を終了し、ログイン画面に戻ります。"
-                    HorizontalAlignment="Center"
-                    TextAlignment="Center"
-                    TextWrapping="Wrap"
-                    FontSize="13"
-                    Foreground="#64748B" />
-
-            </StackPanel>
-
-            <!-- ボタン -->
-            <Grid
-                ColumnDefinitions="*,*"
-                ColumnSpacing="12">
-
-                <Button
-                    Grid.Column="0"
-                    Content="キャンセル"
-                    Command="{Binding CancelLogoutCommand}"
-                    MinHeight="44"
-                    HorizontalContentAlignment="Center"
-                    Background="#FFFFFF"
-                    Foreground="#334155"
-                    BorderBrush="#CBD5E1"
-                    BorderThickness="1"
-                    CornerRadius="8" />
-
-                <Button
-                    Grid.Column="1"
-                    Content="ログアウト"
-                    Command="{Binding ConfirmLogoutCommand}"
-                    MinHeight="44"
-                    HorizontalContentAlignment="Center"
-                    Background="#DC2626"
-                    Foreground="#FFFFFF"
-                    BorderBrush="#DC2626"
-                    BorderThickness="1"
-                    CornerRadius="8" />
-
             </Grid>
+
+            <!-- 既存の集計カードと「本日の状況」をこの下に残す -->
 
         </StackPanel>
 
-    </Border>
-
-</Border>
-    </Grid>
+    </ScrollViewer>
 
 </UserControl>

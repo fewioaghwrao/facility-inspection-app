@@ -3,6 +3,7 @@ using FacilityInspection.Domain.Locations;
 using FacilityInspection.Domain.Operators;
 using FacilityInspection.Domain.Sites;
 using Microsoft.EntityFrameworkCore;
+using FacilityInspection.Domain.InspectionTemplates;
 using System;
 
 namespace FacilityInspection.Data;
@@ -24,6 +25,12 @@ public sealed class InspectionDbContext : DbContext
     public DbSet<Equipment> Equipments => Set<Equipment>();
 
     public DbSet<Operator> Operators => Set<Operator>();
+
+    public DbSet<InspectionTemplate> InspectionTemplates =>
+    Set<InspectionTemplate>();
+
+    public DbSet<InspectionTemplateItem> InspectionTemplateItems =>
+        Set<InspectionTemplateItem>();
 
     protected override void OnConfiguring(
         DbContextOptionsBuilder optionsBuilder)

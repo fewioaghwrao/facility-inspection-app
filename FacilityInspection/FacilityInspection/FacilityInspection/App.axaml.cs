@@ -63,24 +63,18 @@ public partial class App : Application
             new InspectionDbContextFactory(
                 databasePath);
 
-        using (var dbContext =
-               dbContextFactory.CreateDbContext())
-        {
-            dbContext.Database.EnsureCreated();
-        }
+        InitializeDatabase(
+            dbContextFactory);
 
         var passwordHasher =
             new PasswordHasher<Operator>();
 
-        var operatorSeedService =
-            new OperatorSeedService(
-                dbContextFactory,
-                passwordHasher);
+        SeedOperators(
+            dbContextFactory,
+            passwordHasher);
 
-        operatorSeedService
-            .SeedAsync()
-            .GetAwaiter()
-            .GetResult();
+        SeedInspectionTemplates(
+            dbContextFactory);
 
         IAuthenticationService authenticationService =
             new AuthenticationService(
@@ -90,8 +84,53 @@ public partial class App : Application
         var currentUserSession =
             new CurrentUserSession();
 
+        var inspectionTemplateRepository =
+            new InspectionTemplateRepository(
+                dbContextFactory);
+
         return new MainViewModel(
             authenticationService,
-            currentUserSession);
+            currentUserSession,
+            inspectionTemplateRepository);
+    }
+
+    private static void InitializeDatabase(
+        InspectionDbContextFactory dbContextFactory)
+    {
+        using var dbContext =
+            dbContextFactory.CreateDbContext();
+
+        dbContext.Database.EnsureCreated();
+    }
+
+    private static void SeedOperators(
+        InspectionDbContextFactory dbContextFactory,
+        PasswordHasher<Operator> passwordHasher)
+    {
+        var operatorSeedService =
+            new OperatorSeedService(
+                dbContextFactory,
+                passwordHasher);
+
+        operatorSeedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    private static void SeedInspectionTemplates(
+        InspectionDbContextFactory dbContextFactory)
+    {
+        using var dbContext =
+            dbContextFactory.CreateDbContext();
+
+        var inspectionTemplateSeedService =
+            new InspectionTemplateSeedService(
+                dbContext);
+
+        inspectionTemplateSeedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
     }
 }
