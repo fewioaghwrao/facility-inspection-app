@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using FacilityInspection.Data;
 using FacilityInspection.Domain.Operators;
 using FacilityInspection.Services.Authentication;
@@ -8,28 +8,61 @@ namespace FacilityInspection.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    private readonly IAuthenticationService _authenticationService;
-    private readonly CurrentUserSession _currentUserSession;
+    private readonly IAuthenticationService
+        _authenticationService;
+
+    private readonly CurrentUserSession
+        _currentUserSession;
+
     private readonly InspectionTemplateRepository
-    _inspectionTemplateRepository;
+        _inspectionTemplateRepository;
+
+    private readonly OperatorRepository
+        _operatorRepository;
+
+    private readonly ScheduleRepository
+        _scheduleRepository;
 
     [ObservableProperty]
     private ViewModelBase currentPage = null!;
 
     public MainViewModel(
-       IAuthenticationService authenticationService,
-       CurrentUserSession currentUserSession,
-       InspectionTemplateRepository inspectionTemplateRepository)
+        IAuthenticationService authenticationService,
+        CurrentUserSession currentUserSession,
+        InspectionTemplateRepository
+            inspectionTemplateRepository,
+        OperatorRepository operatorRepository,
+        ScheduleRepository scheduleRepository)
     {
-        ArgumentNullException.ThrowIfNull(authenticationService);
-        ArgumentNullException.ThrowIfNull(currentUserSession);
+        ArgumentNullException.ThrowIfNull(
+            authenticationService);
+
+        ArgumentNullException.ThrowIfNull(
+            currentUserSession);
+
         ArgumentNullException.ThrowIfNull(
             inspectionTemplateRepository);
 
-        _authenticationService = authenticationService;
-        _currentUserSession = currentUserSession;
+        ArgumentNullException.ThrowIfNull(
+            operatorRepository);
+
+        ArgumentNullException.ThrowIfNull(
+            scheduleRepository);
+
+        _authenticationService =
+            authenticationService;
+
+        _currentUserSession =
+            currentUserSession;
+
         _inspectionTemplateRepository =
             inspectionTemplateRepository;
+
+        _operatorRepository =
+            operatorRepository;
+
+        _scheduleRepository =
+            scheduleRepository;
 
         CurrentPage = CreateLoginViewModel();
     }
@@ -37,7 +70,8 @@ public partial class MainViewModel : ViewModelBase
     private LoginViewModel CreateLoginViewModel()
     {
         var loginViewModel =
-            new LoginViewModel(_authenticationService);
+            new LoginViewModel(
+                _authenticationService);
 
         loginViewModel.LoginSucceeded =
             OnLoginSucceeded;
@@ -48,7 +82,8 @@ public partial class MainViewModel : ViewModelBase
     private void OnLoginSucceeded(
         SignedInOperator signedInOperator)
     {
-        ArgumentNullException.ThrowIfNull(signedInOperator);
+        ArgumentNullException.ThrowIfNull(
+            signedInOperator);
 
         _currentUserSession.SignIn(
             signedInOperator);
@@ -65,22 +100,26 @@ public partial class MainViewModel : ViewModelBase
                         signedInOperator),
 
                 _ => throw new InvalidOperationException(
-                    $"未対応の権限です: {signedInOperator.Role}")
+                    $"未対応の権限です: " +
+                    $"{signedInOperator.Role}")
             };
 
         NavigateTo(destination);
     }
 
-    private MemberShellViewModel CreateMemberShellViewModel(
-        SignedInOperator signedInOperator)
+    private MemberShellViewModel
+        CreateMemberShellViewModel(
+            SignedInOperator signedInOperator)
     {
         return new MemberShellViewModel(
             signedInOperator.DisplayName,
+            _scheduleRepository,
             Logout);
     }
 
-    private AdminShellViewModel CreateAdminShellViewModel(
-        SignedInOperator signedInOperator)
+    private AdminShellViewModel
+        CreateAdminShellViewModel(
+            SignedInOperator signedInOperator)
     {
         var adminDashboardViewModel =
             new AdminDashboardViewModel(
@@ -90,11 +129,17 @@ public partial class MainViewModel : ViewModelBase
             new EquipmentManagementViewModel();
 
         var scheduleCalendarViewModel =
-            new ScheduleCalendarViewModel();
+            new ScheduleCalendarViewModel(
+                _scheduleRepository);
 
         var inspectionTemplateManagementViewModel =
             new InspectionTemplateManagementViewModel(
                 _inspectionTemplateRepository);
+
+        var operatorManagementViewModel =
+            new OperatorManagementViewModel(
+                _operatorRepository,
+                signedInOperator.Id);
 
         return new AdminShellViewModel(
             signedInOperator.DisplayName,
@@ -102,13 +147,15 @@ public partial class MainViewModel : ViewModelBase
             equipmentManagementViewModel,
             scheduleCalendarViewModel,
             inspectionTemplateManagementViewModel,
+            operatorManagementViewModel,
             Logout);
     }
 
     public void NavigateTo(
         ViewModelBase destination)
     {
-        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(
+            destination);
 
         CurrentPage = destination;
     }

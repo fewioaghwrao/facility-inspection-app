@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using FacilityInspection.Data;
@@ -59,6 +59,22 @@ public partial class App : Application
             databaseDirectory,
             "facility-inspection.db");
 
+        var sampleDatabasePath = Path.Combine(
+            AppContext.BaseDirectory,
+            "sample",
+            "database",
+            "facility-inspection-sample.db");
+
+        // 実行用DBが存在しない場合だけ、
+        // リポジトリに含めたサンプルDBからコピーする
+        if (!File.Exists(databasePath) &&
+            File.Exists(sampleDatabasePath))
+        {
+            File.Copy(
+                sampleDatabasePath,
+                databasePath);
+        }
+
         var dbContextFactory =
             new InspectionDbContextFactory(
                 databasePath);
@@ -72,6 +88,9 @@ public partial class App : Application
         SeedOperators(
             dbContextFactory,
             passwordHasher);
+
+        SeedEquipments(
+    dbContextFactory);
 
         SeedInspectionTemplates(
             dbContextFactory);
@@ -88,14 +107,26 @@ public partial class App : Application
             new InspectionTemplateRepository(
                 dbContextFactory);
 
+        var operatorRepository =
+            new OperatorRepository(
+                dbContextFactory,
+                passwordHasher);
+
+        var scheduleRepository =
+            new ScheduleRepository(
+                dbContextFactory);
+
         return new MainViewModel(
             authenticationService,
             currentUserSession,
-            inspectionTemplateRepository);
+            inspectionTemplateRepository,
+            operatorRepository,
+            scheduleRepository);
     }
 
     private static void InitializeDatabase(
-        InspectionDbContextFactory dbContextFactory)
+        InspectionDbContextFactory
+            dbContextFactory)
     {
         using var dbContext =
             dbContextFactory.CreateDbContext();
@@ -104,8 +135,10 @@ public partial class App : Application
     }
 
     private static void SeedOperators(
-        InspectionDbContextFactory dbContextFactory,
-        PasswordHasher<Operator> passwordHasher)
+        InspectionDbContextFactory
+            dbContextFactory,
+        PasswordHasher<Operator>
+            passwordHasher)
     {
         var operatorSeedService =
             new OperatorSeedService(
@@ -119,7 +152,8 @@ public partial class App : Application
     }
 
     private static void SeedInspectionTemplates(
-        InspectionDbContextFactory dbContextFactory)
+        InspectionDbContextFactory
+            dbContextFactory)
     {
         using var dbContext =
             dbContextFactory.CreateDbContext();
@@ -129,6 +163,19 @@ public partial class App : Application
                 dbContext);
 
         inspectionTemplateSeedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    private static void SeedEquipments(
+    InspectionDbContextFactory dbContextFactory)
+    {
+        var equipmentSeedService =
+            new EquipmentSeedService(
+                dbContextFactory);
+
+        equipmentSeedService
             .SeedAsync()
             .GetAwaiter()
             .GetResult();

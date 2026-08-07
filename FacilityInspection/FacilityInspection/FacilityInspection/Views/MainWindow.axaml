@@ -6,7 +6,9 @@
     Title="設備点検・保守記録アプリ"
     Icon="/Assets/facility-inspection.ico"
     Width="1200"
-    Height="800">
+    Height="800"
+    MinWidth="1000"
+    MinHeight="650">
 
     <views:MainView />
 

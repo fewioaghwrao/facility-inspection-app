@@ -1,0 +1,541 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.OperatorManagementView"
+    x:DataType="vm:OperatorManagementViewModel"
+    Background="#F3F6FA">
+
+    <Grid>
+
+        <!-- 通常画面 -->
+        <Grid
+            Margin="28"
+            RowDefinitions="Auto,Auto,*"
+            RowSpacing="16">
+
+            <!-- ヘッダー -->
+            <Grid
+                Grid.Row="0"
+                ColumnDefinitions="*,Auto">
+
+                <StackPanel
+                    Grid.Column="0"
+                    Spacing="5">
+
+                    <TextBlock
+                        Text="担当者管理"
+                        FontSize="28"
+                        FontWeight="Bold"
+                        Foreground="#0F172A" />
+
+                    <TextBlock
+                        Text="点検担当者と保全責任者のログイン情報・権限・利用状態を管理します。"
+                        FontSize="14"
+                        Foreground="#64748B" />
+
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="8">
+
+                    <Button
+                        MinWidth="100"
+                        MinHeight="42"
+                        Content="再読込"
+                        Command="{Binding LoadOperatorsCommand}"
+                        HorizontalContentAlignment="Center"
+                        Background="#FFFFFF"
+                        Foreground="#334155"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="1"
+                        CornerRadius="8" />
+
+                    <Button
+                        MinWidth="120"
+                        MinHeight="42"
+                        Content="新規登録"
+                        Command="{Binding OpenCreateEditorCommand}"
+                        HorizontalContentAlignment="Center"
+                        Background="#2563EB"
+                        Foreground="#FFFFFF"
+                        BorderBrush="#2563EB"
+                        BorderThickness="1"
+                        CornerRadius="8" />
+
+                </StackPanel>
+
+            </Grid>
+
+            <!-- 状態表示 -->
+            <StackPanel
+                Grid.Row="1"
+                Spacing="8">
+
+                <TextBlock
+                    Text="読み込み中..."
+                    IsVisible="{Binding IsLoading}"
+                    FontSize="13"
+                    Foreground="#2563EB" />
+
+                <Border
+                    IsVisible="{Binding HasError}"
+                    Padding="12"
+                    Background="#FEF2F2"
+                    BorderBrush="#FCA5A5"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        TextWrapping="Wrap"
+                        Foreground="#B91C1C" />
+
+                </Border>
+
+                <Border
+                    IsVisible="{Binding HasOperationMessage}"
+                    Padding="12"
+                    Background="#F0FDF4"
+                    BorderBrush="#86EFAC"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding OperationMessage}"
+                        TextWrapping="Wrap"
+                        Foreground="#166534" />
+
+                </Border>
+
+            </StackPanel>
+
+<!-- 担当者一覧 -->
+<Border
+    Grid.Row="2"
+    Padding="18"
+    Background="#FFFFFF"
+    BorderBrush="#E2E8F0"
+    BorderThickness="1"
+    CornerRadius="12">
+
+    <Grid>
+
+        <ScrollViewer
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled">
+
+            <ItemsControl
+                ItemsSource="{Binding Operators}">
+
+                <ItemsControl.ItemTemplate>
+
+                    <DataTemplate
+                        x:DataType="vm:OperatorListItemViewModel">
+
+                        <Border
+                            Margin="0,0,0,12"
+                            Padding="18"
+                            Background="#F8FAFC"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <Grid
+                                RowDefinitions="Auto,Auto,Auto"
+                                RowSpacing="14">
+
+                                <!-- 名前・状態 -->
+                                <Grid
+                                    Grid.Row="0"
+                                    ColumnDefinitions="*,Auto">
+
+                                    <StackPanel
+                                        Grid.Column="0"
+                                        Orientation="Horizontal"
+                                        Spacing="8">
+
+                                        <TextBlock
+                                            Text="{Binding DisplayName}"
+                                            FontSize="17"
+                                            FontWeight="Bold"
+                                            VerticalAlignment="Center"
+                                            Foreground="#0F172A" />
+
+                                        <Border
+                                            IsVisible="{Binding IsCurrentUser}"
+                                            Padding="8,3"
+                                            Background="#DBEAFE"
+                                            CornerRadius="9">
+
+                                            <TextBlock
+                                                Text="ログイン中"
+                                                FontSize="10"
+                                                Foreground="#1D4ED8" />
+
+                                        </Border>
+
+                                    </StackPanel>
+
+                                    <Border
+                                        Grid.Column="1"
+                                        Padding="10,4"
+                                        Background="#DCFCE7"
+                                        CornerRadius="10">
+
+                                        <TextBlock
+                                            Text="{Binding StatusText}"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="#15803D" />
+
+                                    </Border>
+
+                                </Grid>
+
+                                <!-- 担当者情報 -->
+                                <WrapPanel
+                                    Grid.Row="1"
+                                    Orientation="Horizontal"
+                                    ItemSpacing="28"
+                                    LineSpacing="10">
+
+                                    <StackPanel
+                                        MinWidth="150"
+                                        Spacing="3">
+
+                                        <TextBlock
+                                            Text="ログインID"
+                                            FontSize="11"
+                                            Foreground="#64748B" />
+
+                                        <TextBlock
+                                            Text="{Binding LoginId}"
+                                            FontWeight="SemiBold"
+                                            Foreground="#334155" />
+
+                                    </StackPanel>
+
+                                    <StackPanel
+                                        MinWidth="130"
+                                        Spacing="3">
+
+                                        <TextBlock
+                                            Text="権限"
+                                            FontSize="11"
+                                            Foreground="#64748B" />
+
+                                        <TextBlock
+                                            Text="{Binding RoleName}"
+                                            FontWeight="SemiBold"
+                                            Foreground="#334155" />
+
+                                    </StackPanel>
+
+                                    <StackPanel
+                                        MinWidth="180"
+                                        Spacing="3">
+
+                                        <TextBlock
+                                            Text="最終ログイン"
+                                            FontSize="11"
+                                            Foreground="#64748B" />
+
+                                        <TextBlock
+                                            Text="{Binding LastLoginAtText}"
+                                            Foreground="#334155" />
+
+                                    </StackPanel>
+
+                                </WrapPanel>
+
+                                <!-- 操作ボタン -->
+                                <StackPanel
+                                    Grid.Row="2"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+
+                                    <Button
+                                        MinWidth="80"
+                                        MinHeight="36"
+                                        Content="編集"
+                                        Command="{Binding EditCommand}"
+                                        HorizontalContentAlignment="Center"
+                                        Background="#FFFFFF"
+                                        Foreground="#334155"
+                                        BorderBrush="#CBD5E1"
+                                        BorderThickness="1"
+                                        CornerRadius="7" />
+
+                                    <Button
+                                        MinWidth="90"
+                                        MinHeight="36"
+                                        Content="{Binding ToggleActiveText}"
+                                        Command="{Binding ToggleActiveCommand}"
+                                        IsEnabled="{Binding CanToggleActive}"
+                                        HorizontalContentAlignment="Center"
+                                        Background="#FFFFFF"
+                                        Foreground="#B91C1C"
+                                        BorderBrush="#FCA5A5"
+                                        BorderThickness="1"
+                                        CornerRadius="7" />
+
+                                </StackPanel>
+
+                            </Grid>
+
+                        </Border>
+
+                    </DataTemplate>
+
+                </ItemsControl.ItemTemplate>
+
+            </ItemsControl>
+
+        </ScrollViewer>
+
+        <TextBlock
+            IsVisible="{Binding IsEmpty}"
+            Text="担当者が登録されていません。"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="14"
+            Foreground="#64748B" />
+
+    </Grid>
+
+</Border>
+
+        </Grid>
+
+        <!-- 新規登録・編集ダイアログ -->
+        <Border
+            ZIndex="100"
+            IsVisible="{Binding IsEditorOpen}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#990F172A">
+
+            <Border
+                Width="620"
+                MaxHeight="760"
+                Margin="24"
+                Padding="26"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="14"
+                BoxShadow="0 16 40 0 #59000000">
+
+                <Grid
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="16">
+
+                    <!-- ダイアログヘッダー -->
+                    <Grid
+                        Grid.Row="0"
+                        ColumnDefinitions="*,Auto">
+
+                        <StackPanel Spacing="4">
+
+                            <TextBlock
+                                Text="{Binding EditorTitle}"
+                                FontSize="22"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                            <TextBlock
+                                Text="{Binding EditorDescription}"
+                                FontSize="13"
+                                TextWrapping="Wrap"
+                                Foreground="#64748B" />
+
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="1"
+                            Width="36"
+                            Height="36"
+                            Content="×"
+                            Command="{Binding CancelEditorCommand}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="20"
+                            Foreground="#64748B" />
+
+                    </Grid>
+
+                    <!-- ログインID -->
+                    <StackPanel
+                        Grid.Row="1"
+                        Spacing="6">
+
+                        <TextBlock
+                            Text="ログインID"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#334155" />
+
+                        <TextBox
+                            Text="{Binding EditLoginId, Mode=TwoWay}"
+                            Watermark="例: inspector02"
+                            MaxLength="50"
+                            MinHeight="40" />
+
+                    </StackPanel>
+
+                    <!-- 表示名 -->
+                    <StackPanel
+                        Grid.Row="2"
+                        Spacing="6">
+
+                        <TextBlock
+                            Text="表示名"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#334155" />
+
+                        <TextBox
+                            Text="{Binding EditDisplayName, Mode=TwoWay}"
+                            Watermark="例: 点検担当者2"
+                            MaxLength="100"
+                            MinHeight="40" />
+
+                    </StackPanel>
+
+                    <!-- 権限 -->
+                    <StackPanel
+                        Grid.Row="3"
+                        Spacing="6">
+
+                        <TextBlock
+                            Text="権限"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#334155" />
+
+                        <ComboBox
+                            ItemsSource="{Binding RoleChoices}"
+                            SelectedItem="{Binding SelectedRoleName, Mode=TwoWay}"
+                            MinHeight="40"
+                            HorizontalAlignment="Stretch" />
+
+                    </StackPanel>
+
+                    <!-- パスワード -->
+                    <Grid
+                        Grid.Row="4"
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="12">
+
+                        <StackPanel
+                            Grid.Column="0"
+                            Spacing="6">
+
+                            <TextBlock
+                                Text="{Binding PasswordLabel}"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="#334155" />
+
+                            <TextBox
+                                Text="{Binding EditPassword, Mode=TwoWay}"
+                                PasswordChar="●"
+                                Watermark="{Binding PasswordWatermark}"
+                                MinHeight="40" />
+
+                        </StackPanel>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="6">
+
+                            <TextBlock
+                                Text="パスワード確認"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="#334155" />
+
+                            <TextBox
+                                Text="{Binding EditPasswordConfirmation, Mode=TwoWay}"
+                                PasswordChar="●"
+                                Watermark="同じパスワードを入力"
+                                MinHeight="40" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                    <!-- 入力エラー -->
+                    <Border
+                        Grid.Row="5"
+                        IsVisible="{Binding HasEditorError}"
+                        Padding="12"
+                        Background="#FEF2F2"
+                        BorderBrush="#FCA5A5"
+                        BorderThickness="1"
+                        CornerRadius="8">
+
+                        <TextBlock
+                            Text="{Binding EditorErrorMessage}"
+                            TextWrapping="Wrap"
+                            Foreground="#B91C1C" />
+
+                    </Border>
+
+                    <!-- 操作ボタン -->
+                    <Grid
+                        Grid.Row="6"
+                        ColumnDefinitions="*,Auto,Auto"
+                        ColumnSpacing="10">
+
+                        <TextBlock
+                            Grid.Column="0"
+                            Text="編集時、パスワードを変更しない場合は空欄にします。"
+                            VerticalAlignment="Center"
+                            TextWrapping="Wrap"
+                            FontSize="12"
+                            Foreground="#64748B" />
+
+                        <Button
+                            Grid.Column="1"
+                            MinWidth="100"
+                            MinHeight="42"
+                            Content="キャンセル"
+                            Command="{Binding CancelEditorCommand}"
+                            HorizontalContentAlignment="Center"
+                            Background="#FFFFFF"
+                            Foreground="#334155"
+                            BorderBrush="#CBD5E1"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                        <Button
+                            Grid.Column="2"
+                            MinWidth="100"
+                            MinHeight="42"
+                            Content="{Binding SaveButtonText}"
+                            Command="{Binding SaveOperatorCommand}"
+                            HorizontalContentAlignment="Center"
+                            Background="#2563EB"
+                            Foreground="#FFFFFF"
+                            BorderBrush="#2563EB"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                    </Grid>
+
+                </Grid>
+
+            </Border>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>

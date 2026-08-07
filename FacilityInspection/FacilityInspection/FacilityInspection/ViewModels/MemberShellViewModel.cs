@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FacilityInspection.Data;
 using System;
 
 namespace FacilityInspection.ViewModels;
@@ -8,9 +9,17 @@ public partial class MemberShellViewModel : ViewModelBase
 {
     private readonly Action _logout;
 
-    private MemberDashboardViewModel? _dashboardViewModel;
-    private EquipmentManagementViewModel? _equipmentManagementViewModel;
-    private ScheduleCalendarViewModel? _scheduleCalendarViewModel;
+    private readonly ScheduleRepository
+        _scheduleRepository;
+
+    private MemberDashboardViewModel?
+        _dashboardViewModel;
+
+    private EquipmentManagementViewModel?
+        _equipmentManagementViewModel;
+
+    private ScheduleCalendarViewModel?
+        _scheduleCalendarViewModel;
 
     [ObservableProperty]
     private ViewModelBase currentContent;
@@ -23,15 +32,23 @@ public partial class MemberShellViewModel : ViewModelBase
 
     public MemberShellViewModel(
         string operatorName,
+        ScheduleRepository scheduleRepository,
         Action logout)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             operatorName);
 
         ArgumentNullException.ThrowIfNull(
+            scheduleRepository);
+
+        ArgumentNullException.ThrowIfNull(
             logout);
 
         OperatorName = operatorName;
+
+        _scheduleRepository =
+            scheduleRepository;
+
         _logout = logout;
 
         currentContent =
@@ -92,6 +109,7 @@ public partial class MemberShellViewModel : ViewModelBase
 
         _logout();
     }
+
     private MemberDashboardViewModel
         GetDashboardViewModel()
     {
@@ -111,6 +129,7 @@ public partial class MemberShellViewModel : ViewModelBase
         GetScheduleCalendarViewModel()
     {
         return _scheduleCalendarViewModel ??=
-            new ScheduleCalendarViewModel();
+            new ScheduleCalendarViewModel(
+                _scheduleRepository);
     }
 }

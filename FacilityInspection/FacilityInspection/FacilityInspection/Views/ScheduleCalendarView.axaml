@@ -4,114 +4,949 @@
     xmlns:vm="using:FacilityInspection.ViewModels"
     x:Class="FacilityInspection.Views.ScheduleCalendarView"
     x:DataType="vm:ScheduleCalendarViewModel"
-    Background="#F8FAFC">
+    Background="#F3F6FA">
 
-    <ScrollViewer
+    <Grid>
+
+        <!-- 通常画面 -->
+        <ScrollViewer
+        x:Name="PageScrollViewer"
         HorizontalScrollBarVisibility="Disabled"
-        VerticalScrollBarVisibility="Auto">
+        VerticalScrollBarVisibility="Disabled">
+        <Grid
+            Margin="28"
+            RowDefinitions="Auto,Auto,*"
+            RowSpacing="16">
 
-        <StackPanel
-            Margin="32"
-            Spacing="20">
+            <!-- ヘッダー -->
+            <Grid
+                Grid.Row="0"
+                ColumnDefinitions="*,Auto">
 
-            <!-- 画面タイトル -->
-            <StackPanel Spacing="5">
+                <StackPanel
+                    Grid.Column="0"
+                    Spacing="5">
+
+                    <TextBlock
+                        Text="{Binding Title}"
+                        FontSize="28"
+                        FontWeight="Bold"
+                        Foreground="#0F172A" />
+
+                    <TextBlock
+                        Text="{Binding Description}"
+                        FontSize="14"
+                        Foreground="#64748B" />
+
+                </StackPanel>
+
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="8">
+
+                    <Button
+                        MinWidth="100"
+                        MinHeight="42"
+                        Content="再読込"
+                        Command="{Binding LoadMonthCommand}"
+                        HorizontalContentAlignment="Center"
+                        Background="#FFFFFF"
+                        Foreground="#334155"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="1"
+                        CornerRadius="8" />
+
+                    <Button
+                        MinWidth="120"
+                        MinHeight="42"
+                        Content="予定を登録"
+                        Command="{Binding OpenCreateEditorCommand}"
+                        HorizontalContentAlignment="Center"
+                        Background="#2563EB"
+                        Foreground="#FFFFFF"
+                        BorderBrush="#2563EB"
+                        BorderThickness="1"
+                        CornerRadius="8" />
+
+                </StackPanel>
+
+            </Grid>
+
+            <!-- 状態表示 -->
+            <StackPanel
+                Grid.Row="1"
+                Spacing="8">
 
                 <TextBlock
-                    Text="{Binding Title}"
-                    FontSize="28"
-                    FontWeight="Bold"
-                    Foreground="#0F172A" />
+                    Text="読み込み中..."
+                    IsVisible="{Binding IsLoading}"
+                    FontSize="13"
+                    Foreground="#2563EB" />
 
-                <TextBlock
-                    Text="{Binding Description}"
-                    FontSize="14"
-                    Foreground="#64748B" />
+                <Border
+                    IsVisible="{Binding HasError}"
+                    Padding="12"
+                    Background="#FEF2F2"
+                    BorderBrush="#FCA5A5"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        TextWrapping="Wrap"
+                        Foreground="#B91C1C" />
+
+                </Border>
+
+                <Border
+                    IsVisible="{Binding HasOperationMessage}"
+                    Padding="12"
+                    Background="#F0FDF4"
+                    BorderBrush="#86EFAC"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding OperationMessage}"
+                        TextWrapping="Wrap"
+                        Foreground="#166534" />
+
+                </Border>
 
             </StackPanel>
 
-            <!-- 仮のカレンダー領域 -->
-            <Border
-                Padding="24"
-                Background="#FFFFFF"
-                BorderBrush="#E2E8F0"
-                BorderThickness="1"
-                CornerRadius="12"
-                BoxShadow="0 4 14 0 #160F172A">
+            <!-- カレンダー・選択日の予定 -->
+            <Grid
+                x:Name="ScheduleLayout"
+                Grid.Row="2"
+                ColumnDefinitions="1.2*,0.8*"
+                RowDefinitions="*"
+                ColumnSpacing="18"
+                RowSpacing="0">
 
-                <StackPanel Spacing="18">
+                <!-- 月間カレンダー -->
+                <Border
+                    x:Name="CalendarCard"
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Padding="18"
+                    Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="12">
 
-                    <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Grid
+                        RowDefinitions="Auto,Auto,*,Auto"
+                        RowSpacing="12">
 
-                        <Button
-                            Grid.Column="0"
-                            Content="‹ 前月"
-                            MinWidth="90"
-                            MinHeight="38"
-                            HorizontalContentAlignment="Center" />
+                        <!-- 月移動 -->
+                        <Grid
+                            Grid.Row="0"
+                            ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+                            ColumnSpacing="8">
 
-                        <TextBlock
-                            Grid.Column="1"
-                            Text="点検予定カレンダー"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            FontSize="20"
-                            FontWeight="Bold"
-                            Foreground="#0F172A" />
+                            <Button
+                                Grid.Column="0"
+                                MinWidth="84"
+                                MinHeight="38"
+                                Content="‹ 前月"
+                                Command="{Binding PreviousMonthCommand}"
+                                HorizontalContentAlignment="Center"
+                                Background="#FFFFFF"
+                                Foreground="#334155"
+                                BorderBrush="#CBD5E1"
+                                BorderThickness="1"
+                                CornerRadius="7" />
 
-                        <Button
-                            Grid.Column="2"
-                            Content="次月 ›"
-                            MinWidth="90"
-                            MinHeight="38"
-                            HorizontalContentAlignment="Center" />
+                            <Button
+                                Grid.Column="1"
+                                MinWidth="72"
+                                MinHeight="38"
+                                Content="今日"
+                                Command="{Binding GoToTodayCommand}"
+                                HorizontalContentAlignment="Center"
+                                Background="#FFFFFF"
+                                Foreground="#334155"
+                                BorderBrush="#CBD5E1"
+                                BorderThickness="1"
+                                CornerRadius="7" />
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="{Binding MonthTitle}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                            <Button
+                                Grid.Column="4"
+                                MinWidth="84"
+                                MinHeight="38"
+                                Content="次月 ›"
+                                Command="{Binding NextMonthCommand}"
+                                HorizontalContentAlignment="Center"
+                                Background="#FFFFFF"
+                                Foreground="#334155"
+                                BorderBrush="#CBD5E1"
+                                BorderThickness="1"
+                                CornerRadius="7" />
+
+                        </Grid>
+
+                        <!-- 曜日 -->
+                        <UniformGrid
+                            Grid.Row="1"
+                            Columns="7">
+
+                            <TextBlock
+                                Text="日"
+                                HorizontalAlignment="Center"
+                                Foreground="#DC2626" />
+
+                            <TextBlock
+                                Text="月"
+                                HorizontalAlignment="Center"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="火"
+                                HorizontalAlignment="Center"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="水"
+                                HorizontalAlignment="Center"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="木"
+                                HorizontalAlignment="Center"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="金"
+                                HorizontalAlignment="Center"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="土"
+                                HorizontalAlignment="Center"
+                                Foreground="#2563EB" />
+
+                        </UniformGrid>
+
+                        <!-- 日付セル -->
+                        <ItemsControl
+                            Grid.Row="2"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding CalendarDays}">
+
+    <!-- 各日付を格納するContentPresenterをセルいっぱいに広げる -->
+    <ItemsControl.ItemContainerTheme>
+
+        <ControlTheme TargetType="ContentPresenter">
+
+            <Setter
+                Property="HorizontalAlignment"
+                Value="Stretch" />
+
+            <Setter
+                Property="VerticalAlignment"
+                Value="Stretch" />
+
+            <Setter
+                Property="HorizontalContentAlignment"
+                Value="Stretch" />
+
+            <Setter
+                Property="VerticalContentAlignment"
+                Value="Stretch" />
+
+        </ControlTheme>
+
+    </ItemsControl.ItemContainerTheme>
+
+    <ItemsControl.ItemsPanel>
+
+        <ItemsPanelTemplate>
+
+            <UniformGrid
+                Columns="7"
+                Rows="6" />
+
+        </ItemsPanelTemplate>
+
+    </ItemsControl.ItemsPanel>
+
+                            <ItemsControl.ItemTemplate>
+
+                                <DataTemplate
+                                    x:DataType="vm:CalendarDayViewModel">
+<Button
+    MinHeight="64"
+    Margin="2"
+    Padding="0"
+    Command="{Binding SelectCommand}"
+    HorizontalAlignment="Stretch"
+    VerticalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch"
+    VerticalContentAlignment="Stretch"
+    Background="Transparent"
+    BorderThickness="0">
+
+    <Border
+        Padding="7"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch"
+        Background="{Binding BackgroundColor}"
+        BorderBrush="{Binding BorderColor}"
+        BorderThickness="1"
+        CornerRadius="7">
+
+        <Grid
+            RowDefinitions="Auto,*,Auto">
+
+            <TextBlock
+                Grid.Row="0"
+                Text="{Binding DayNumber}"
+                FontWeight="SemiBold"
+                Foreground="{Binding DayForeground}" />
+
+            <TextBlock
+                Grid.Row="1"
+                IsVisible="{Binding HasSchedules}"
+                Text="{Binding ScheduleCountText}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="13"
+                FontWeight="Bold"
+                Foreground="#0F172A" />
+
+            <TextBlock
+                Grid.Row="2"
+                Text="{Binding SummaryText}"
+                HorizontalAlignment="Center"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                FontSize="9"
+                Foreground="{Binding SummaryForeground}" />
+
+        </Grid>
+
+    </Border>
+
+</Button>
+
+                                </DataTemplate>
+
+                            </ItemsControl.ItemTemplate>
+
+                        </ItemsControl>
+
+                        <!-- 凡例 -->
+                        <WrapPanel
+                            Grid.Row="3">
+
+                            <TextBlock
+                                Text="● 未実施"
+                                Margin="0,0,16,6"
+                                FontSize="11"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="● 実施中"
+                                Margin="0,0,16,6"
+                                FontSize="11"
+                                Foreground="#2563EB" />
+
+                            <TextBlock
+                                Text="● 完了・承認待ち"
+                                Margin="0,0,16,6"
+                                FontSize="11"
+                                Foreground="#C2410C" />
+
+                            <TextBlock
+                                Text="● 承認済み"
+                                Margin="0,0,16,6"
+                                FontSize="11"
+                                Foreground="#15803D" />
+
+                            <TextBlock
+                                Text="● 期限超過・差し戻し"
+                                Margin="0,0,0,6"
+                                FontSize="11"
+                                Foreground="#DC2626" />
+
+                        </WrapPanel>
 
                     </Grid>
 
-                    <Border
-                        MinHeight="360"
-                        Padding="24"
-                        Background="#F8FAFC"
-                        BorderBrush="#E2E8F0"
-                        BorderThickness="1"
-                        CornerRadius="10">
+                </Border>
 
-                        <StackPanel
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Spacing="10">
+                <!-- 選択日の予定 -->
+                <Border
+                    x:Name="DayScheduleCard"
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Padding="18"
+                    Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="12">
+
+                    <Grid
+                        RowDefinitions="Auto,*"
+                        RowSpacing="12">
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Text="{Binding SelectedDateTitle}"
+                            FontSize="18"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <Grid Grid.Row="1">
+
+                            <ScrollViewer
+                                x:Name="DayScheduleScrollViewer"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Disabled">
+
+                                <ItemsControl
+                                    ItemsSource="{Binding SelectedDaySchedules}">
+
+                                    <ItemsControl.ItemTemplate>
+
+                                        <DataTemplate
+                                            x:DataType="vm:ScheduleListItemViewModel">
+
+                                            <Border
+                                                Margin="0,0,0,10"
+                                                Padding="14"
+                                                Background="#F8FAFC"
+                                                BorderBrush="#E2E8F0"
+                                                BorderThickness="1"
+                                                CornerRadius="9">
+
+                                                <Grid
+                                                    RowDefinitions="Auto,Auto,Auto,Auto"
+                                                    RowSpacing="10">
+
+                                                    <Grid
+                                                        Grid.Row="0"
+                                                        ColumnDefinitions="*,Auto">
+
+                                                        <TextBlock
+                                                            Grid.Column="0"
+                                                            Text="{Binding EquipmentDisplayName}"
+                                                            FontSize="15"
+                                                            FontWeight="Bold"
+                                                            TextWrapping="Wrap"
+                                                            Foreground="#0F172A" />
+
+                                                        <Border
+                                                            Grid.Column="1"
+                                                            Padding="9,4"
+                                                            Background="{Binding StatusBackground}"
+                                                            CornerRadius="10">
+
+                                                            <TextBlock
+                                                                Text="{Binding StatusText}"
+                                                                FontSize="11"
+                                                                FontWeight="SemiBold"
+                                                                Foreground="{Binding StatusForeground}" />
+
+                                                        </Border>
+
+                                                    </Grid>
+
+                                                    <StackPanel
+                                                        Grid.Row="1"
+                                                        Spacing="4">
+
+                                                        <TextBlock
+                                                            Text="{Binding LocationDisplayName}"
+                                                            FontSize="12"
+                                                            Foreground="#475569" />
+
+                                                        <TextBlock
+                                                            Text="{Binding TemplateDisplayText}"
+                                                            FontSize="12"
+                                                            TextWrapping="Wrap"
+                                                            Foreground="#475569" />
+
+                                                        <TextBlock
+                                                            Text="{Binding OperatorDisplayText}"
+                                                            FontSize="12"
+                                                            Foreground="#475569" />
+
+                                                    </StackPanel>
+
+                                                    <TextBlock
+                                                        Grid.Row="2"
+                                                        Text="{Binding NotesText}"
+                                                        FontSize="11"
+                                                        TextWrapping="Wrap"
+                                                        Foreground="#64748B" />
+
+                                                    <StackPanel
+                                                        Grid.Row="3"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Right"
+                                                        Spacing="8">
+
+                                                        <Button
+                                                            MinWidth="72"
+                                                            MinHeight="34"
+                                                            Content="編集"
+                                                            Command="{Binding EditCommand}"
+                                                            IsVisible="{Binding CanEdit}"
+                                                            HorizontalContentAlignment="Center"
+                                                            Background="#FFFFFF"
+                                                            Foreground="#334155"
+                                                            BorderBrush="#CBD5E1"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6" />
+
+                                                        <Button
+                                                            MinWidth="72"
+                                                            MinHeight="34"
+                                                            Content="取消"
+                                                            Command="{Binding CancelScheduleCommand}"
+                                                            IsVisible="{Binding CanCancel}"
+                                                            HorizontalContentAlignment="Center"
+                                                            Background="#FFFFFF"
+                                                            Foreground="#B91C1C"
+                                                            BorderBrush="#FCA5A5"
+                                                            BorderThickness="1"
+                                                            CornerRadius="6" />
+
+                                                    </StackPanel>
+
+                                                </Grid>
+
+                                            </Border>
+
+                                        </DataTemplate>
+
+                                    </ItemsControl.ItemTemplate>
+
+                                </ItemsControl>
+
+                            </ScrollViewer>
 
                             <TextBlock
-                                Text="📅"
+                                IsVisible="{Binding IsSelectedDayEmpty}"
+                                Text="この日の点検予定はありません。"
                                 HorizontalAlignment="Center"
-                                FontSize="42" />
-
-                            <TextBlock
-                                Text="{Binding InformationMessage}"
-                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
                                 TextAlignment="Center"
-                                TextWrapping="Wrap"
-                                FontSize="15"
-                                Foreground="#475569" />
-
-                            <TextBlock
-                                Text="点検予定エンティティの作成後、月別・日別予定を表示します。"
-                                HorizontalAlignment="Center"
-                                TextAlignment="Center"
-                                TextWrapping="Wrap"
                                 FontSize="13"
-                                Foreground="#94A3B8" />
+                                Foreground="#64748B" />
+
+                        </Grid>
+
+                    </Grid>
+
+                </Border>
+
+            </Grid>
+
+        </Grid>
+
+         </ScrollViewer>
+
+        <!-- 予定登録・編集ダイアログ -->
+        <Border
+            ZIndex="100"
+            IsVisible="{Binding IsEditorOpen}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#990F172A">
+
+            <Border
+                Width="680"
+                MaxHeight="780"
+                Margin="24"
+                Padding="24"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="14"
+                BoxShadow="0 16 40 0 #59000000">
+
+                <Grid
+                    RowDefinitions="Auto,*,Auto"
+                    RowSpacing="18">
+
+                    <!-- ダイアログヘッダー -->
+                    <Grid
+                        Grid.Row="0"
+                        ColumnDefinitions="*,Auto">
+
+                        <StackPanel Spacing="4">
+
+                            <TextBlock
+                                Text="{Binding EditorTitle}"
+                                FontSize="22"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                            <TextBlock
+                                Text="{Binding EditorDescription}"
+                                FontSize="13"
+                                Foreground="#64748B" />
 
                         </StackPanel>
 
-                    </Border>
+                        <Button
+                            Grid.Column="1"
+                            Width="36"
+                            Height="36"
+                            Content="×"
+                            Command="{Binding CancelEditorCommand}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            FontSize="20"
+                            Foreground="#64748B" />
+
+                    </Grid>
+
+                    <ScrollViewer
+                        Grid.Row="1"
+                        VerticalScrollBarVisibility="Auto">
+
+                        <StackPanel Spacing="14">
+
+                            <!-- 予定日 -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="点検予定日"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <DatePicker
+                                    SelectedDate="{Binding EditorScheduledDate, Mode=TwoWay}"
+                                    MinHeight="40"
+                                    HorizontalAlignment="Stretch" />
+
+                            </StackPanel>
+
+                            <!-- 工場 -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="工場"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding FactorySiteOptions}"
+                                    SelectedItem="{Binding SelectedFactorySite, Mode=TwoWay}"
+                                    MinHeight="40"
+                                    HorizontalAlignment="Stretch">
+
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate
+                                            x:DataType="vm:ScheduleSelectionOptionViewModel">
+
+                                            <TextBlock
+                                                Text="{Binding DisplayName}" />
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                            </StackPanel>
+
+                            <!-- 設置場所 -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="設置場所"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding LocationOptions}"
+                                    SelectedItem="{Binding SelectedLocation, Mode=TwoWay}"
+                                    MinHeight="40"
+                                    HorizontalAlignment="Stretch">
+
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate
+                                            x:DataType="vm:ScheduleSelectionOptionViewModel">
+
+                                            <TextBlock
+                                                Text="{Binding DisplayName}" />
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                            </StackPanel>
+
+                            <!-- 設備 -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="点検する設備"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding EquipmentOptions}"
+                                    SelectedItem="{Binding SelectedEquipment, Mode=TwoWay}"
+                                    MinHeight="40"
+                                    HorizontalAlignment="Stretch">
+
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate
+                                            x:DataType="vm:ScheduleSelectionOptionViewModel">
+
+                                            <TextBlock
+                                                Text="{Binding DisplayName}" />
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                            </StackPanel>
+
+                            <!-- テンプレート -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="点検票テンプレート"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding TemplateOptions}"
+                                    SelectedItem="{Binding SelectedTemplate, Mode=TwoWay}"
+                                    MinHeight="40"
+                                    HorizontalAlignment="Stretch">
+
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate
+                                            x:DataType="vm:ScheduleSelectionOptionViewModel">
+
+                                            <TextBlock
+                                                Text="{Binding DisplayName}" />
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                            </StackPanel>
+
+                            <!-- 担当者 -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="点検担当者"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <ComboBox
+                                    ItemsSource="{Binding OperatorOptions}"
+                                    SelectedItem="{Binding SelectedOperator, Mode=TwoWay}"
+                                    MinHeight="40"
+                                    HorizontalAlignment="Stretch">
+
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate
+                                            x:DataType="vm:ScheduleSelectionOptionViewModel">
+
+                                            <TextBlock
+                                                Text="{Binding DisplayName}" />
+
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+
+                                </ComboBox>
+
+                            </StackPanel>
+
+                            <!-- 備考 -->
+                            <StackPanel Spacing="6">
+
+                                <TextBlock
+                                    Text="備考"
+                                    FontSize="13"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                                <TextBox
+                                    Text="{Binding EditorNotes, Mode=TwoWay}"
+                                    Watermark="点検時の注意事項など"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MaxLength="500"
+                                    MinHeight="80" />
+
+                            </StackPanel>
+
+                            <!-- 入力エラー -->
+                            <Border
+                                IsVisible="{Binding HasEditorError}"
+                                Padding="12"
+                                Background="#FEF2F2"
+                                BorderBrush="#FCA5A5"
+                                BorderThickness="1"
+                                CornerRadius="8">
+
+                                <TextBlock
+                                    Text="{Binding EditorErrorMessage}"
+                                    TextWrapping="Wrap"
+                                    Foreground="#B91C1C" />
+
+                            </Border>
+
+                        </StackPanel>
+
+                    </ScrollViewer>
+
+                    <!-- 操作ボタン -->
+                    <Grid
+                        Grid.Row="2"
+                        ColumnDefinitions="*,Auto,Auto"
+                        ColumnSpacing="10">
+
+                        <TextBlock
+                            Grid.Column="0"
+                            Text="点検開始後の予定は変更・取消できません。"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="#64748B" />
+
+                        <Button
+                            Grid.Column="1"
+                            MinWidth="100"
+                            MinHeight="42"
+                            Content="キャンセル"
+                            Command="{Binding CancelEditorCommand}"
+                            HorizontalContentAlignment="Center"
+                            Background="#FFFFFF"
+                            Foreground="#334155"
+                            BorderBrush="#CBD5E1"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                        <Button
+                            Grid.Column="2"
+                            MinWidth="100"
+                            MinHeight="42"
+                            Content="{Binding SaveButtonText}"
+                            Command="{Binding SaveEditorCommand}"
+                            HorizontalContentAlignment="Center"
+                            Background="#2563EB"
+                            Foreground="#FFFFFF"
+                            BorderBrush="#2563EB"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                    </Grid>
+
+                </Grid>
+
+            </Border>
+
+        </Border>
+
+        <!-- 取消確認ダイアログ -->
+        <Border
+            ZIndex="110"
+            IsVisible="{Binding IsCancelDialogOpen}"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Background="#990F172A">
+
+            <Border
+                Width="430"
+                Padding="26"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="14"
+                BoxShadow="0 16 40 0 #59000000">
+
+                <StackPanel Spacing="18">
+
+                    <TextBlock
+                        Text="点検予定を取り消しますか？"
+                        HorizontalAlignment="Center"
+                        FontSize="20"
+                        FontWeight="Bold"
+                        Foreground="#0F172A" />
+
+                    <TextBlock
+                        Text="{Binding PendingCancelSchedule.EquipmentDisplayName}"
+                        HorizontalAlignment="Center"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        Foreground="#475569" />
+
+                    <TextBlock
+                        Text="取消後も履歴として表示されます。"
+                        HorizontalAlignment="Center"
+                        FontSize="12"
+                        Foreground="#64748B" />
+
+                    <Grid
+                        ColumnDefinitions="*,*"
+                        ColumnSpacing="12">
+
+                        <Button
+                            Grid.Column="0"
+                            MinHeight="42"
+                            Content="戻る"
+                            Command="{Binding CloseCancelDialogCommand}"
+                            HorizontalContentAlignment="Center"
+                            Background="#FFFFFF"
+                            Foreground="#334155"
+                            BorderBrush="#CBD5E1"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                        <Button
+                            Grid.Column="1"
+                            MinHeight="42"
+                            Content="取消する"
+                            Command="{Binding ConfirmCancelScheduleCommand}"
+                            HorizontalContentAlignment="Center"
+                            Background="#DC2626"
+                            Foreground="#FFFFFF"
+                            BorderBrush="#DC2626"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                    </Grid>
 
                 </StackPanel>
 
             </Border>
 
-        </StackPanel>
+        </Border>
 
-    </ScrollViewer>
+    </Grid>
 
 </UserControl>

@@ -1,17 +1,1120 @@
-﻿namespace FacilityInspection.ViewModels;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using FacilityInspection.Data;
+using FacilityInspection.Domain.Equipments;
+using FacilityInspection.Domain.Inspections;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 
-/// <summary>
-/// 点検予定カレンダー画面。
-/// 現時点では仮実装。
-/// </summary>
-public sealed class ScheduleCalendarViewModel : ViewModelBase
+namespace FacilityInspection.ViewModels;
+
+public sealed partial class ScheduleCalendarViewModel
+    : ViewModelBase
 {
+    private readonly ScheduleRepository
+        _scheduleRepository;
+
+    private IReadOnlyList<InspectionSchedule>
+        _monthSchedules = [];
+
+    private bool _isPopulatingEditor;
+
+    public ScheduleCalendarViewModel(
+        ScheduleRepository scheduleRepository)
+    {
+        ArgumentNullException.ThrowIfNull(
+            scheduleRepository);
+
+        _scheduleRepository = scheduleRepository;
+
+        var today =
+            DateOnly.FromDateTime(DateTime.Today);
+
+        DisplayedMonth =
+            new DateOnly(
+                today.Year,
+                today.Month,
+                1);
+
+        SelectedDate = today;
+
+        _ = LoadMonthAsync();
+    }
+
     public string Title =>
-        "予定カレンダー";
+        "点検予定管理";
 
     public string Description =>
-        "設備の点検予定をカレンダー形式で確認します。";
+        "設備の点検予定、点検担当者、実施状況をカレンダーで管理します。";
 
-    public string InformationMessage =>
-        "予定カレンダー機能は今後実装予定です。";
+    public ObservableCollection<CalendarDayViewModel>
+        CalendarDays
+    { get; } = [];
+
+    public ObservableCollection<ScheduleListItemViewModel>
+        SelectedDaySchedules
+    { get; } = [];
+
+    public ObservableCollection<ScheduleSelectionOptionViewModel>
+        FactorySiteOptions
+    { get; } = [];
+
+    public ObservableCollection<ScheduleSelectionOptionViewModel>
+        LocationOptions
+    { get; } = [];
+
+    public ObservableCollection<ScheduleSelectionOptionViewModel>
+        EquipmentOptions
+    { get; } = [];
+
+    public ObservableCollection<ScheduleSelectionOptionViewModel>
+        TemplateOptions
+    { get; } = [];
+
+    public ObservableCollection<ScheduleSelectionOptionViewModel>
+        OperatorOptions
+    { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MonthTitle))]
+    private DateOnly displayedMonth;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedDateTitle))]
+    private DateOnly selectedDate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSelectedDayEmpty))]
+    private bool isLoading;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasError))]
+    private string? errorMessage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOperationMessage))]
+    private string? operationMessage;
+
+    [ObservableProperty]
+    private bool isEditorOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorDescription))]
+    [NotifyPropertyChangedFor(nameof(SaveButtonText))]
+    private bool isCreateMode;
+
+    [ObservableProperty]
+    private Guid? editingScheduleId;
+
+    [ObservableProperty]
+    private DateTimeOffset? editorScheduledDate;
+
+    [ObservableProperty]
+    private ScheduleSelectionOptionViewModel?
+        selectedFactorySite;
+
+    [ObservableProperty]
+    private ScheduleSelectionOptionViewModel?
+        selectedLocation;
+
+    [ObservableProperty]
+    private ScheduleSelectionOptionViewModel?
+        selectedEquipment;
+
+    [ObservableProperty]
+    private ScheduleSelectionOptionViewModel?
+        selectedTemplate;
+
+    [ObservableProperty]
+    private ScheduleSelectionOptionViewModel?
+        selectedOperator;
+
+    [ObservableProperty]
+    private string editorNotes = string.Empty;
+
+    [ObservableProperty]
+    private bool isSaving;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasEditorError))]
+    private string? editorErrorMessage;
+
+    [ObservableProperty]
+    private bool isCancelDialogOpen;
+
+    [ObservableProperty]
+    private ScheduleListItemViewModel?
+        pendingCancelSchedule;
+
+    public string MonthTitle =>
+        $"{DisplayedMonth.Year}年{DisplayedMonth.Month}月";
+
+    public string SelectedDateTitle =>
+        $"{SelectedDate.Month}月{SelectedDate.Day}日の点検予定";
+
+    public bool HasError =>
+        !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public bool HasOperationMessage =>
+        !string.IsNullOrWhiteSpace(OperationMessage);
+
+    public bool HasEditorError =>
+        !string.IsNullOrWhiteSpace(
+            EditorErrorMessage);
+
+    public bool IsSelectedDayEmpty =>
+        !IsLoading &&
+        SelectedDaySchedules.Count == 0;
+
+    public string EditorTitle =>
+        IsCreateMode
+            ? "点検予定の新規登録"
+            : "点検予定の編集";
+
+    public string EditorDescription =>
+        IsCreateMode
+            ? "予定日、設備、点検票、担当者を選択します。"
+            : "未実施の点検予定を変更します。";
+
+    public string SaveButtonText =>
+        IsCreateMode
+            ? "登録"
+            : "保存";
+
+    partial void OnSelectedFactorySiteChanged(
+        ScheduleSelectionOptionViewModel? value)
+    {
+        if (_isPopulatingEditor)
+        {
+            return;
+        }
+
+        _ = HandleFactorySiteChangedAsync(value);
+    }
+
+    partial void OnSelectedLocationChanged(
+        ScheduleSelectionOptionViewModel? value)
+    {
+        if (_isPopulatingEditor)
+        {
+            return;
+        }
+
+        _ = HandleLocationChangedAsync(value);
+    }
+
+    partial void OnSelectedEquipmentChanged(
+        ScheduleSelectionOptionViewModel? value)
+    {
+        if (_isPopulatingEditor)
+        {
+            return;
+        }
+
+        _ = HandleEquipmentChangedAsync(value);
+    }
+
+    [RelayCommand]
+    private async Task LoadMonthAsync()
+    {
+        if (IsLoading)
+        {
+            return;
+        }
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+
+            _monthSchedules =
+                await _scheduleRepository.GetMonthAsync(
+                    DisplayedMonth);
+
+            BuildCalendarDays();
+            BuildSelectedDaySchedules();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage =
+                $"点検予定を読み込めませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+
+            OnPropertyChanged(
+                nameof(IsSelectedDayEmpty));
+        }
+    }
+
+    [RelayCommand]
+    private async Task PreviousMonthAsync()
+    {
+        await MoveMonthAsync(-1);
+    }
+
+    [RelayCommand]
+    private async Task NextMonthAsync()
+    {
+        await MoveMonthAsync(1);
+    }
+
+    [RelayCommand]
+    private async Task GoToTodayAsync()
+    {
+        var today =
+            DateOnly.FromDateTime(DateTime.Today);
+
+        DisplayedMonth =
+            new DateOnly(
+                today.Year,
+                today.Month,
+                1);
+
+        SelectedDate = today;
+
+        await LoadMonthAsync();
+    }
+
+    [RelayCommand]
+    private async Task OpenCreateEditorAsync()
+    {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        IsCreateMode = true;
+        EditingScheduleId = null;
+        EditorScheduledDate =
+            ToDateTimeOffset(SelectedDate);
+        EditorNotes = string.Empty;
+        EditorErrorMessage = null;
+        OperationMessage = null;
+
+        try
+        {
+            await PopulateEditorOptionsAsync(
+                null);
+
+            IsEditorOpen = true;
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage =
+                $"予定登録画面を準備できませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+    }
+
+    private async Task OpenEditEditorAsync(
+        ScheduleListItemViewModel item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (IsSaving || !item.CanEdit)
+        {
+            return;
+        }
+
+        IsCreateMode = false;
+        EditingScheduleId = item.Id;
+        EditorScheduledDate =
+            ToDateTimeOffset(item.ScheduledDate);
+        EditorNotes = item.Notes ?? string.Empty;
+        EditorErrorMessage = null;
+        OperationMessage = null;
+
+        try
+        {
+            await PopulateEditorOptionsAsync(item);
+
+            IsEditorOpen = true;
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage =
+                $"予定編集画面を準備できませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelEditor()
+    {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        IsEditorOpen = false;
+        EditorErrorMessage = null;
+        ClearEditor();
+    }
+
+    [RelayCommand]
+    private async Task SaveEditorAsync()
+    {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        if (!TryGetEditorInput(
+                out var scheduledDate,
+                out var equipmentId,
+                out var templateId,
+                out var operatorId))
+        {
+            return;
+        }
+
+        try
+        {
+            IsSaving = true;
+            EditorErrorMessage = null;
+            OperationMessage = null;
+
+            if (IsCreateMode)
+            {
+                await _scheduleRepository.CreateAsync(
+                    scheduledDate,
+                    equipmentId,
+                    templateId,
+                    operatorId,
+                    EditorNotes);
+
+                OperationMessage =
+                    "点検予定を登録しました。";
+            }
+            else
+            {
+                if (!EditingScheduleId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "編集対象の点検予定が選択されていません。");
+                }
+
+                await _scheduleRepository.UpdateAsync(
+                    EditingScheduleId.Value,
+                    scheduledDate,
+                    equipmentId,
+                    templateId,
+                    operatorId,
+                    EditorNotes);
+
+                OperationMessage =
+                    "点検予定を更新しました。";
+            }
+
+            IsEditorOpen = false;
+            ClearEditor();
+
+            DisplayedMonth =
+                new DateOnly(
+                    scheduledDate.Year,
+                    scheduledDate.Month,
+                    1);
+
+            SelectedDate = scheduledDate;
+
+            await LoadMonthAsync();
+        }
+        catch (Exception exception)
+        {
+            EditorErrorMessage =
+                IsCreateMode
+                    ? $"点検予定を登録できませんでした。" +
+                      $"{Environment.NewLine}" +
+                      exception.Message
+                    : $"点検予定を更新できませんでした。" +
+                      $"{Environment.NewLine}" +
+                      exception.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void RequestCancelSchedule(
+        ScheduleListItemViewModel item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (!item.CanCancel)
+        {
+            return;
+        }
+
+        PendingCancelSchedule = item;
+        IsCancelDialogOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseCancelDialog()
+    {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        IsCancelDialogOpen = false;
+        PendingCancelSchedule = null;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmCancelScheduleAsync()
+    {
+        if (IsSaving ||
+            PendingCancelSchedule is null)
+        {
+            return;
+        }
+
+        try
+        {
+            IsSaving = true;
+            ErrorMessage = null;
+            OperationMessage = null;
+
+            await _scheduleRepository.CancelAsync(
+                PendingCancelSchedule.Id);
+
+            IsCancelDialogOpen = false;
+            PendingCancelSchedule = null;
+
+            OperationMessage =
+                "点検予定を取り消しました。";
+
+            await LoadMonthAsync();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage =
+                $"点検予定を取り消せませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private async Task MoveMonthAsync(int months)
+    {
+        var targetMonth =
+            DisplayedMonth.AddMonths(months);
+
+        var selectedDay =
+            Math.Min(
+                SelectedDate.Day,
+                DateTime.DaysInMonth(
+                    targetMonth.Year,
+                    targetMonth.Month));
+
+        DisplayedMonth =
+            new DateOnly(
+                targetMonth.Year,
+                targetMonth.Month,
+                1);
+
+        SelectedDate =
+            new DateOnly(
+                targetMonth.Year,
+                targetMonth.Month,
+                selectedDay);
+
+        await LoadMonthAsync();
+    }
+
+    private void BuildCalendarDays()
+    {
+        CalendarDays.Clear();
+
+        var monthStart =
+            new DateOnly(
+                DisplayedMonth.Year,
+                DisplayedMonth.Month,
+                1);
+
+        var startOffset =
+            (int)monthStart.DayOfWeek;
+
+        var gridStart =
+            monthStart.AddDays(-startOffset);
+
+        for (var index = 0;
+             index < 42;
+             index++)
+        {
+            var date =
+                gridStart.AddDays(index);
+
+            var schedules =
+                _monthSchedules
+                    .Where(x =>
+                        x.ScheduledDate == date)
+                    .ToList();
+
+            var overdueCount =
+                schedules.Count(IsOverdue);
+
+            var completedCount =
+                schedules.Count(x =>
+                    !x.IsCancelled &&
+                    GetStatus(x) is
+                        InspectionStatus.Completed or
+                        InspectionStatus.Approved);
+
+            var day =
+                new CalendarDayViewModel(
+                    date,
+                    date.Month ==
+                        DisplayedMonth.Month &&
+                    date.Year ==
+                        DisplayedMonth.Year,
+                    schedules.Count,
+                    overdueCount,
+                    completedCount,
+                    SelectCalendarDay);
+
+            day.IsSelected =
+                date == SelectedDate;
+
+            CalendarDays.Add(day);
+        }
+    }
+
+    private void SelectCalendarDay(
+        CalendarDayViewModel day)
+    {
+        _ = SelectCalendarDayAsync(day);
+    }
+
+    private async Task SelectCalendarDayAsync(
+        CalendarDayViewModel day)
+    {
+        if (day.Date.Month !=
+                DisplayedMonth.Month ||
+            day.Date.Year !=
+                DisplayedMonth.Year)
+        {
+            DisplayedMonth =
+                new DateOnly(
+                    day.Date.Year,
+                    day.Date.Month,
+                    1);
+
+            SelectedDate = day.Date;
+
+            await LoadMonthAsync();
+
+            return;
+        }
+
+        SelectedDate = day.Date;
+
+        foreach (var calendarDay in CalendarDays)
+        {
+            calendarDay.IsSelected =
+                calendarDay.Date == SelectedDate;
+        }
+
+        BuildSelectedDaySchedules();
+    }
+
+    private void BuildSelectedDaySchedules()
+    {
+        SelectedDaySchedules.Clear();
+
+        foreach (var schedule in
+                 _monthSchedules
+                     .Where(x =>
+                         x.ScheduledDate ==
+                         SelectedDate)
+                     .OrderBy(x =>
+                         x.Equipment.EquipmentCode))
+        {
+            SelectedDaySchedules.Add(
+                CreateListItemViewModel(schedule));
+        }
+
+        OnPropertyChanged(
+            nameof(IsSelectedDayEmpty));
+    }
+
+    private ScheduleListItemViewModel
+        CreateListItemViewModel(
+            InspectionSchedule schedule)
+    {
+        return new ScheduleListItemViewModel(
+            schedule.Id,
+            schedule.ScheduledDate,
+            schedule.Equipment.Location.FactorySiteId,
+            schedule.Equipment.LocationId,
+            schedule.EquipmentId,
+            schedule.InspectionTemplateId,
+            schedule.AssignedOperatorId,
+            schedule.Equipment.Location.FactorySite.Name,
+            schedule.Equipment.Location.Name,
+            schedule.Equipment.EquipmentCode,
+            schedule.Equipment.Name,
+            schedule.InspectionTemplate.Name,
+            schedule.AssignedOperator.DisplayName,
+            schedule.Notes,
+            GetStatus(schedule),
+            schedule.IsCancelled,
+            OpenEditEditorAsync,
+            RequestCancelSchedule);
+    }
+
+    private async Task PopulateEditorOptionsAsync(
+        ScheduleListItemViewModel? editingItem)
+    {
+        _isPopulatingEditor = true;
+
+        try
+        {
+            FactorySiteOptions.Clear();
+            LocationOptions.Clear();
+            EquipmentOptions.Clear();
+            TemplateOptions.Clear();
+            OperatorOptions.Clear();
+
+            var factorySites =
+                await _scheduleRepository
+                    .GetFactorySitesAsync();
+
+            foreach (var factorySite in factorySites)
+            {
+                FactorySiteOptions.Add(
+                    new ScheduleSelectionOptionViewModel(
+                        factorySite.Id,
+                        factorySite.Name));
+            }
+
+            var operators =
+                await _scheduleRepository
+                    .GetInspectorsAsync();
+
+            foreach (var operatorEntity in operators)
+            {
+                OperatorOptions.Add(
+                    new ScheduleSelectionOptionViewModel(
+                        operatorEntity.Id,
+                        operatorEntity.DisplayName));
+            }
+
+            SelectedFactorySite =
+                editingItem is null
+                    ? FactorySiteOptions.FirstOrDefault()
+                    : FactorySiteOptions.FirstOrDefault(
+                        x =>
+                            x.Id ==
+                            editingItem.FactorySiteId);
+
+            SelectedOperator =
+                editingItem is null
+                    ? OperatorOptions.FirstOrDefault()
+                    : OperatorOptions.FirstOrDefault(
+                        x =>
+                            x.Id ==
+                            editingItem.AssignedOperatorId);
+
+            if (SelectedFactorySite is not null)
+            {
+                await LoadLocationsAsync(
+                    SelectedFactorySite.Id);
+
+                SelectedLocation =
+                    editingItem is null
+                        ? LocationOptions.FirstOrDefault()
+                        : LocationOptions.FirstOrDefault(
+                            x =>
+                                x.Id ==
+                                editingItem.LocationId);
+            }
+
+            if (SelectedLocation is not null)
+            {
+                await LoadEquipmentsAsync(
+                    SelectedLocation.Id);
+
+                SelectedEquipment =
+                    editingItem is null
+                        ? EquipmentOptions.FirstOrDefault()
+                        : EquipmentOptions.FirstOrDefault(
+                            x =>
+                                x.Id ==
+                                editingItem.EquipmentId);
+            }
+
+            if (SelectedEquipment?.EquipmentType is
+                EquipmentType equipmentType)
+            {
+                await LoadTemplatesAsync(
+                    equipmentType);
+
+                SelectedTemplate =
+                    editingItem is null
+                        ? TemplateOptions.FirstOrDefault()
+                        : TemplateOptions.FirstOrDefault(
+                            x =>
+                                x.Id ==
+                                editingItem
+                                    .InspectionTemplateId);
+            }
+        }
+        finally
+        {
+            _isPopulatingEditor = false;
+        }
+    }
+
+    private async Task HandleFactorySiteChangedAsync(
+        ScheduleSelectionOptionViewModel? option)
+    {
+        try
+        {
+            _isPopulatingEditor = true;
+            EditorErrorMessage = null;
+
+            LocationOptions.Clear();
+            EquipmentOptions.Clear();
+            TemplateOptions.Clear();
+
+            SelectedLocation = null;
+            SelectedEquipment = null;
+            SelectedTemplate = null;
+
+            if (option is null)
+            {
+                return;
+            }
+
+            await LoadLocationsAsync(option.Id);
+
+            SelectedLocation =
+                LocationOptions.FirstOrDefault();
+
+            if (SelectedLocation is null)
+            {
+                return;
+            }
+
+            await LoadEquipmentsAsync(
+                SelectedLocation.Id);
+
+            SelectedEquipment =
+                EquipmentOptions.FirstOrDefault();
+
+            if (SelectedEquipment?.EquipmentType is not
+                EquipmentType equipmentType)
+            {
+                return;
+            }
+
+            await LoadTemplatesAsync(
+                equipmentType);
+
+            SelectedTemplate =
+                TemplateOptions.FirstOrDefault();
+        }
+        catch (Exception exception)
+        {
+            EditorErrorMessage =
+                $"設備の選択肢を読み込めませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+        finally
+        {
+            _isPopulatingEditor = false;
+        }
+    }
+
+    private async Task HandleLocationChangedAsync(
+        ScheduleSelectionOptionViewModel? option)
+    {
+        try
+        {
+            _isPopulatingEditor = true;
+            EditorErrorMessage = null;
+
+            EquipmentOptions.Clear();
+            TemplateOptions.Clear();
+
+            SelectedEquipment = null;
+            SelectedTemplate = null;
+
+            if (option is null)
+            {
+                return;
+            }
+
+            await LoadEquipmentsAsync(option.Id);
+
+            SelectedEquipment =
+                EquipmentOptions.FirstOrDefault();
+
+            if (SelectedEquipment?.EquipmentType is not
+                EquipmentType equipmentType)
+            {
+                return;
+            }
+
+            await LoadTemplatesAsync(
+                equipmentType);
+
+            SelectedTemplate =
+                TemplateOptions.FirstOrDefault();
+        }
+        catch (Exception exception)
+        {
+            EditorErrorMessage =
+                $"設備を読み込めませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+        finally
+        {
+            _isPopulatingEditor = false;
+        }
+    }
+
+    private async Task HandleEquipmentChangedAsync(
+        ScheduleSelectionOptionViewModel? option)
+    {
+        try
+        {
+            _isPopulatingEditor = true;
+            EditorErrorMessage = null;
+
+            TemplateOptions.Clear();
+            SelectedTemplate = null;
+
+            if (option?.EquipmentType is not
+                EquipmentType equipmentType)
+            {
+                return;
+            }
+
+            await LoadTemplatesAsync(
+                equipmentType);
+
+            SelectedTemplate =
+                TemplateOptions.FirstOrDefault();
+        }
+        catch (Exception exception)
+        {
+            EditorErrorMessage =
+                $"点検票テンプレートを読み込めませんでした。" +
+                $"{Environment.NewLine}" +
+                exception.Message;
+        }
+        finally
+        {
+            _isPopulatingEditor = false;
+        }
+    }
+
+    private async Task LoadLocationsAsync(
+        Guid factorySiteId)
+    {
+        LocationOptions.Clear();
+
+        var locations =
+            await _scheduleRepository.GetLocationsAsync(
+                factorySiteId);
+
+        foreach (var location in locations)
+        {
+            var floorText =
+                string.IsNullOrWhiteSpace(location.Floor)
+                    ? string.Empty
+                    : $"（{location.Floor}）";
+
+            LocationOptions.Add(
+                new ScheduleSelectionOptionViewModel(
+                    location.Id,
+                    $"{location.Name}{floorText}"));
+        }
+    }
+
+    private async Task LoadEquipmentsAsync(
+        Guid locationId)
+    {
+        EquipmentOptions.Clear();
+
+        var equipments =
+            await _scheduleRepository.GetEquipmentsAsync(
+                locationId);
+
+        foreach (var equipment in equipments)
+        {
+            EquipmentOptions.Add(
+                new ScheduleSelectionOptionViewModel(
+                    equipment.Id,
+                    $"{equipment.EquipmentCode}  {equipment.Name}",
+                    equipment.EquipmentType));
+        }
+    }
+
+    private async Task LoadTemplatesAsync(
+        EquipmentType equipmentType)
+    {
+        TemplateOptions.Clear();
+
+        var templates =
+            await _scheduleRepository.GetTemplatesAsync(
+                equipmentType);
+
+        foreach (var template in templates)
+        {
+            TemplateOptions.Add(
+                new ScheduleSelectionOptionViewModel(
+                    template.Id,
+                    $"{template.Name}（v{template.Version}）"));
+        }
+    }
+
+    private bool TryGetEditorInput(
+        out DateOnly scheduledDate,
+        out Guid equipmentId,
+        out Guid templateId,
+        out Guid operatorId)
+    {
+        scheduledDate = default;
+        equipmentId = Guid.Empty;
+        templateId = Guid.Empty;
+        operatorId = Guid.Empty;
+
+        if (!EditorScheduledDate.HasValue)
+        {
+            EditorErrorMessage =
+                "点検予定日を選択してください。";
+
+            return false;
+        }
+
+        scheduledDate =
+            DateOnly.FromDateTime(
+                EditorScheduledDate.Value.Date);
+
+        if (scheduledDate <
+            DateOnly.FromDateTime(DateTime.Today))
+        {
+            EditorErrorMessage =
+                "過去の日付は選択できません。";
+
+            return false;
+        }
+
+        if (SelectedFactorySite is null)
+        {
+            EditorErrorMessage =
+                "工場を選択してください。";
+
+            return false;
+        }
+
+        if (SelectedLocation is null)
+        {
+            EditorErrorMessage =
+                "設置場所を選択してください。";
+
+            return false;
+        }
+
+        if (SelectedEquipment is null)
+        {
+            EditorErrorMessage =
+                "設備を選択してください。";
+
+            return false;
+        }
+
+        if (SelectedTemplate is null)
+        {
+            EditorErrorMessage =
+                "点検票テンプレートを選択してください。";
+
+            return false;
+        }
+
+        if (SelectedOperator is null)
+        {
+            EditorErrorMessage =
+                "点検担当者を選択してください。";
+
+            return false;
+        }
+
+        if (EditorNotes.Trim().Length > 500)
+        {
+            EditorErrorMessage =
+                "備考は500文字以内で入力してください。";
+
+            return false;
+        }
+
+        equipmentId = SelectedEquipment.Id;
+        templateId = SelectedTemplate.Id;
+        operatorId = SelectedOperator.Id;
+
+        return true;
+    }
+
+    private void ClearEditor()
+    {
+        EditingScheduleId = null;
+        EditorScheduledDate = null;
+        SelectedFactorySite = null;
+        SelectedLocation = null;
+        SelectedEquipment = null;
+        SelectedTemplate = null;
+        SelectedOperator = null;
+        EditorNotes = string.Empty;
+
+        FactorySiteOptions.Clear();
+        LocationOptions.Clear();
+        EquipmentOptions.Clear();
+        TemplateOptions.Clear();
+        OperatorOptions.Clear();
+    }
+
+    private static InspectionStatus GetStatus(
+        InspectionSchedule schedule)
+    {
+        return schedule.Inspection?.Status ??
+            InspectionStatus.NotStarted;
+    }
+
+    private static bool IsOverdue(
+        InspectionSchedule schedule)
+    {
+        return !schedule.IsCancelled &&
+            GetStatus(schedule) ==
+                InspectionStatus.NotStarted &&
+            schedule.ScheduledDate <
+                DateOnly.FromDateTime(DateTime.Today);
+    }
+
+    private static DateTimeOffset ToDateTimeOffset(
+        DateOnly date)
+    {
+        return new DateTimeOffset(
+            date.ToDateTime(TimeOnly.MinValue));
+    }
 }

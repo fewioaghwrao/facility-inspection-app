@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Domain.InspectionTemplates;
 using System;
 using System.Collections.Generic;
@@ -8,6 +9,12 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class InspectionTemplateItemEditorViewModel
     : ObservableObject
 {
+    private readonly
+        Action<InspectionTemplateItemEditorViewModel>?
+        _removeRequested;
+
+    private int _displayOrder;
+
     public InspectionTemplateItemEditorViewModel(
         Guid id,
         int displayOrder,
@@ -17,21 +24,37 @@ public sealed partial class InspectionTemplateItemEditorViewModel
         double? minimumValue,
         double? maximumValue,
         bool isRequired,
-        bool isActive)
+        bool isActive,
+        Action<InspectionTemplateItemEditorViewModel>?
+            removeRequested = null)
     {
         Id = id;
-        DisplayOrder = displayOrder;
+        _displayOrder = displayOrder;
         ItemName = itemName;
+
         InputTypeName =
             ConvertInputTypeToName(inputType);
+
         Unit = unit;
         MinimumValue = minimumValue;
         MaximumValue = maximumValue;
         IsRequired = isRequired;
         IsActive = isActive;
+
+        _removeRequested = removeRequested;
     }
 
     public Guid Id { get; }
+
+    public int DisplayOrder
+    {
+        get => _displayOrder;
+
+        private set =>
+            SetProperty(
+                ref _displayOrder,
+                value);
+    }
 
     public IReadOnlyList<string> InputTypeChoices { get; } =
     [
@@ -40,9 +63,6 @@ public sealed partial class InspectionTemplateItemEditorViewModel
         "数値",
         "文字入力"
     ];
-
-    [ObservableProperty]
-    private int displayOrder;
 
     [ObservableProperty]
     private string itemName = string.Empty;
@@ -64,6 +84,24 @@ public sealed partial class InspectionTemplateItemEditorViewModel
 
     [ObservableProperty]
     private bool isActive;
+
+    public void SetDisplayOrder(
+        int displayOrder)
+    {
+        if (displayOrder < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(displayOrder));
+        }
+
+        DisplayOrder = displayOrder;
+    }
+
+    [RelayCommand]
+    private void Remove()
+    {
+        _removeRequested?.Invoke(this);
+    }
 
     public InspectionInputType GetInputType()
     {

@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,26 +20,76 @@ public sealed class OperatorSeedService(
             await dbContextFactory.CreateDbContextAsync(
                 cancellationToken);
 
-        if (await dbContext.Operators.AnyAsync(cancellationToken))
+        var seedOperators =
+            new List<OperatorSeedData>
+            {
+                new(
+                    "manager",
+                    "保全責任者",
+                    OperatorRole.MaintenanceManager,
+                    "Demo1234!"),
+
+                new(
+                    "inspector",
+                    "点検担当者1",
+                    OperatorRole.Inspector,
+                    "Demo1234!"),
+
+                new(
+                    "inspector2",
+                    "点検担当者2",
+                    OperatorRole.Inspector,
+                    "Demo1234!"),
+
+                new(
+                    "inspector3",
+                    "点検担当者3",
+                    OperatorRole.Inspector,
+                    "Demo1234!"),
+
+                new(
+                    "inspector4",
+                    "点検担当者4",
+                    OperatorRole.Inspector,
+                    "Demo1234!"),
+
+                new(
+                    "inspector5",
+                    "点検担当者5",
+                    OperatorRole.Inspector,
+                    "Demo1234!")
+            };
+
+        var existingNormalizedLoginIds =
+            await dbContext.Operators
+                .AsNoTracking()
+                .Select(x => x.NormalizedLoginId)
+                .ToHashSetAsync(
+                    cancellationToken);
+
+        var newOperators =
+            seedOperators
+                .Where(x =>
+                    !existingNormalizedLoginIds.Contains(
+                        NormalizeLoginId(x.LoginId)))
+                .Select(x =>
+                    CreateOperator(
+                        x.LoginId,
+                        x.DisplayName,
+                        x.Role,
+                        x.Password))
+                .ToList();
+
+        if (newOperators.Count == 0)
         {
             return;
         }
 
-        var manager = CreateOperator(
-            "manager",
-            "保全責任者",
-            OperatorRole.MaintenanceManager,
-            "Demo1234!");
+        dbContext.Operators.AddRange(
+            newOperators);
 
-        var inspector = CreateOperator(
-            "inspector",
-            "点検担当者1",
-            OperatorRole.Inspector,
-            "Demo1234!");
-
-        dbContext.Operators.AddRange(manager, inspector);
-
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
     }
 
     private Operator CreateOperator(
@@ -46,21 +98,43 @@ public sealed class OperatorSeedService(
         OperatorRole role,
         string password)
     {
-        var normalizedLoginId =
-            loginId.Trim().ToUpperInvariant();
+        var trimmedLoginId =
+            loginId.Trim();
 
         var user = new Operator
         {
-            LoginId = loginId.Trim(),
-            NormalizedLoginId = normalizedLoginId,
-            DisplayName = displayName,
+            LoginId = trimmedLoginId,
+
+            NormalizedLoginId =
+                NormalizeLoginId(trimmedLoginId),
+
+            DisplayName =
+                displayName.Trim(),
+
             Role = role,
+
             IsActive = true
         };
 
         user.PasswordHash =
-            passwordHasher.HashPassword(user, password);
+            passwordHasher.HashPassword(
+                user,
+                password);
 
         return user;
     }
+
+    private static string NormalizeLoginId(
+        string loginId)
+    {
+        return loginId
+            .Trim()
+            .ToUpperInvariant();
+    }
+
+    private sealed record OperatorSeedData(
+        string LoginId,
+        string DisplayName,
+        OperatorRole Role,
+        string Password);
 }

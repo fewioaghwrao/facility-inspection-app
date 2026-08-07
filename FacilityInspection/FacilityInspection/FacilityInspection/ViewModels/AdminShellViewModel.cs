@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 
@@ -8,34 +8,70 @@ public sealed partial class AdminShellViewModel : ViewModelBase
 {
     private readonly Action _logoutRequested;
 
-    private readonly AdminDashboardViewModel _dashboardViewModel;
-    private readonly EquipmentManagementViewModel _equipmentManagementViewModel;
-    private readonly ScheduleCalendarViewModel _scheduleCalendarViewModel;
+    private readonly AdminDashboardViewModel
+        _dashboardViewModel;
+
+    private readonly EquipmentManagementViewModel
+        _equipmentManagementViewModel;
+
+    private readonly ScheduleCalendarViewModel
+        _scheduleCalendarViewModel;
+
     private readonly InspectionTemplateManagementViewModel
         _inspectionTemplateManagementViewModel;
+
+    private readonly OperatorManagementViewModel
+        _operatorManagementViewModel;
 
     public AdminShellViewModel(
         string displayName,
         AdminDashboardViewModel dashboardViewModel,
-        EquipmentManagementViewModel equipmentManagementViewModel,
+        EquipmentManagementViewModel
+            equipmentManagementViewModel,
         ScheduleCalendarViewModel scheduleCalendarViewModel,
-        InspectionTemplateManagementViewModel inspectionTemplateManagementViewModel,
+        InspectionTemplateManagementViewModel
+            inspectionTemplateManagementViewModel,
+        OperatorManagementViewModel
+            operatorManagementViewModel,
         Action logoutRequested)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
-        ArgumentNullException.ThrowIfNull(dashboardViewModel);
-        ArgumentNullException.ThrowIfNull(equipmentManagementViewModel);
-        ArgumentNullException.ThrowIfNull(scheduleCalendarViewModel);
-        ArgumentNullException.ThrowIfNull(inspectionTemplateManagementViewModel);
-        ArgumentNullException.ThrowIfNull(logoutRequested);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            displayName);
+
+        ArgumentNullException.ThrowIfNull(
+            dashboardViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            equipmentManagementViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            scheduleCalendarViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            inspectionTemplateManagementViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            operatorManagementViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            logoutRequested);
 
         DisplayName = displayName;
 
         _dashboardViewModel = dashboardViewModel;
-        _equipmentManagementViewModel = equipmentManagementViewModel;
-        _scheduleCalendarViewModel = scheduleCalendarViewModel;
+
+        _equipmentManagementViewModel =
+            equipmentManagementViewModel;
+
+        _scheduleCalendarViewModel =
+            scheduleCalendarViewModel;
+
         _inspectionTemplateManagementViewModel =
             inspectionTemplateManagementViewModel;
+
+        _operatorManagementViewModel =
+            operatorManagementViewModel;
+
         _logoutRequested = logoutRequested;
 
         CurrentContent = _dashboardViewModel;
@@ -48,10 +84,16 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     private ViewModelBase currentContent = null!;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDashboardSelected))]
-    [NotifyPropertyChangedFor(nameof(IsEquipmentManagementSelected))]
-    [NotifyPropertyChangedFor(nameof(IsInspectionTemplateManagementSelected))]
-    [NotifyPropertyChangedFor(nameof(IsScheduleCalendarSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsDashboardSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsEquipmentManagementSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsInspectionTemplateManagementSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsScheduleCalendarSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsOperatorManagementSelected))]
     private AdminMenuItem selectedMenu;
 
     [ObservableProperty]
@@ -61,13 +103,22 @@ public sealed partial class AdminShellViewModel : ViewModelBase
         SelectedMenu == AdminMenuItem.Dashboard;
 
     public bool IsEquipmentManagementSelected =>
-        SelectedMenu == AdminMenuItem.EquipmentManagement;
+        SelectedMenu ==
+            AdminMenuItem.EquipmentManagement;
 
-    public bool IsInspectionTemplateManagementSelected =>
-        SelectedMenu == AdminMenuItem.InspectionTemplateManagement;
+    public bool
+        IsInspectionTemplateManagementSelected =>
+            SelectedMenu ==
+                AdminMenuItem
+                    .InspectionTemplateManagement;
 
     public bool IsScheduleCalendarSelected =>
-        SelectedMenu == AdminMenuItem.ScheduleCalendar;
+        SelectedMenu ==
+            AdminMenuItem.ScheduleCalendar;
+
+    public bool IsOperatorManagementSelected =>
+        SelectedMenu ==
+            AdminMenuItem.OperatorManagement;
 
     [RelayCommand]
     private void OpenDashboard()
@@ -79,22 +130,42 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     [RelayCommand]
     private void OpenEquipmentManagement()
     {
-        CurrentContent = _equipmentManagementViewModel;
-        SelectedMenu = AdminMenuItem.EquipmentManagement;
+        CurrentContent =
+            _equipmentManagementViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.EquipmentManagement;
     }
 
     [RelayCommand]
     private void OpenInspectionTemplateManagement()
     {
-        CurrentContent = _inspectionTemplateManagementViewModel;
-        SelectedMenu = AdminMenuItem.InspectionTemplateManagement;
+        CurrentContent =
+            _inspectionTemplateManagementViewModel;
+
+        SelectedMenu =
+            AdminMenuItem
+                .InspectionTemplateManagement;
     }
 
     [RelayCommand]
     private void OpenScheduleCalendar()
     {
-        CurrentContent = _scheduleCalendarViewModel;
-        SelectedMenu = AdminMenuItem.ScheduleCalendar;
+        CurrentContent =
+            _scheduleCalendarViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.ScheduleCalendar;
+    }
+
+    [RelayCommand]
+    private void OpenOperatorManagement()
+    {
+        CurrentContent =
+            _operatorManagementViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.OperatorManagement;
     }
 
     [RelayCommand]
