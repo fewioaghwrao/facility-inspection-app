@@ -111,6 +111,7 @@
                     <Button
                         Classes="railButton"
                         Content="♙"
+                        Command="{Binding OpenOperatorManagementCommand}"
                         ToolTip.Tip="担当者管理" />
 
                     <Button
@@ -251,7 +252,9 @@
 
                         <Button
                             Classes="menuButton"
-                            Content="担当者管理" />
+                            Classes.selected="{Binding IsOperatorManagementSelected}"
+                            Content="担当者管理"
+                            Command="{Binding OpenOperatorManagementCommand}" />
 
                         <Button
                             Classes="menuButton"

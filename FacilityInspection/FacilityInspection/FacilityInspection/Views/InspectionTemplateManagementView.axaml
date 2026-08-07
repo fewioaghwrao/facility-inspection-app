@@ -57,6 +57,7 @@
                         MinWidth="120"
                         MinHeight="42"
                         Content="新規作成"
+                        Command="{Binding OpenCreateDialogCommand}"
                         HorizontalContentAlignment="Center"
                         Background="#2563EB"
                         Foreground="#FFFFFF"
@@ -113,12 +114,17 @@
 
             <!-- テンプレート一覧・詳細 -->
             <Grid
+                x:Name="TemplateLayout"
                 Grid.Row="2"
                 ColumnDefinitions="300,*"
-                ColumnSpacing="18">
+                RowDefinitions="*"
+                ColumnSpacing="18"
+                RowSpacing="0">
 
                 <!-- 左側：テンプレート一覧 -->
                 <Border
+                    x:Name="TemplateListCard"
+                    Grid.Row="0"
                     Grid.Column="0"
                     Padding="16"
                     Background="#FFFFFF"
@@ -215,6 +221,8 @@
                 <!-- 右側：選択中テンプレート -->
                 <!-- DataContextはSelectedTemplateへ変更しない -->
                 <Border
+                    x:Name="TemplateDetailCard"
+                    Grid.Row="0"
                     Grid.Column="1"
                     Padding="22"
                     Background="#FFFFFF"
@@ -411,7 +419,7 @@
 
         </Grid>
 
-        <!-- 編集ダイアログ -->
+        <!-- 新規作成・編集ダイアログ -->
         <Border
             ZIndex="100"
             IsVisible="{Binding IsEditDialogOpen}"
@@ -420,8 +428,8 @@
             Background="#990F172A">
 
             <Border
-                MaxWidth="1050"
-                MaxHeight="720"
+                MaxWidth="1100"
+                MaxHeight="760"
                 Margin="24"
                 Padding="24"
                 HorizontalAlignment="Stretch"
@@ -433,7 +441,7 @@
                 BoxShadow="0 16 40 0 #59000000">
 
                 <Grid
-                    RowDefinitions="Auto,Auto,Auto,*,Auto"
+                    RowDefinitions="Auto,Auto,Auto,Auto,*,Auto"
                     RowSpacing="16">
 
                     <!-- ダイアログヘッダー -->
@@ -444,13 +452,13 @@
                         <StackPanel Spacing="4">
 
                             <TextBlock
-                                Text="点検票テンプレート編集"
+                                Text="{Binding DialogTitle}"
                                 FontSize="22"
                                 FontWeight="Bold"
                                 Foreground="#0F172A" />
 
                             <TextBlock
-                                Text="テンプレート名と各点検項目を編集します。"
+                                Text="{Binding DialogDescription}"
                                 FontSize="13"
                                 Foreground="#64748B" />
 
@@ -469,9 +477,29 @@
 
                     </Grid>
 
-                    <!-- テンプレート名 -->
+                    <!-- 設備種別 -->
                     <StackPanel
                         Grid.Row="1"
+                        Spacing="6">
+
+                        <TextBlock
+                            Text="設備種別"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="#334155" />
+
+                        <ComboBox
+                            ItemsSource="{Binding EquipmentTypeChoices}"
+                            SelectedItem="{Binding SelectedEquipmentTypeName, Mode=TwoWay}"
+                            IsEnabled="{Binding IsEquipmentTypeEditable}"
+                            MinHeight="40"
+                            HorizontalAlignment="Stretch" />
+
+                    </StackPanel>
+
+                    <!-- テンプレート名 -->
+                    <StackPanel
+                        Grid.Row="2"
                         Spacing="6">
 
                         <TextBlock
@@ -487,9 +515,9 @@
 
                     </StackPanel>
 
-                    <!-- 編集エラー -->
+                    <!-- 入力エラー -->
                     <Border
-                        Grid.Row="2"
+                        Grid.Row="3"
                         IsVisible="{Binding HasEditError}"
                         Padding="12"
                         Background="#FEF2F2"
@@ -506,17 +534,17 @@
 
                     <!-- 点検項目編集一覧 -->
                     <ScrollViewer
-                        Grid.Row="3"
+                        Grid.Row="4"
                         HorizontalScrollBarVisibility="Auto"
                         VerticalScrollBarVisibility="Auto">
 
                         <StackPanel
-                            MinWidth="920"
+                            MinWidth="990"
                             Spacing="8">
 
                             <!-- 列ヘッダー -->
                             <Grid
-                                ColumnDefinitions="55,2*,145,90,105,105,65,65"
+                                ColumnDefinitions="55,2*,145,90,105,105,65,65,60"
                                 ColumnSpacing="8">
 
                                 <TextBlock
@@ -564,6 +592,7 @@
                                 <TextBlock
                                     Grid.Column="6"
                                     Text="必須"
+                                    HorizontalAlignment="Center"
                                     FontSize="12"
                                     FontWeight="SemiBold"
                                     Foreground="#64748B" />
@@ -571,12 +600,22 @@
                                 <TextBlock
                                     Grid.Column="7"
                                     Text="有効"
+                                    HorizontalAlignment="Center"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="#64748B" />
+
+                                <TextBlock
+                                    Grid.Column="8"
+                                    Text="削除"
+                                    HorizontalAlignment="Center"
                                     FontSize="12"
                                     FontWeight="SemiBold"
                                     Foreground="#64748B" />
 
                             </Grid>
 
+                            <!-- 点検項目 -->
                             <ItemsControl
                                 ItemsSource="{Binding EditingItems}">
 
@@ -593,14 +632,26 @@
                                             CornerRadius="8">
 
                                             <Grid
-                                                ColumnDefinitions="55,2*,145,90,105,105,65,65"
+                                                ColumnDefinitions="55,2*,145,90,105,105,65,65,60"
                                                 ColumnSpacing="8">
 
-                                                <NumericUpDown
+                                                <!-- 順番は自動採番・変更不可 -->
+                                                <Border
                                                     Grid.Column="0"
-                                                    Value="{Binding DisplayOrder, Mode=TwoWay}"
-                                                    Minimum="1"
-                                                    FormatString="0" />
+                                                    MinHeight="32"
+                                                    Padding="6,4"
+                                                    Background="#FFFFFF"
+                                                    BorderBrush="#CBD5E1"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4">
+
+                                                    <TextBlock
+                                                        Text="{Binding DisplayOrder}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Foreground="#475569" />
+
+                                                </Border>
 
                                                 <TextBox
                                                     Grid.Column="1"
@@ -639,6 +690,20 @@
                                                     HorizontalAlignment="Center"
                                                     VerticalAlignment="Center" />
 
+                                                <Button
+                                                    Grid.Column="8"
+                                                    Width="38"
+                                                    Height="32"
+                                                    Content="×"
+                                                    Command="{Binding RemoveCommand}"
+                                                    HorizontalAlignment="Center"
+                                                    HorizontalContentAlignment="Center"
+                                                    Background="#FFFFFF"
+                                                    Foreground="#DC2626"
+                                                    BorderBrush="#FCA5A5"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6" />
+
                                             </Grid>
 
                                         </Border>
@@ -649,19 +714,34 @@
 
                             </ItemsControl>
 
+                            <!-- 点検項目追加 -->
+                            <Button
+                                MinWidth="160"
+                                MinHeight="38"
+                                Margin="0,4,0,0"
+                                Content="＋ 点検項目を追加"
+                                Command="{Binding AddEditingItemCommand}"
+                                HorizontalAlignment="Left"
+                                HorizontalContentAlignment="Center"
+                                Background="#FFFFFF"
+                                Foreground="#2563EB"
+                                BorderBrush="#93C5FD"
+                                BorderThickness="1"
+                                CornerRadius="7" />
+
                         </StackPanel>
 
                     </ScrollViewer>
 
                     <!-- 操作ボタン -->
                     <Grid
-                        Grid.Row="4"
+                        Grid.Row="5"
                         ColumnDefinitions="*,Auto,Auto"
                         ColumnSpacing="10">
 
                         <TextBlock
                             Grid.Column="0"
-                            Text="変更内容は保存ボタンを押すまで反映されません。"
+                            Text="変更内容は作成・保存ボタンを押すまで反映されません。"
                             VerticalAlignment="Center"
                             FontSize="12"
                             Foreground="#64748B" />
@@ -683,7 +763,7 @@
                             Grid.Column="2"
                             MinWidth="100"
                             MinHeight="42"
-                            Content="保存"
+                            Content="{Binding SaveButtonText}"
                             Command="{Binding SaveEditCommand}"
                             HorizontalContentAlignment="Center"
                             Background="#2563EB"

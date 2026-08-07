@@ -486,5 +486,10 @@ $RECYCLE.BIN/
 *.db-shm
 *.db-wal
 
+# ポートフォリオ用サンプルDBだけGit管理する
+!/sample/
+!/sample/database/
+!/sample/database/facility-inspection.db
+
 # Public sanitized demo database
 !samples/database/facility-inspection-demo.db

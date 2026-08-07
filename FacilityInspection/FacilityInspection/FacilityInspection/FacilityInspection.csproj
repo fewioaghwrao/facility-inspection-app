@@ -34,4 +34,11 @@
       <DependentUpon>ScheduleCalendarView.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
+
+	<ItemGroup>
+		<None
+			Include="..\..\..\sample\database\facility-inspection.db"
+			Link="sample\database\facility-inspection.db"
+			CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
 </Project>
