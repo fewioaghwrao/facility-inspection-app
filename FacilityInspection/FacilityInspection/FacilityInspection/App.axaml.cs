@@ -89,11 +89,17 @@ public partial class App : Application
             dbContextFactory,
             passwordHasher);
 
+        SeedLocations(
+    dbContextFactory);
+
         SeedEquipments(
     dbContextFactory);
 
         SeedInspectionTemplates(
             dbContextFactory);
+
+        SeedInspectionSchedules(
+    dbContextFactory);
 
         IAuthenticationService authenticationService =
             new AuthenticationService(
@@ -176,6 +182,32 @@ public partial class App : Application
                 dbContextFactory);
 
         equipmentSeedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    private static void SeedLocations(
+    InspectionDbContextFactory dbContextFactory)
+    {
+        var locationSeedService =
+            new LocationSeedService(
+                dbContextFactory);
+
+        locationSeedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    private static void SeedInspectionSchedules(
+    InspectionDbContextFactory dbContextFactory)
+    {
+        var seedService =
+            new InspectionScheduleSeedService(
+                dbContextFactory);
+
+        seedService
             .SeedAsync()
             .GetAwaiter()
             .GetResult();
