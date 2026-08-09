@@ -67,13 +67,13 @@ public partial class App : Application
 
         // 実行用DBが存在しない場合だけ、
         // リポジトリに含めたサンプルDBからコピーする
-        if (!File.Exists(databasePath) &&
+     /*   if (!File.Exists(databasePath) &&
             File.Exists(sampleDatabasePath))
         {
             File.Copy(
                 sampleDatabasePath,
                 databasePath);
-        }
+        }*/
 
         var dbContextFactory =
             new InspectionDbContextFactory(
@@ -101,6 +101,9 @@ public partial class App : Application
         SeedInspectionSchedules(
     dbContextFactory);
 
+        SeedInspections(
+    dbContextFactory);
+
         IAuthenticationService authenticationService =
             new AuthenticationService(
                 dbContextFactory,
@@ -122,12 +125,19 @@ public partial class App : Application
             new ScheduleRepository(
                 dbContextFactory);
 
+
+        var inspectionRepository =
+    new InspectionRepository(
+        dbContextFactory);
+
+
         return new MainViewModel(
             authenticationService,
             currentUserSession,
             inspectionTemplateRepository,
             operatorRepository,
-            scheduleRepository);
+            scheduleRepository,
+            inspectionRepository);
     }
 
     private static void InitializeDatabase(
@@ -208,6 +218,19 @@ public partial class App : Application
                 dbContextFactory);
 
         seedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    private static void SeedInspections(
+    InspectionDbContextFactory dbContextFactory)
+    {
+        var inspectionSeedService =
+            new InspectionSeedService(
+                dbContextFactory);
+
+        inspectionSeedService
             .SeedAsync()
             .GetAwaiter()
             .GetResult();

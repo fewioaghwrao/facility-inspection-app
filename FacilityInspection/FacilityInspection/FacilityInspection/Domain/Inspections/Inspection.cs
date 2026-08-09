@@ -1,6 +1,7 @@
 using FacilityInspection.Domain.Common;
 using FacilityInspection.Domain.Operators;
 using System;
+using System.Collections.Generic;
 
 namespace FacilityInspection.Domain.Inspections;
 
@@ -23,6 +24,12 @@ public sealed class Inspection : EntityBase
     public DateTime? ReviewedAtUtc { get; private set; }
 
     public string? ReturnReason { get; private set; }
+
+    public ICollection<InspectionResult> Results { get; private set; }
+    = new List<InspectionResult>();
+
+    public ICollection<InspectionPhoto> Photos { get; private set; }
+    = new List<InspectionPhoto>();
 
     // EF Core用
     private Inspection()

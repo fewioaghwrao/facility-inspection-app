@@ -56,7 +56,8 @@ public sealed class ScheduleRepository
                 x.ScheduledDate >= monthStart &&
                 x.ScheduledDate < nextMonth)
             .OrderBy(x => x.ScheduledDate)
-            .ThenBy(x => x.Equipment.EquipmentCode)
+            .ThenBy(x =>
+                x.Equipment.EquipmentCode)
             .ToListAsync(cancellationToken);
     }
 

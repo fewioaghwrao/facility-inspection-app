@@ -48,6 +48,12 @@ public sealed class InspectionDbContext : DbContext
     public DbSet<Inspection> Inspections =>
         Set<Inspection>();
 
+    public DbSet<InspectionResult> InspectionResults =>
+    Set<InspectionResult>();
+
+    public DbSet<InspectionPhoto> InspectionPhotos =>
+        Set<InspectionPhoto>();
+
     protected override void OnConfiguring(
         DbContextOptionsBuilder optionsBuilder)
     {

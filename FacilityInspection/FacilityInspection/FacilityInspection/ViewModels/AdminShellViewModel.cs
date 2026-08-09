@@ -17,11 +17,16 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     private readonly ScheduleCalendarViewModel
         _scheduleCalendarViewModel;
 
+
+    private readonly InspectionStatusViewModel
+    _inspectionStatusViewModel;
+
     private readonly InspectionTemplateManagementViewModel
         _inspectionTemplateManagementViewModel;
 
     private readonly OperatorManagementViewModel
         _operatorManagementViewModel;
+
 
     public AdminShellViewModel(
         string displayName,
@@ -29,6 +34,7 @@ public sealed partial class AdminShellViewModel : ViewModelBase
         EquipmentManagementViewModel
             equipmentManagementViewModel,
         ScheduleCalendarViewModel scheduleCalendarViewModel,
+        InspectionStatusViewModel inspectionStatusViewModel,
         InspectionTemplateManagementViewModel
             inspectionTemplateManagementViewModel,
         OperatorManagementViewModel
@@ -48,6 +54,9 @@ public sealed partial class AdminShellViewModel : ViewModelBase
             scheduleCalendarViewModel);
 
         ArgumentNullException.ThrowIfNull(
+    inspectionStatusViewModel);
+
+        ArgumentNullException.ThrowIfNull(
             inspectionTemplateManagementViewModel);
 
         ArgumentNullException.ThrowIfNull(
@@ -65,6 +74,9 @@ public sealed partial class AdminShellViewModel : ViewModelBase
 
         _scheduleCalendarViewModel =
             scheduleCalendarViewModel;
+
+        _inspectionStatusViewModel =
+    inspectionStatusViewModel;
 
         _inspectionTemplateManagementViewModel =
             inspectionTemplateManagementViewModel;
@@ -93,6 +105,8 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     [NotifyPropertyChangedFor(
         nameof(IsScheduleCalendarSelected))]
     [NotifyPropertyChangedFor(
+    nameof(IsInspectionStatusSelected))]
+    [NotifyPropertyChangedFor(
         nameof(IsOperatorManagementSelected))]
     private AdminMenuItem selectedMenu;
 
@@ -111,6 +125,10 @@ public sealed partial class AdminShellViewModel : ViewModelBase
             SelectedMenu ==
                 AdminMenuItem
                     .InspectionTemplateManagement;
+
+    public bool IsInspectionStatusSelected =>
+    SelectedMenu ==
+        AdminMenuItem.InspectionStatus;
 
     public bool IsScheduleCalendarSelected =>
         SelectedMenu ==
@@ -185,5 +203,14 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     {
         IsLogoutDialogOpen = false;
         _logoutRequested();
+    }
+    [RelayCommand]
+    private void OpenInspectionStatus()
+    {
+        CurrentContent =
+            _inspectionStatusViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.InspectionStatus;
     }
 }

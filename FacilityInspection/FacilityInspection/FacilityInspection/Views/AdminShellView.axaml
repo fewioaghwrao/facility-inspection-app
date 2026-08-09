@@ -196,29 +196,31 @@
                             FontWeight="SemiBold"
                             Foreground="#64748B" />
 
-                        <Button
-                            Classes="menuButton"
-                            Content="├─ 点検実施状況" />
+<Button
+    Classes="menuButton"
+    Content="点検実施状況"
+    Command="{Binding OpenInspectionStatusCommand}"
+    ToolTip.Tip="点検実施状況" />
 
                         <Button
                             Classes="menuButton"
-                            Content="├─ 異常一覧" />
+                            Content="異常一覧" />
 
                         <Button
                             Classes="menuButton"
-                            Content="├─ 対応中一覧" />
+                            Content="対応中一覧" />
 
                         <Button
                             Classes="menuButton"
-                            Content="├─ 再点検待ち" />
+                            Content="再点検待ち" />
 
                         <Button
                             Classes="menuButton"
-                            Content="├─ 完了承認" />
+                            Content="完了承認" />
 
                         <Button
                             Classes="menuButton"
-                            Content="└─ 差し戻し" />
+                            Content="差し戻し" />
 
                         <Border
                             Height="1"
