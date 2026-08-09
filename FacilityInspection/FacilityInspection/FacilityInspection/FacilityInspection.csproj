@@ -30,15 +30,20 @@
     <Compile Update="Views\AdminDashboardView.axaml.cs">
       <DependentUpon>AdminDashboardView.axaml</DependentUpon>
     </Compile>
+    <Compile Update="Views\inspectionStatusView.axaml.cs">
+      <DependentUpon>InspectionStatusView.axaml</DependentUpon>
+    </Compile>
     <Compile Update="Views\ScheduleCalendarView.axaml.cs">
       <DependentUpon>ScheduleCalendarView.axaml</DependentUpon>
     </Compile>
   </ItemGroup>
 
-	<ItemGroup>
-		<None
-			Include="..\..\..\sample\database\facility-inspection.db"
-			Link="sample\database\facility-inspection.db"
-			CopyToOutputDirectory="PreserveNewest" />
-	</ItemGroup>
+	<!--
+<ItemGroup>
+	<None
+		Include="..\..\..\sample\database\facility-inspection-sample.db"
+		Link="sample\database\facility-inspection-sample.db"
+		CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+-->
 </Project>

@@ -23,6 +23,9 @@ public partial class MainViewModel : ViewModelBase
     private readonly ScheduleRepository
         _scheduleRepository;
 
+    private readonly InspectionRepository
+    _inspectionRepository;
+
     [ObservableProperty]
     private ViewModelBase currentPage = null!;
 
@@ -32,7 +35,8 @@ public partial class MainViewModel : ViewModelBase
         InspectionTemplateRepository
             inspectionTemplateRepository,
         OperatorRepository operatorRepository,
-        ScheduleRepository scheduleRepository)
+        ScheduleRepository scheduleRepository,
+        InspectionRepository inspectionRepository)
     {
         ArgumentNullException.ThrowIfNull(
             authenticationService);
@@ -49,6 +53,8 @@ public partial class MainViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(
             scheduleRepository);
 
+        ArgumentNullException.ThrowIfNull(
+    inspectionRepository);
         _authenticationService =
             authenticationService;
 
@@ -63,6 +69,9 @@ public partial class MainViewModel : ViewModelBase
 
         _scheduleRepository =
             scheduleRepository;
+
+        _inspectionRepository =
+    inspectionRepository;
 
         CurrentPage = CreateLoginViewModel();
     }
@@ -141,11 +150,16 @@ public partial class MainViewModel : ViewModelBase
                 _operatorRepository,
                 signedInOperator.Id);
 
+        var inspectionStatusViewModel =
+    new InspectionStatusViewModel(
+        _inspectionRepository);
+
         return new AdminShellViewModel(
             signedInOperator.DisplayName,
             adminDashboardViewModel,
             equipmentManagementViewModel,
             scheduleCalendarViewModel,
+            inspectionStatusViewModel,
             inspectionTemplateManagementViewModel,
             operatorManagementViewModel,
             Logout);

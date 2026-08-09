@@ -6,5 +6,6 @@ public enum AdminMenuItem
     EquipmentManagement,
     InspectionTemplateManagement,
     ScheduleCalendar,
+    InspectionStatus,
     OperatorManagement
 }
