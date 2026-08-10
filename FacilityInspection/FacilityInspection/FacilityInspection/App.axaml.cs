@@ -28,18 +28,20 @@ public partial class App : Application
         if (ApplicationLifetime is
             IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = mainViewModel
-            };
+            desktop.MainWindow =
+                new MainWindow
+                {
+                    DataContext = mainViewModel
+                };
         }
         else if (ApplicationLifetime is
             ISingleViewApplicationLifetime singleView)
         {
-            singleView.MainView = new MainView
-            {
-                DataContext = mainViewModel
-            };
+            singleView.MainView =
+                new MainView
+                {
+                    DataContext = mainViewModel
+                };
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -47,62 +49,81 @@ public partial class App : Application
 
     private static MainViewModel CreateMainViewModel()
     {
-        var databaseDirectory = Path.Combine(
-            Environment.GetFolderPath(
-                Environment.SpecialFolder.LocalApplicationData),
-            "FacilityInspection");
+        // ========================================
+        // SQLite
+        // ========================================
+
+        var databaseDirectory =
+            Path.Combine(
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder
+                        .LocalApplicationData),
+                "FacilityInspection");
 
         Directory.CreateDirectory(
             databaseDirectory);
 
-        var databasePath = Path.Combine(
-            databaseDirectory,
-            "facility-inspection.db");
-
-        var sampleDatabasePath = Path.Combine(
-            AppContext.BaseDirectory,
-            "sample",
-            "database",
-            "facility-inspection-sample.db");
-
-        // 実行用DBが存在しない場合だけ、
-        // リポジトリに含めたサンプルDBからコピーする
-     /*   if (!File.Exists(databasePath) &&
-            File.Exists(sampleDatabasePath))
-        {
-            File.Copy(
-                sampleDatabasePath,
-                databasePath);
-        }*/
+        var databasePath =
+            Path.Combine(
+                databaseDirectory,
+                "facility-inspection.db");
 
         var dbContextFactory =
             new InspectionDbContextFactory(
                 databasePath);
 
+
+        // ========================================
+        // DB初期化
+        // ========================================
+
         InitializeDatabase(
             dbContextFactory);
+
+
+        // ========================================
+        // PasswordHasher
+        // ========================================
 
         var passwordHasher =
             new PasswordHasher<Operator>();
 
+
+        // ========================================
+        // Seed
+        //
+        // 依存関係のある順番で登録する
+        // ========================================
+
+        // Operator
         SeedOperators(
             dbContextFactory,
             passwordHasher);
 
+        // FactorySite / Location
         SeedLocations(
-    dbContextFactory);
+            dbContextFactory);
 
+        // Equipment
         SeedEquipments(
-    dbContextFactory);
+            dbContextFactory);
 
+        // InspectionTemplate
         SeedInspectionTemplates(
             dbContextFactory);
 
+        // InspectionSchedule
         SeedInspectionSchedules(
-    dbContextFactory);
+            dbContextFactory);
 
+        // Inspection / Result / Photo
         SeedInspections(
-    dbContextFactory);
+            dbContextFactory);
+
+
+        // ========================================
+        // Service
+        // ========================================
 
         IAuthenticationService authenticationService =
             new AuthenticationService(
@@ -111,6 +132,11 @@ public partial class App : Application
 
         var currentUserSession =
             new CurrentUserSession();
+
+
+        // ========================================
+        // Repository
+        // ========================================
 
         var inspectionTemplateRepository =
             new InspectionTemplateRepository(
@@ -125,11 +151,14 @@ public partial class App : Application
             new ScheduleRepository(
                 dbContextFactory);
 
-
         var inspectionRepository =
-    new InspectionRepository(
-        dbContextFactory);
+            new InspectionRepository(
+                dbContextFactory);
 
+
+        // ========================================
+        // MainViewModel
+        // ========================================
 
         return new MainViewModel(
             authenticationService,
@@ -140,9 +169,13 @@ public partial class App : Application
             inspectionRepository);
     }
 
+
+    // ============================================
+    // DB初期化
+    // ============================================
+
     private static void InitializeDatabase(
-        InspectionDbContextFactory
-            dbContextFactory)
+        InspectionDbContextFactory dbContextFactory)
     {
         using var dbContext =
             dbContextFactory.CreateDbContext();
@@ -150,68 +183,90 @@ public partial class App : Application
         dbContext.Database.EnsureCreated();
     }
 
+
+    // ============================================
+    // Operator Seed
+    // ============================================
+
     private static void SeedOperators(
-        InspectionDbContextFactory
-            dbContextFactory,
-        PasswordHasher<Operator>
-            passwordHasher)
+        InspectionDbContextFactory dbContextFactory,
+        PasswordHasher<Operator> passwordHasher)
     {
-        var operatorSeedService =
+        var seedService =
             new OperatorSeedService(
                 dbContextFactory,
                 passwordHasher);
 
-        operatorSeedService
+        seedService
             .SeedAsync()
             .GetAwaiter()
             .GetResult();
     }
 
+
+    // ============================================
+    // Location Seed
+    // ============================================
+
+    private static void SeedLocations(
+        InspectionDbContextFactory dbContextFactory)
+    {
+        var seedService =
+            new LocationSeedService(
+                dbContextFactory);
+
+        seedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+
+    // ============================================
+    // Equipment Seed
+    // ============================================
+
+    private static void SeedEquipments(
+        InspectionDbContextFactory dbContextFactory)
+    {
+        var seedService =
+            new EquipmentSeedService(
+                dbContextFactory);
+
+        seedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+
+    // ============================================
+    // InspectionTemplate Seed
+    // ============================================
+
     private static void SeedInspectionTemplates(
-        InspectionDbContextFactory
-            dbContextFactory)
+        InspectionDbContextFactory dbContextFactory)
     {
         using var dbContext =
             dbContextFactory.CreateDbContext();
 
-        var inspectionTemplateSeedService =
+        var seedService =
             new InspectionTemplateSeedService(
                 dbContext);
 
-        inspectionTemplateSeedService
+        seedService
             .SeedAsync()
             .GetAwaiter()
             .GetResult();
     }
 
-    private static void SeedEquipments(
-    InspectionDbContextFactory dbContextFactory)
-    {
-        var equipmentSeedService =
-            new EquipmentSeedService(
-                dbContextFactory);
 
-        equipmentSeedService
-            .SeedAsync()
-            .GetAwaiter()
-            .GetResult();
-    }
-
-    private static void SeedLocations(
-    InspectionDbContextFactory dbContextFactory)
-    {
-        var locationSeedService =
-            new LocationSeedService(
-                dbContextFactory);
-
-        locationSeedService
-            .SeedAsync()
-            .GetAwaiter()
-            .GetResult();
-    }
+    // ============================================
+    // InspectionSchedule Seed
+    // ============================================
 
     private static void SeedInspectionSchedules(
-    InspectionDbContextFactory dbContextFactory)
+        InspectionDbContextFactory dbContextFactory)
     {
         var seedService =
             new InspectionScheduleSeedService(
@@ -223,14 +278,19 @@ public partial class App : Application
             .GetResult();
     }
 
+
+    // ============================================
+    // Inspection / Result / Photo Seed
+    // ============================================
+
     private static void SeedInspections(
-    InspectionDbContextFactory dbContextFactory)
+        InspectionDbContextFactory dbContextFactory)
     {
-        var inspectionSeedService =
+        var seedService =
             new InspectionSeedService(
                 dbContextFactory);
 
-        inspectionSeedService
+        seedService
             .SeedAsync()
             .GetAwaiter()
             .GetResult();

@@ -17,51 +17,72 @@
              ======================================== -->
 
         <Style Selector="Grid.page-root">
-            <Setter Property="Margin"
-                    Value="28" />
+            <Setter
+                Property="Margin"
+                Value="28" />
         </Style>
 
         <Style Selector="TextBlock.page-title">
-            <Setter Property="FontSize"
-                    Value="26" />
+            <Setter
+                Property="FontSize"
+                Value="26" />
         </Style>
 
-        <!-- タイトル -->
+
+        <!-- ========================================
+             タイトル
+             ======================================== -->
+
         <Style Selector="Grid.title-wide">
-            <Setter Property="IsVisible"
-                    Value="True" />
+            <Setter
+                Property="IsVisible"
+                Value="True" />
         </Style>
 
         <Style Selector="StackPanel.title-compact">
-            <Setter Property="IsVisible"
-                    Value="False" />
+            <Setter
+                Property="IsVisible"
+                Value="False" />
         </Style>
 
-        <!-- 検索 -->
+
+        <!-- ========================================
+             検索
+             ======================================== -->
+
         <Style Selector="Grid.search-wide">
-            <Setter Property="IsVisible"
-                    Value="True" />
+            <Setter
+                Property="IsVisible"
+                Value="True" />
         </Style>
 
         <Style Selector="StackPanel.search-compact">
-            <Setter Property="IsVisible"
-                    Value="False" />
+            <Setter
+                Property="IsVisible"
+                Value="False" />
         </Style>
 
-        <!-- 一覧 -->
+
+        <!-- ========================================
+             一覧
+             ======================================== -->
+
         <Style Selector="Border.desktop-list-header">
-            <Setter Property="IsVisible"
-                    Value="True" />
+            <Setter
+                Property="IsVisible"
+                Value="True" />
         </Style>
 
         <Style Selector="Grid.wide-card">
-            <Setter Property="IsVisible"
-                    Value="True" />
+            <Setter
+                Property="IsVisible"
+                Value="True" />
         </Style>
 
         <Style Selector="StackPanel.compact-card">
-            <Setter Property="IsVisible"
-                    Value="False" />
+            <Setter
+                Property="IsVisible"
+                Value="False" />
         </Style>
 
 
@@ -75,18 +96,21 @@
             Query="max-width:1180">
 
             <Style Selector="Border.desktop-list-header">
-                <Setter Property="IsVisible"
-                        Value="False" />
+                <Setter
+                    Property="IsVisible"
+                    Value="False" />
             </Style>
 
             <Style Selector="Grid.wide-card">
-                <Setter Property="IsVisible"
-                        Value="False" />
+                <Setter
+                    Property="IsVisible"
+                    Value="False" />
             </Style>
 
             <Style Selector="StackPanel.compact-card">
-                <Setter Property="IsVisible"
-                        Value="True" />
+                <Setter
+                    Property="IsVisible"
+                    Value="True" />
             </Style>
 
         </ContainerQuery>
@@ -102,13 +126,15 @@
             Query="max-width:760">
 
             <Style Selector="Grid.search-wide">
-                <Setter Property="IsVisible"
-                        Value="False" />
+                <Setter
+                    Property="IsVisible"
+                    Value="False" />
             </Style>
 
             <Style Selector="StackPanel.search-compact">
-                <Setter Property="IsVisible"
-                        Value="True" />
+                <Setter
+                    Property="IsVisible"
+                    Value="True" />
             </Style>
 
         </ContainerQuery>
@@ -124,23 +150,27 @@
             Query="max-width:600">
 
             <Style Selector="Grid.page-root">
-                <Setter Property="Margin"
-                        Value="14" />
+                <Setter
+                    Property="Margin"
+                    Value="14" />
             </Style>
 
             <Style Selector="TextBlock.page-title">
-                <Setter Property="FontSize"
-                        Value="22" />
+                <Setter
+                    Property="FontSize"
+                    Value="22" />
             </Style>
 
             <Style Selector="Grid.title-wide">
-                <Setter Property="IsVisible"
-                        Value="False" />
+                <Setter
+                    Property="IsVisible"
+                    Value="False" />
             </Style>
 
             <Style Selector="StackPanel.title-compact">
-                <Setter Property="IsVisible"
-                        Value="True" />
+                <Setter
+                    Property="IsVisible"
+                    Value="True" />
             </Style>
 
         </ContainerQuery>
@@ -148,9 +178,10 @@
     </UserControl.Styles>
 
 
-    <!--
-        このGridの幅をContainerQueryで監視
-    -->
+    <!-- ========================================
+         レスポンシブ監視対象
+         ======================================== -->
+
     <Grid
         Container.Name="ResponsiveHost"
         Container.Sizing="Width">
@@ -163,9 +194,9 @@
 
             <!-- ====================================
                  タイトル
+                 Desktop / Tablet
                  ==================================== -->
 
-            <!-- Desktop / Tablet -->
             <Grid
                 Grid.Row="0"
                 Classes="title-wide"
@@ -197,6 +228,7 @@
                     Content="再読み込み"
                     Command="{Binding LoadCommand}"
                     HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
                     Background="#FFFFFF"
                     Foreground="#334155"
                     BorderBrush="#CBD5E1"
@@ -206,7 +238,11 @@
             </Grid>
 
 
-            <!-- Smartphone -->
+            <!-- ====================================
+                 タイトル
+                 Smartphone
+                 ==================================== -->
+
             <StackPanel
                 Grid.Row="0"
                 Classes="title-compact"
@@ -235,6 +271,7 @@
                     Content="再読み込み"
                     Command="{Binding LoadCommand}"
                     HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
                     Background="#FFFFFF"
                     Foreground="#334155"
                     BorderBrush="#CBD5E1"
@@ -244,134 +281,141 @@
             </StackPanel>
 
 
-<!-- ====================================
-     検索・状態フィルター
-     ==================================== -->
-
-<Border
-    Grid.Row="1"
-    Padding="18"
-    Background="#FFFFFF"
-    BorderBrush="#E2E8F0"
-    BorderThickness="1"
-    CornerRadius="12">
-
-    <!--
-        Borderは子要素を1つしか持てないため、
-        Wide / Compact をGridでまとめる
-    -->
-    <Grid>
-
-        <!-- 760より広い -->
-        <Grid
-            Classes="search-wide"
-            ColumnDefinitions="*,220,Auto"
-            ColumnSpacing="12">
-
-            <TextBox
-                Grid.Column="0"
-                Height="40"
-                Padding="12,0"
-                Text="{Binding SearchText}"
-                Watermark="設備コード、設備名、担当者などで検索" />
-
-            <ComboBox
-                Grid.Column="1"
-                Height="40"
-                ItemsSource="{Binding StatusFilters}"
-                SelectedItem="{Binding SelectedStatusFilter}">
-
-                <ComboBox.ItemTemplate>
-
-                    <DataTemplate
-                        x:DataType="vm:InspectionStatusFilterOptionViewModel">
-
-                        <TextBlock
-                            Text="{Binding DisplayName}" />
-
-                    </DataTemplate>
-
-                </ComboBox.ItemTemplate>
-
-            </ComboBox>
+            <!-- ====================================
+                 検索・状態フィルター
+                 ==================================== -->
 
             <Border
-                Grid.Column="2"
-                MinWidth="72"
-                Padding="14,8"
-                Background="#EFF6FF"
-                CornerRadius="8">
+                Grid.Row="1"
+                Padding="18"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12">
 
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Text="{Binding CountText}"
-                    FontWeight="SemiBold"
-                    Foreground="#1D4ED8" />
-
-            </Border>
-
-        </Grid>
+                <!--
+                    Borderは子要素を1つしか持てないため、
+                    Wide / Compact をGridでまとめる
+                -->
+                <Grid>
 
 
-        <!-- 760以下 -->
-        <StackPanel
-            Classes="search-compact"
-            Spacing="10">
+                    <!-- ============================
+                         760より広い
+                         ============================ -->
 
-            <TextBox
-                Height="40"
-                Padding="12,0"
-                Text="{Binding SearchText}"
-                Watermark="設備コード、設備名、担当者などで検索" />
+                    <Grid
+                        Classes="search-wide"
+                        ColumnDefinitions="*,220,Auto"
+                        ColumnSpacing="12">
 
-            <Grid
-                ColumnDefinitions="*,Auto"
-                ColumnSpacing="10">
+                        <TextBox
+                            Grid.Column="0"
+                            Height="40"
+                            Padding="12,0"
+                            Text="{Binding SearchText}"
+                            Watermark="設備コード、設備名、担当者などで検索" />
 
-                <ComboBox
-                    Grid.Column="0"
-                    Height="40"
-                    ItemsSource="{Binding StatusFilters}"
-                    SelectedItem="{Binding SelectedStatusFilter}">
+                        <ComboBox
+                            Grid.Column="1"
+                            Height="40"
+                            ItemsSource="{Binding StatusFilters}"
+                            SelectedItem="{Binding SelectedStatusFilter}">
 
-                    <ComboBox.ItemTemplate>
+                            <ComboBox.ItemTemplate>
 
-                        <DataTemplate
-                            x:DataType="vm:InspectionStatusFilterOptionViewModel">
+                                <DataTemplate
+                                    x:DataType="vm:InspectionStatusFilterOptionViewModel">
+
+                                    <TextBlock
+                                        Text="{Binding DisplayName}" />
+
+                                </DataTemplate>
+
+                            </ComboBox.ItemTemplate>
+
+                        </ComboBox>
+
+                        <Border
+                            Grid.Column="2"
+                            MinWidth="72"
+                            Padding="14,8"
+                            Background="#EFF6FF"
+                            CornerRadius="8">
 
                             <TextBlock
-                                Text="{Binding DisplayName}" />
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Text="{Binding CountText}"
+                                FontWeight="SemiBold"
+                                Foreground="#1D4ED8" />
 
-                        </DataTemplate>
+                        </Border>
 
-                    </ComboBox.ItemTemplate>
+                    </Grid>
 
-                </ComboBox>
 
-                <Border
-                    Grid.Column="1"
-                    MinWidth="70"
-                    Padding="12,8"
-                    Background="#EFF6FF"
-                    CornerRadius="8">
+                    <!-- ============================
+                         760以下
+                         ============================ -->
 
-                    <TextBlock
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Text="{Binding CountText}"
-                        FontWeight="SemiBold"
-                        Foreground="#1D4ED8" />
+                    <StackPanel
+                        Classes="search-compact"
+                        Spacing="10">
 
-                </Border>
+                        <TextBox
+                            Height="40"
+                            Padding="12,0"
+                            Text="{Binding SearchText}"
+                            Watermark="設備コード、設備名、担当者などで検索" />
 
-            </Grid>
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            ColumnSpacing="10">
 
-        </StackPanel>
+                            <ComboBox
+                                Grid.Column="0"
+                                Height="40"
+                                ItemsSource="{Binding StatusFilters}"
+                                SelectedItem="{Binding SelectedStatusFilter}">
 
-    </Grid>
+                                <ComboBox.ItemTemplate>
 
-</Border>
+                                    <DataTemplate
+                                        x:DataType="vm:InspectionStatusFilterOptionViewModel">
+
+                                        <TextBlock
+                                            Text="{Binding DisplayName}" />
+
+                                    </DataTemplate>
+
+                                </ComboBox.ItemTemplate>
+
+                            </ComboBox>
+
+                            <Border
+                                Grid.Column="1"
+                                MinWidth="70"
+                                Padding="12,8"
+                                Background="#EFF6FF"
+                                CornerRadius="8">
+
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding CountText}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#1D4ED8" />
+
+                            </Border>
+
+                        </Grid>
+
+                    </StackPanel>
+
+                </Grid>
+
+            </Border>
 
 
             <!-- ====================================
@@ -421,7 +465,7 @@
                             CornerRadius="8">
 
                             <Grid
-                                ColumnDefinitions="100,2*,3*,2*,2*,125,90,90"
+                                ColumnDefinitions="100,2*,3*,2*,2*,125,90,90,80"
                                 ColumnSpacing="10">
 
                                 <TextBlock
@@ -472,6 +516,12 @@
                                     FontWeight="SemiBold"
                                     Foreground="#475569" />
 
+                                <TextBlock
+                                    Grid.Column="8"
+                                    Text="操作"
+                                    FontWeight="SemiBold"
+                                    Foreground="#475569" />
+
                             </Grid>
 
                         </Border>
@@ -497,10 +547,10 @@
                                         BorderThickness="1"
                                         CornerRadius="10">
 
-
                                         <!--
                                             1つのBorder内に
-                                            Wide / Compactの2レイアウトを持つ
+                                            Wide / Compactの
+                                            2レイアウトを持つ
                                         -->
                                         <Grid>
 
@@ -511,15 +561,18 @@
 
                                             <Grid
                                                 Classes="wide-card"
-                                                ColumnDefinitions="100,2*,3*,2*,2*,125,90,90"
+                                                ColumnDefinitions="100,2*,3*,2*,2*,125,90,90,80"
                                                 ColumnSpacing="10">
 
+                                                <!-- 予定日 -->
                                                 <TextBlock
                                                     Grid.Column="0"
                                                     VerticalAlignment="Center"
                                                     Text="{Binding ScheduledDateText}"
                                                     Foreground="#334155" />
 
+
+                                                <!-- 工場・場所 -->
                                                 <TextBlock
                                                     Grid.Column="1"
                                                     VerticalAlignment="Center"
@@ -527,6 +580,8 @@
                                                     TextWrapping="Wrap"
                                                     Foreground="#334155" />
 
+
+                                                <!-- 設備 -->
                                                 <TextBlock
                                                     Grid.Column="2"
                                                     VerticalAlignment="Center"
@@ -535,6 +590,8 @@
                                                     FontWeight="SemiBold"
                                                     Foreground="#0F172A" />
 
+
+                                                <!-- 点検票 -->
                                                 <TextBlock
                                                     Grid.Column="3"
                                                     VerticalAlignment="Center"
@@ -542,6 +599,8 @@
                                                     TextWrapping="Wrap"
                                                     Foreground="#475569" />
 
+
+                                                <!-- 担当者 -->
                                                 <TextBlock
                                                     Grid.Column="4"
                                                     VerticalAlignment="Center"
@@ -604,6 +663,24 @@
 
                                                 </StackPanel>
 
+
+                                                <!-- 詳細 -->
+                                                <Button
+                                                    Grid.Column="8"
+                                                    MinWidth="68"
+                                                    Height="34"
+                                                    Padding="12,0"
+                                                    Content="詳細"
+                                                    Command="{Binding OpenDetailCommand}"
+                                                    HorizontalContentAlignment="Center"
+                                                    VerticalContentAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Background="#EFF6FF"
+                                                    Foreground="#1D4ED8"
+                                                    BorderBrush="#BFDBFE"
+                                                    BorderThickness="1"
+                                                    CornerRadius="7" />
+
                                             </Grid>
 
 
@@ -617,6 +694,7 @@
 
 
                                                 <!-- 日付 + 状態 -->
+
                                                 <Grid
                                                     ColumnDefinitions="*,Auto"
                                                     ColumnSpacing="8">
@@ -647,6 +725,7 @@
 
 
                                                 <!-- 設備 -->
+
                                                 <TextBlock
                                                     Text="{Binding EquipmentDisplayName}"
                                                     FontSize="16"
@@ -656,6 +735,7 @@
 
 
                                                 <!-- 場所 -->
+
                                                 <StackPanel Spacing="2">
 
                                                     <TextBlock
@@ -673,12 +753,14 @@
 
 
                                                 <!-- 区切り -->
+
                                                 <Border
                                                     Height="1"
                                                     Background="#E2E8F0" />
 
 
                                                 <!-- 点検票 -->
+
                                                 <StackPanel Spacing="2">
 
                                                     <TextBlock
@@ -696,6 +778,7 @@
 
 
                                                 <!-- 担当者 -->
+
                                                 <StackPanel Spacing="2">
 
                                                     <TextBlock
@@ -712,14 +795,18 @@
                                                 </StackPanel>
 
 
-                                                <!-- 異常 + 写真 -->
+                                                <!-- =================================
+                                                     異常 + 写真 + 詳細
+                                                     ================================= -->
+
                                                 <Grid
                                                     Margin="0,3,0,0"
-                                                    ColumnDefinitions="*,Auto"
+                                                    ColumnDefinitions="*,Auto,Auto"
                                                     ColumnSpacing="12">
 
 
                                                     <!-- 異常 -->
+
                                                     <StackPanel
                                                         Grid.Column="0"
                                                         Orientation="Horizontal"
@@ -749,6 +836,7 @@
 
 
                                                     <!-- 写真 -->
+
                                                     <StackPanel
                                                         Grid.Column="1"
                                                         Orientation="Horizontal"
@@ -777,6 +865,25 @@
                                                         </StackPanel>
 
                                                     </StackPanel>
+
+
+                                                    <!-- 詳細 -->
+
+                                                    <Button
+                                                        Grid.Column="2"
+                                                        MinWidth="70"
+                                                        Height="34"
+                                                        Padding="12,0"
+                                                        Content="詳細"
+                                                        Command="{Binding OpenDetailCommand}"
+                                                        HorizontalContentAlignment="Center"
+                                                        VerticalContentAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Background="#EFF6FF"
+                                                        Foreground="#1D4ED8"
+                                                        BorderBrush="#BFDBFE"
+                                                        BorderThickness="1"
+                                                        CornerRadius="7" />
 
                                                 </Grid>
 
@@ -811,6 +918,7 @@
                                 Command="{Binding PreviousPageCommand}"
                                 IsEnabled="{Binding HasPreviousPage}"
                                 HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
                                 Background="#FFFFFF"
                                 Foreground="#334155"
                                 BorderBrush="#CBD5E1"
@@ -835,6 +943,7 @@
                                 Command="{Binding NextPageCommand}"
                                 IsEnabled="{Binding HasNextPage}"
                                 HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
                                 Background="#FFFFFF"
                                 Foreground="#334155"
                                 BorderBrush="#CBD5E1"

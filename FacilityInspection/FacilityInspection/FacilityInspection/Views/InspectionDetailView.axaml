@@ -1,0 +1,1090 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.InspectionDetailView"
+    x:DataType="vm:InspectionDetailViewModel"
+    Background="#F3F6FA">
+
+    <UserControl.Styles>
+
+        <!-- ========================================
+             基本
+             ======================================== -->
+
+        <Style Selector="StackPanel.pageRoot">
+            <Setter Property="Margin"
+                    Value="28" />
+        </Style>
+
+        <Style Selector="TextBlock.pageTitle">
+            <Setter Property="FontSize"
+                    Value="26" />
+        </Style>
+
+        <!-- ヘッダー -->
+        <Style Selector="Grid.headerWide">
+            <Setter Property="IsVisible"
+                    Value="True" />
+        </Style>
+
+        <Style Selector="StackPanel.headerCompact">
+            <Setter Property="IsVisible"
+                    Value="False" />
+        </Style>
+
+        <!-- 件数サマリー -->
+        <Style Selector="Grid.summaryWide">
+            <Setter Property="IsVisible"
+                    Value="True" />
+        </Style>
+
+        <Style Selector="StackPanel.summaryCompact">
+            <Setter Property="IsVisible"
+                    Value="False" />
+        </Style>
+
+        <!-- 基本情報 -->
+        <Style Selector="Grid.basicWide">
+            <Setter Property="IsVisible"
+                    Value="True" />
+        </Style>
+
+        <Style Selector="StackPanel.basicCompact">
+            <Setter Property="IsVisible"
+                    Value="False" />
+        </Style>
+
+
+        <!-- ========================================
+             720px以下
+             ======================================== -->
+
+        <ContainerQuery
+            Name="InspectionDetailHost"
+            Query="max-width:720">
+
+            <Style Selector="StackPanel.pageRoot">
+                <Setter Property="Margin"
+                        Value="14" />
+            </Style>
+
+            <Style Selector="TextBlock.pageTitle">
+                <Setter Property="FontSize"
+                        Value="22" />
+            </Style>
+
+            <Style Selector="Grid.headerWide">
+                <Setter Property="IsVisible"
+                        Value="False" />
+            </Style>
+
+            <Style Selector="StackPanel.headerCompact">
+                <Setter Property="IsVisible"
+                        Value="True" />
+            </Style>
+
+            <Style Selector="Grid.summaryWide">
+                <Setter Property="IsVisible"
+                        Value="False" />
+            </Style>
+
+            <Style Selector="StackPanel.summaryCompact">
+                <Setter Property="IsVisible"
+                        Value="True" />
+            </Style>
+
+            <Style Selector="Grid.basicWide">
+                <Setter Property="IsVisible"
+                        Value="False" />
+            </Style>
+
+            <Style Selector="StackPanel.basicCompact">
+                <Setter Property="IsVisible"
+                        Value="True" />
+            </Style>
+
+        </ContainerQuery>
+
+    </UserControl.Styles>
+
+
+    <!--
+        このGridの実際の横幅をContainerQueryで監視
+    -->
+    <Grid
+        Container.Name="InspectionDetailHost"
+        Container.Sizing="Width">
+
+
+        <!-- ========================================
+             メインスクロール領域
+             ======================================== -->
+
+        <ScrollViewer
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+
+            <StackPanel
+                Classes="pageRoot"
+                Spacing="18">
+
+
+                <!-- ==================================
+                     タイトル
+                     Desktop / Tablet
+                     ================================== -->
+
+                <Grid
+                    Classes="headerWide"
+                    ColumnDefinitions="*,Auto">
+
+                    <StackPanel
+                        Grid.Column="0"
+                        Spacing="5">
+
+                        <TextBlock
+                            Classes="pageTitle"
+                            Text="{Binding Title}"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Text="{Binding Description}"
+                            FontSize="13"
+                            Foreground="#64748B"
+                            TextWrapping="Wrap" />
+
+                    </StackPanel>
+
+                    <Button
+                        Grid.Column="1"
+                        MinWidth="100"
+                        Height="40"
+                        Padding="18,0"
+                        Content="再読み込み"
+                        Command="{Binding LoadCommand}"
+                        HorizontalContentAlignment="Center"
+                        Background="#FFFFFF"
+                        Foreground="#334155"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="1"
+                        CornerRadius="8" />
+
+                </Grid>
+
+
+                <!-- ==================================
+                     タイトル
+                     Compact
+                     ================================== -->
+
+                <StackPanel
+                    Classes="headerCompact"
+                    Spacing="12">
+
+                    <StackPanel Spacing="4">
+
+                        <TextBlock
+                            Classes="pageTitle"
+                            Text="{Binding Title}"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Text="{Binding Description}"
+                            FontSize="12"
+                            Foreground="#64748B"
+                            TextWrapping="Wrap" />
+
+                    </StackPanel>
+
+                    <Button
+                        Height="40"
+                        Padding="18,0"
+                        HorizontalAlignment="Left"
+                        Content="再読み込み"
+                        Command="{Binding LoadCommand}"
+                        Background="#FFFFFF"
+                        Foreground="#334155"
+                        BorderBrush="#CBD5E1"
+                        BorderThickness="1"
+                        CornerRadius="8" />
+
+                </StackPanel>
+
+
+                <!-- ==================================
+                     エラー
+                     ================================== -->
+
+                <Border
+                    IsVisible="{Binding HasError}"
+                    Padding="14"
+                    Background="#FEF2F2"
+                    BorderBrush="#FECACA"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        TextWrapping="Wrap"
+                        Foreground="#B91C1C" />
+
+                </Border>
+
+
+                <!-- ==================================
+                     設備・ステータス
+                     ================================== -->
+
+                <Border
+                    Padding="20"
+                    Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="12">
+
+                    <StackPanel Spacing="12">
+
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            ColumnSpacing="12">
+
+                            <StackPanel
+                                Grid.Column="0"
+                                Spacing="5">
+
+                                <TextBlock
+                                    Text="{Binding EquipmentDisplayName}"
+                                    FontSize="20"
+                                    FontWeight="SemiBold"
+                                    Foreground="#0F172A"
+                                    TextWrapping="Wrap" />
+
+                                <TextBlock
+                                    Text="{Binding ScheduledDateText}"
+                                    FontSize="13"
+                                    Foreground="#64748B" />
+
+                            </StackPanel>
+
+
+                            <!-- 状態 -->
+                            <Border
+                                Grid.Column="1"
+                                Padding="12,7"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Background="{Binding StatusBackground}"
+                                CornerRadius="14">
+
+                                <TextBlock
+                                    Text="{Binding StatusText}"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="{Binding StatusForeground}" />
+
+                            </Border>
+
+                        </Grid>
+
+
+                        <Border
+                            Height="1"
+                            Background="#E2E8F0" />
+
+
+                        <TextBlock
+                            Text="{Binding LocationDisplayName}"
+                            FontSize="13"
+                            Foreground="#475569"
+                            TextWrapping="Wrap" />
+
+                    </StackPanel>
+
+                </Border>
+
+
+                <!-- ==================================
+                     件数サマリー
+                     Desktop
+                     ================================== -->
+
+                <Grid
+                    Classes="summaryWide"
+                    ColumnDefinitions="*,*,*"
+                    ColumnSpacing="12">
+
+                    <!-- 点検項目 -->
+                    <Border
+                        Grid.Column="0"
+                        Padding="18"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="12">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="点検項目"
+                                FontSize="12"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="{Binding ResultCountText}"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- 異常 -->
+                    <Border
+                        Grid.Column="1"
+                        Padding="18"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="12">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="異常"
+                                FontSize="12"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="{Binding AbnormalCountText}"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="#B91C1C" />
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- 写真 -->
+                    <Border
+                        Grid.Column="2"
+                        Padding="18"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="12">
+
+                        <StackPanel Spacing="5">
+
+                            <TextBlock
+                                Text="登録写真"
+                                FontSize="12"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="{Binding PhotoCountText}"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                </Grid>
+
+
+                <!-- ==================================
+                     件数サマリー
+                     Compact
+                     ================================== -->
+
+                <StackPanel
+                    Classes="summaryCompact"
+                    Spacing="8">
+
+                    <Border
+                        Padding="14"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10">
+
+                        <Grid ColumnDefinitions="*,Auto">
+
+                            <TextBlock
+                                Text="点検項目"
+                                Foreground="#64748B"
+                                VerticalAlignment="Center" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding ResultCountText}"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                        </Grid>
+
+                    </Border>
+
+
+                    <Border
+                        Padding="14"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10">
+
+                        <Grid ColumnDefinitions="*,Auto">
+
+                            <TextBlock
+                                Text="異常"
+                                Foreground="#64748B"
+                                VerticalAlignment="Center" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding AbnormalCountText}"
+                                FontWeight="Bold"
+                                Foreground="#B91C1C" />
+
+                        </Grid>
+
+                    </Border>
+
+
+                    <Border
+                        Padding="14"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10">
+
+                        <Grid ColumnDefinitions="*,Auto">
+
+                            <TextBlock
+                                Text="登録写真"
+                                Foreground="#64748B"
+                                VerticalAlignment="Center" />
+
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding PhotoCountText}"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                        </Grid>
+
+                    </Border>
+
+                </StackPanel>
+
+
+                <!-- ==================================
+                     基本情報
+                     ================================== -->
+
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        Text="基本情報"
+                        FontSize="17"
+                        FontWeight="SemiBold"
+                        Foreground="#0F172A" />
+
+
+                    <!-- Desktop -->
+                    <Grid
+                        Classes="basicWide"
+                        ColumnDefinitions="*,*"
+                        RowDefinitions="Auto,Auto"
+                        ColumnSpacing="12"
+                        RowSpacing="12">
+
+                        <!-- 場所 -->
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Padding="16"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="工場・設置場所"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding LocationDisplayName}"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155"
+                                    TextWrapping="Wrap" />
+
+                            </StackPanel>
+
+                        </Border>
+
+
+                        <!-- 点検票 -->
+                        <Border
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Padding="16"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="点検票"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding TemplateName}"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155"
+                                    TextWrapping="Wrap" />
+
+                            </StackPanel>
+
+                        </Border>
+
+
+                        <!-- 担当 -->
+                        <Border
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Padding="16"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="点検担当者"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding OperatorName}"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155"
+                                    TextWrapping="Wrap" />
+
+                            </StackPanel>
+
+                        </Border>
+
+
+                        <!-- 予定日 -->
+                        <Border
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Padding="16"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="5">
+
+                                <TextBlock
+                                    Text="点検予定日"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding ScheduledDateText}"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                            </StackPanel>
+
+                        </Border>
+
+                    </Grid>
+
+
+                    <!-- Compact -->
+                    <StackPanel
+                        Classes="basicCompact"
+                        Spacing="8">
+
+                        <Border
+                            Padding="14"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="4">
+
+                                <TextBlock
+                                    Text="工場・設置場所"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding LocationDisplayName}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155"
+                                    TextWrapping="Wrap" />
+
+                            </StackPanel>
+
+                        </Border>
+
+
+                        <Border
+                            Padding="14"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="4">
+
+                                <TextBlock
+                                    Text="点検票"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding TemplateName}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155"
+                                    TextWrapping="Wrap" />
+
+                            </StackPanel>
+
+                        </Border>
+
+
+                        <Border
+                            Padding="14"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="4">
+
+                                <TextBlock
+                                    Text="点検担当者"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding OperatorName}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                            </StackPanel>
+
+                        </Border>
+
+
+                        <Border
+                            Padding="14"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <StackPanel Spacing="4">
+
+                                <TextBlock
+                                    Text="点検予定日"
+                                    FontSize="11"
+                                    Foreground="#94A3B8" />
+
+                                <TextBlock
+                                    Text="{Binding ScheduledDateText}"
+                                    FontWeight="SemiBold"
+                                    Foreground="#334155" />
+
+                            </StackPanel>
+
+                        </Border>
+
+                    </StackPanel>
+
+                </StackPanel>
+
+
+                <!-- ==================================
+                     点検結果
+                     ================================== -->
+
+                <StackPanel Spacing="10">
+
+                    <Grid ColumnDefinitions="*,Auto">
+
+                        <TextBlock
+                            Text="点検結果"
+                            FontSize="17"
+                            FontWeight="SemiBold"
+                            Foreground="#0F172A"
+                            VerticalAlignment="Center" />
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="10,5"
+                            Background="#F1F5F9"
+                            CornerRadius="12">
+
+                            <TextBlock
+                                Text="{Binding ResultCountText}"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#475569" />
+
+                        </Border>
+
+                    </Grid>
+
+
+                    <!-- 結果なし -->
+                    <Border
+                        IsVisible="{Binding !HasResults}"
+                        Padding="24"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10">
+
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            Spacing="5">
+
+                            <TextBlock
+                                Text="点検結果はまだ登録されていません"
+                                FontWeight="SemiBold"
+                                Foreground="#475569"
+                                TextAlignment="Center" />
+
+                            <TextBlock
+                                Text="未実施の点検では、実施後に結果が表示されます。"
+                                FontSize="12"
+                                Foreground="#94A3B8"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                    </Border>
+
+
+                    <!-- 結果一覧 -->
+                    <ItemsControl
+                        IsVisible="{Binding HasResults}"
+                        ItemsSource="{Binding Results}">
+
+                        <ItemsControl.ItemTemplate>
+
+                            <DataTemplate
+                                x:DataType="vm:InspectionResultDetailItemViewModel">
+
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="16"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+
+                                    <StackPanel Spacing="12">
+
+
+                                        <!-- 項目名 + 正常異常 -->
+                                        <Grid
+                                            ColumnDefinitions="*,Auto"
+                                            ColumnSpacing="10">
+
+                                            <StackPanel
+                                                Grid.Column="0"
+                                                Spacing="3">
+
+                                                <TextBlock
+                                                    Text="{Binding ItemName}"
+                                                    FontSize="15"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#0F172A"
+                                                    TextWrapping="Wrap" />
+
+                                                <TextBlock
+                                                    Text="{Binding InputTypeText}"
+                                                    FontSize="11"
+                                                    Foreground="#94A3B8" />
+
+                                            </StackPanel>
+
+                                            <Border
+                                                Grid.Column="1"
+                                                Padding="10,5"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Background="{Binding StatusBackground}"
+                                                CornerRadius="12">
+
+                                                <TextBlock
+                                                    Text="{Binding ResultStatusText}"
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="{Binding StatusForeground}" />
+
+                                            </Border>
+
+                                        </Grid>
+
+
+                                        <!-- 入力結果 -->
+                                        <Border
+                                            Padding="12"
+                                            Background="#F8FAFC"
+                                            CornerRadius="8">
+
+                                            <Grid
+                                                ColumnDefinitions="Auto,*"
+                                                ColumnSpacing="14">
+
+                                                <TextBlock
+                                                    Grid.Column="0"
+                                                    Text="結果"
+                                                    FontSize="12"
+                                                    Foreground="#64748B"
+                                                    VerticalAlignment="Center" />
+
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Text="{Binding ValueText}"
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#334155"
+                                                    TextWrapping="Wrap" />
+
+                                            </Grid>
+
+                                        </Border>
+
+
+                                        <!-- コメント -->
+                                        <Border
+                                            IsVisible="{Binding HasComment}"
+                                            Padding="12"
+                                            Background="#FFFBEB"
+                                            BorderBrush="#FDE68A"
+                                            BorderThickness="1"
+                                            CornerRadius="8">
+
+                                            <StackPanel Spacing="4">
+
+                                                <TextBlock
+                                                    Text="点検者コメント"
+                                                    FontSize="11"
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#92400E" />
+
+                                                <TextBlock
+                                                    Text="{Binding Comment}"
+                                                    FontSize="13"
+                                                    Foreground="#78350F"
+                                                    TextWrapping="Wrap" />
+
+                                            </StackPanel>
+
+                                        </Border>
+
+                                    </StackPanel>
+
+                                </Border>
+
+                            </DataTemplate>
+
+                        </ItemsControl.ItemTemplate>
+
+                    </ItemsControl>
+
+                </StackPanel>
+
+
+                <!-- ==================================
+                     登録写真
+                     ================================== -->
+
+                <StackPanel Spacing="10">
+
+                    <Grid ColumnDefinitions="*,Auto">
+
+                        <TextBlock
+                            Text="登録写真"
+                            FontSize="17"
+                            FontWeight="SemiBold"
+                            Foreground="#0F172A"
+                            VerticalAlignment="Center" />
+
+                        <Border
+                            Grid.Column="1"
+                            Padding="10,5"
+                            Background="#F1F5F9"
+                            CornerRadius="12">
+
+                            <TextBlock
+                                Text="{Binding PhotoCountText}"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#475569" />
+
+                        </Border>
+
+                    </Grid>
+
+
+                    <!-- 写真なし -->
+                    <Border
+                        IsVisible="{Binding !HasPhotos}"
+                        Padding="24"
+                        Background="#FFFFFF"
+                        BorderBrush="#E2E8F0"
+                        BorderThickness="1"
+                        CornerRadius="10">
+
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            Text="登録写真はありません"
+                            Foreground="#64748B" />
+
+                    </Border>
+
+
+                    <!-- 写真情報 -->
+                    <ItemsControl
+                        IsVisible="{Binding HasPhotos}"
+                        ItemsSource="{Binding Photos}">
+
+                        <ItemsControl.ItemTemplate>
+
+                            <DataTemplate
+                                x:DataType="vm:InspectionPhotoDetailItemViewModel">
+
+                                <Border
+                                    Margin="0,0,0,8"
+                                    Padding="14"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="10">
+
+                                    <Grid
+                                        ColumnDefinitions="120,*"
+                                        ColumnSpacing="14">
+
+
+<Border
+    Grid.Column="0"
+    Width="120"
+    Height="90"
+    Background="#E2E8F0"
+    CornerRadius="8"
+    ClipToBounds="True">
+
+    <Image
+        Source="{Binding PhotoSource}"
+        Stretch="UniformToFill" />
+
+</Border>
+
+
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            Spacing="5"
+                                            VerticalAlignment="Center">
+
+                                            <TextBlock
+                                                Text="{Binding RelativePath}"
+                                                FontSize="12"
+                                                FontWeight="SemiBold"
+                                                Foreground="#334155"
+                                                TextWrapping="Wrap" />
+
+                                            <TextBlock
+                                                IsVisible="{Binding HasCaption}"
+                                                Text="{Binding Caption}"
+                                                FontSize="12"
+                                                Foreground="#64748B"
+                                                TextWrapping="Wrap" />
+
+                                            <TextBlock
+                                                Text="{Binding CapturedAtText}"
+                                                FontSize="11"
+                                                Foreground="#94A3B8" />
+
+                                        </StackPanel>
+
+                                    </Grid>
+
+                                </Border>
+
+                            </DataTemplate>
+
+                        </ItemsControl.ItemTemplate>
+
+                    </ItemsControl>
+
+                </StackPanel>
+
+
+                <!-- 下余白 -->
+                <Border Height="12" />
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+
+        <!-- ========================================
+             Loading Overlay
+             ======================================== -->
+
+        <Border
+            IsVisible="{Binding IsLoading}"
+            Background="#CCF8FAFC">
+
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12">
+
+                <ProgressBar
+                    Width="220"
+                    IsIndeterminate="True" />
+
+                <TextBlock
+                    Text="点検実施詳細を読み込んでいます..."
+                    Foreground="#475569" />
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>

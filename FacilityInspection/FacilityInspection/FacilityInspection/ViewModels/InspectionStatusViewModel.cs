@@ -227,28 +227,57 @@ public sealed partial class InspectionStatusViewModel
     public bool HasNextPage =>
         CurrentPage < TotalPages;
 
+    public Action<Guid>? DetailRequested
+    { get; set; }
+
+    private void OpenDetail(
+    Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        DetailRequested?.Invoke(
+            scheduleId);
+    }
+
     private void ApplyPage()
     {
         Items.Clear();
 
         var pageItems =
             _filteredInspections
-                .Skip((CurrentPage - 1) * PageSize)
+                .Skip(
+                    (CurrentPage - 1) *
+                    PageSize)
                 .Take(PageSize);
 
         foreach (var inspection in pageItems)
         {
             Items.Add(
                 new InspectionStatusListItemViewModel(
-                    inspection));
+                    inspection,
+                    OpenDetail));
         }
 
-        OnPropertyChanged(nameof(IsEmpty));
-        OnPropertyChanged(nameof(CountText));
-        OnPropertyChanged(nameof(PageText));
-        OnPropertyChanged(nameof(TotalPages));
-        OnPropertyChanged(nameof(HasPreviousPage));
-        OnPropertyChanged(nameof(HasNextPage));
+        OnPropertyChanged(
+            nameof(IsEmpty));
+
+        OnPropertyChanged(
+            nameof(CountText));
+
+        OnPropertyChanged(
+            nameof(PageText));
+
+        OnPropertyChanged(
+            nameof(TotalPages));
+
+        OnPropertyChanged(
+            nameof(HasPreviousPage));
+
+        OnPropertyChanged(
+            nameof(HasNextPage));
     }
 
     [RelayCommand]

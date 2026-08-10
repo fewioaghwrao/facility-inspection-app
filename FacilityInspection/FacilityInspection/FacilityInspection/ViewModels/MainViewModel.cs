@@ -6,7 +6,8 @@ using System;
 
 namespace FacilityInspection.ViewModels;
 
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel
+    : ViewModelBase
 {
     private readonly IAuthenticationService
         _authenticationService;
@@ -24,16 +25,25 @@ public partial class MainViewModel : ViewModelBase
         _scheduleRepository;
 
     private readonly InspectionRepository
-    _inspectionRepository;
+        _inspectionRepository;
+
+
+    // ============================================
+    // Current Page
+    // ============================================
 
     [ObservableProperty]
     private ViewModelBase currentPage = null!;
 
+
+    // ============================================
+    // Constructor
+    // ============================================
+
     public MainViewModel(
         IAuthenticationService authenticationService,
         CurrentUserSession currentUserSession,
-        InspectionTemplateRepository
-            inspectionTemplateRepository,
+        InspectionTemplateRepository inspectionTemplateRepository,
         OperatorRepository operatorRepository,
         ScheduleRepository scheduleRepository,
         InspectionRepository inspectionRepository)
@@ -54,7 +64,9 @@ public partial class MainViewModel : ViewModelBase
             scheduleRepository);
 
         ArgumentNullException.ThrowIfNull(
-    inspectionRepository);
+            inspectionRepository);
+
+
         _authenticationService =
             authenticationService;
 
@@ -71,10 +83,18 @@ public partial class MainViewModel : ViewModelBase
             scheduleRepository;
 
         _inspectionRepository =
-    inspectionRepository;
+            inspectionRepository;
 
-        CurrentPage = CreateLoginViewModel();
+
+        // 初期画面
+        CurrentPage =
+            CreateLoginViewModel();
     }
+
+
+    // ============================================
+    // Login
+    // ============================================
 
     private LoginViewModel CreateLoginViewModel()
     {
@@ -87,6 +107,7 @@ public partial class MainViewModel : ViewModelBase
 
         return loginViewModel;
     }
+
 
     private void OnLoginSucceeded(
         SignedInOperator signedInOperator)
@@ -108,13 +129,20 @@ public partial class MainViewModel : ViewModelBase
                     CreateAdminShellViewModel(
                         signedInOperator),
 
-                _ => throw new InvalidOperationException(
-                    $"未対応の権限です: " +
-                    $"{signedInOperator.Role}")
+                _ =>
+                    throw new InvalidOperationException(
+                        $"未対応の権限です: " +
+                        $"{signedInOperator.Role}")
             };
 
-        NavigateTo(destination);
+        NavigateTo(
+            destination);
     }
+
+
+    // ============================================
+    // Member Shell
+    // ============================================
 
     private MemberShellViewModel
         CreateMemberShellViewModel(
@@ -126,33 +154,81 @@ public partial class MainViewModel : ViewModelBase
             Logout);
     }
 
+
+    // ============================================
+    // Admin Shell
+    // ============================================
+
     private AdminShellViewModel
         CreateAdminShellViewModel(
             SignedInOperator signedInOperator)
     {
+        // ----------------------------------------
+        // Dashboard
+        // ----------------------------------------
+
         var adminDashboardViewModel =
             new AdminDashboardViewModel(
                 signedInOperator.DisplayName);
 
+
+        // ----------------------------------------
+        // 設備台帳
+        // ----------------------------------------
+
         var equipmentManagementViewModel =
             new EquipmentManagementViewModel();
+
+
+        // ----------------------------------------
+        // 点検予定管理
+        // ----------------------------------------
 
         var scheduleCalendarViewModel =
             new ScheduleCalendarViewModel(
                 _scheduleRepository);
 
+
+        // ----------------------------------------
+        // 点検実施状況
+        // ----------------------------------------
+
+        var inspectionStatusViewModel =
+            new InspectionStatusViewModel(
+                _inspectionRepository);
+
+
+        // ----------------------------------------
+        // 異常一覧
+        // ----------------------------------------
+
+        var abnormalListViewModel =
+            new AbnormalListViewModel(
+                _inspectionRepository);
+
+
+        // ----------------------------------------
+        // 点検表テンプレート
+        // ----------------------------------------
+
         var inspectionTemplateManagementViewModel =
             new InspectionTemplateManagementViewModel(
                 _inspectionTemplateRepository);
+
+
+        // ----------------------------------------
+        // 点検担当者管理
+        // ----------------------------------------
 
         var operatorManagementViewModel =
             new OperatorManagementViewModel(
                 _operatorRepository,
                 signedInOperator.Id);
 
-        var inspectionStatusViewModel =
-    new InspectionStatusViewModel(
-        _inspectionRepository);
+
+        // ----------------------------------------
+        // Admin Shell
+        // ----------------------------------------
 
         return new AdminShellViewModel(
             signedInOperator.DisplayName,
@@ -160,10 +236,17 @@ public partial class MainViewModel : ViewModelBase
             equipmentManagementViewModel,
             scheduleCalendarViewModel,
             inspectionStatusViewModel,
+            abnormalListViewModel,
             inspectionTemplateManagementViewModel,
             operatorManagementViewModel,
+            _inspectionRepository,
             Logout);
     }
+
+
+    // ============================================
+    // Navigation
+    // ============================================
 
     public void NavigateTo(
         ViewModelBase destination)
@@ -171,8 +254,14 @@ public partial class MainViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(
             destination);
 
-        CurrentPage = destination;
+        CurrentPage =
+            destination;
     }
+
+
+    // ============================================
+    // Logout
+    // ============================================
 
     public void Logout()
     {

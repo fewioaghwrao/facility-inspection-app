@@ -4,8 +4,9 @@ public enum AdminMenuItem
 {
     Dashboard,
     EquipmentManagement,
-    InspectionTemplateManagement,
     ScheduleCalendar,
     InspectionStatus,
+    AbnormalList,
+    InspectionTemplateManagement,
     OperatorManagement
 }

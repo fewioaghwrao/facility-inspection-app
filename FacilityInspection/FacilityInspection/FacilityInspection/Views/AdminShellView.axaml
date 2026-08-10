@@ -202,17 +202,19 @@
     Command="{Binding OpenInspectionStatusCommand}"
     ToolTip.Tip="点検実施状況" />
 
-                        <Button
-                            Classes="menuButton"
-                            Content="異常一覧" />
+<Button
+    Classes="menuButton"
+    Classes.selected="{Binding IsAbnormalListSelected}"
+    Content="異常一覧"
+    Command="{Binding OpenAbnormalListCommand}" />
 
                         <Button
                             Classes="menuButton"
-                            Content="対応中一覧" />
+                            Content="未実施一覧" />
 
                         <Button
                             Classes="menuButton"
-                            Content="再点検待ち" />
+                            Content="完了・承認待ち" />
 
                         <Button
                             Classes="menuButton"
