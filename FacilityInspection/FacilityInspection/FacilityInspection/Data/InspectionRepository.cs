@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FacilityInspection.Domain.AuditLogs;
 
 namespace FacilityInspection.Data;
 
@@ -635,5 +636,228 @@ public sealed class InspectionRepository
                     cancellationToken);
 
         return rows;
+    }
+
+    // ============================================
+    // 完了・承認待ち一覧
+    // ============================================
+
+    public async Task<IReadOnlyList<InspectionListData>>
+        GetApprovalPendingAsync(
+            CancellationToken cancellationToken = default)
+    {
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        var rows =
+            await dbContext.InspectionSchedules
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsCancelled &&
+                    x.Inspection != null &&
+                    x.Inspection.Status ==
+                        InspectionStatus.Completed)
+                .OrderBy(x =>
+                    x.ScheduledDate)
+                .ThenBy(x =>
+                    x.Equipment.EquipmentCode)
+                .Select(x => new InspectionListData(
+                    x.Id,
+                    x.Inspection!.Id,
+                    x.ScheduledDate,
+
+                    x.Equipment
+                        .Location
+                        .FactorySite
+                        .Name,
+
+                    x.Equipment
+                        .Location
+                        .Name,
+
+                    x.Equipment
+                        .EquipmentCode,
+
+                    x.Equipment
+                        .Name,
+
+                    x.InspectionTemplate
+                        .Name,
+
+                    x.AssignedOperator
+                        .DisplayName,
+
+                    x.Inspection.Status,
+
+                    x.Inspection.Results.Count,
+
+                    x.Inspection.Results.Count(
+                        result =>
+                            result.IsAbnormal),
+
+                    x.Inspection.Photos.Count))
+                .ToListAsync(
+                    cancellationToken);
+
+        return rows;
+    }
+
+    // ============================================
+    // 点検承認
+    // ============================================
+
+    public async Task ApproveAsync(
+        Guid scheduleId,
+        Guid operatorId,
+        CancellationToken cancellationToken = default)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "操作担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        var inspection =
+            await dbContext
+                .Set<Inspection>()
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.InspectionScheduleId ==
+                            scheduleId,
+                    cancellationToken);
+
+        if (inspection is null)
+        {
+            throw new InvalidOperationException(
+                "点検実績が見つかりません。");
+        }
+
+        if (inspection.Status !=
+            InspectionStatus.Completed)
+        {
+            throw new InvalidOperationException(
+                "承認待ちの点検のみ承認できます。");
+        }
+
+        var beforeValue =
+            inspection.Status.ToString();
+
+        // ----------------------------------------
+        // 承認
+        // ----------------------------------------
+
+        inspection.Approve(
+            DateTime.UtcNow);
+
+        // ----------------------------------------
+        // 操作履歴
+        // ----------------------------------------
+
+        var auditLog =
+            new AuditLog(
+                operatorId,
+                AuditActionType.Approve,
+                AuditEntityType.Inspection,
+                inspection.Id,
+                beforeValue,
+                inspection.Status.ToString(),
+                null);
+
+        dbContext.AuditLogs.Add(
+            auditLog);
+
+        // Inspection と AuditLog を同時保存
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
+    }
+
+    // ============================================
+    // 点検差し戻し
+    // ============================================
+
+    public async Task ReturnAsync(
+        Guid scheduleId,
+        string reason,
+        Guid operatorId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(
+                reason))
+        {
+            throw new ArgumentException(
+                "差し戻し理由を入力してください。",
+                nameof(reason));
+        }
+
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "操作担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        var trimmedReason =
+            reason.Trim();
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        var inspection =
+            await dbContext
+                .Set<Inspection>()
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.InspectionScheduleId ==
+                            scheduleId,
+                    cancellationToken);
+
+        if (inspection is null)
+        {
+            throw new InvalidOperationException(
+                "点検実績が見つかりません。");
+        }
+
+        if (inspection.Status !=
+            InspectionStatus.Completed)
+        {
+            throw new InvalidOperationException(
+                "承認待ちの点検のみ差し戻しできます。");
+        }
+
+        var beforeValue =
+            inspection.Status.ToString();
+
+        // ----------------------------------------
+        // 差し戻し
+        // ----------------------------------------
+
+        inspection.Return(
+            trimmedReason,
+            DateTime.UtcNow);
+
+        // ----------------------------------------
+        // 操作履歴
+        // ----------------------------------------
+
+        var auditLog =
+            new AuditLog(
+                operatorId,
+                AuditActionType.ReturnForCorrection,
+                AuditEntityType.Inspection,
+                inspection.Id,
+                beforeValue,
+                inspection.Status.ToString(),
+                trimmedReason);
+
+        dbContext.AuditLogs.Add(
+            auditLog);
+
+        // Inspection と AuditLog を同時保存
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
     }
 }

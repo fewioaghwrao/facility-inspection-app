@@ -7,6 +7,7 @@ public enum AdminMenuItem
     InspectionStatus,
     AbnormalList,
     NotStartedList,
+    ApprovalPending,
 
     EquipmentManagement,
     ScheduleCalendar,

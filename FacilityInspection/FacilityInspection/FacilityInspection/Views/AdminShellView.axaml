@@ -214,10 +214,11 @@
     Content="未実施一覧"
     Command="{Binding OpenNotStartedListCommand}" />
 
-                        <Button
-                            Classes="menuButton"
-                            Content="完了・承認待ち" />
-
+<Button
+    Classes="menuButton"
+    Classes.selected="{Binding IsApprovalPendingSelected}"
+    Content="承認・差し戻し"
+    Command="{Binding OpenApprovalPendingCommand}" />
                         <Border
                             Height="1"
                             Margin="4,14"

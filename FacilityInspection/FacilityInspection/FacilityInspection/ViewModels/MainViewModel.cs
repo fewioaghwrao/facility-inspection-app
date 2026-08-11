@@ -221,6 +221,16 @@ public partial class MainViewModel
             new NotStartedListViewModel(
                 _inspectionRepository);
 
+
+        // ----------------------------------------
+        // 承認待ち一覧
+        // ----------------------------------------
+
+        var approvalPendingListViewModel =
+            new ApprovalPendingListViewModel(
+                _inspectionRepository);
+
+
         // ----------------------------------------
         // 点検表テンプレート
         // ----------------------------------------
@@ -248,11 +258,13 @@ public partial class MainViewModel
             new AuditLogViewModel(
                 _auditLogRepository);
 
+
         // ----------------------------------------
         // Admin Shell
         // ----------------------------------------
 
         return new AdminShellViewModel(
+            signedInOperator.Id,
             signedInOperator.DisplayName,
             adminDashboardViewModel,
             equipmentManagementViewModel,
@@ -261,6 +273,7 @@ public partial class MainViewModel
             abnormalListViewModel,
             notStartedListViewModel,
             auditLogViewModel,
+            approvalPendingListViewModel,
             inspectionTemplateManagementViewModel,
             operatorManagementViewModel,
             _inspectionRepository,
