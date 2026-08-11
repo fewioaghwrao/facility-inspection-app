@@ -5,9 +5,11 @@ using FacilityInspection.Data;
 using FacilityInspection.Data.Seeds;
 using FacilityInspection.Domain.Operators;
 using FacilityInspection.Services.Authentication;
+using FacilityInspection.Services.Backup;
 using FacilityInspection.ViewModels;
 using FacilityInspection.Views;
 using Microsoft.AspNetCore.Identity;
+using FacilityInspection.Services.Backup;
 using System;
 using System.IO;
 
@@ -67,6 +69,8 @@ public partial class App : Application
             Path.Combine(
                 databaseDirectory,
                 "facility-inspection.db");
+
+
 
         var dbContextFactory =
             new InspectionDbContextFactory(
@@ -163,6 +167,13 @@ public partial class App : Application
     new AuditLogRepository(
         dbContextFactory);
 
+        var databaseBackupService =
+    new DatabaseBackupService(
+        databasePath);
+
+        var backupFilePickerService =
+            new BackupFilePickerService();
+
         // ========================================
         // MainViewModel
         // ========================================
@@ -174,7 +185,9 @@ public partial class App : Application
             operatorRepository,
             scheduleRepository,
             inspectionRepository,
-            auditLogRepository);
+            auditLogRepository,
+            databaseBackupService,
+            backupFilePickerService);
     }
 
 

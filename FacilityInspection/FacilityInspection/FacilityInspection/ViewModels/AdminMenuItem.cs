@@ -14,5 +14,6 @@ public enum AdminMenuItem
     InspectionTemplateManagement,
     OperatorManagement,
 
-    AuditLog
+    AuditLog,
+    BackupRestore
 }

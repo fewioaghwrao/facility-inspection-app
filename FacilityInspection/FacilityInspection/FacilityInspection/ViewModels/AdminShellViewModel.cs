@@ -47,6 +47,9 @@ public sealed partial class AdminShellViewModel
     private readonly Guid
     _operatorId;
 
+    private readonly BackupRestoreViewModel
+    _backupRestoreViewModel;
+
 
     // ============================================
     // Constructor
@@ -63,6 +66,7 @@ public sealed partial class AdminShellViewModel
         NotStartedListViewModel notStartedListViewModel,
         AuditLogViewModel auditLogViewModel,
         ApprovalPendingListViewModel approvalPendingListViewModel,
+        BackupRestoreViewModel backupRestoreViewModel,
         InspectionTemplateManagementViewModel
             inspectionTemplateManagementViewModel,
         OperatorManagementViewModel
@@ -108,6 +112,12 @@ public sealed partial class AdminShellViewModel
 
         ArgumentNullException.ThrowIfNull(
             logoutRequested);
+
+        ArgumentNullException.ThrowIfNull(
+    backupRestoreViewModel);
+
+        _backupRestoreViewModel =
+            backupRestoreViewModel;
 
 
         DisplayName =
@@ -201,6 +211,22 @@ public sealed partial class AdminShellViewModel
 
         SelectedMenu =
             AdminMenuItem.Dashboard;
+
+        // ========================================
+        // Dashboard → 各管理画面
+        // ========================================
+
+        _dashboardViewModel.InspectionStatusRequested =
+            OpenInspectionStatus;
+
+        _dashboardViewModel.NotStartedRequested =
+            OpenNotStartedList;
+
+        _dashboardViewModel.ApprovalPendingRequested =
+            OpenApprovalPending;
+
+        _dashboardViewModel.AbnormalListRequested =
+            OpenAbnormalList;
     }
 
 
@@ -244,6 +270,8 @@ public sealed partial class AdminShellViewModel
         nameof(IsApprovalPendingSelected))]
     [NotifyPropertyChangedFor(
         nameof(IsAuditLogSelected))]
+    [NotifyPropertyChangedFor(
+    nameof(IsBackupRestoreSelected))]
     private AdminMenuItem selectedMenu;
 
 
@@ -301,6 +329,9 @@ public sealed partial class AdminShellViewModel
         SelectedMenu ==
         AdminMenuItem.AuditLog;
 
+    public bool IsBackupRestoreSelected =>
+    SelectedMenu ==
+    AdminMenuItem.BackupRestore;
 
     // ============================================
     // Dashboard
@@ -309,6 +340,12 @@ public sealed partial class AdminShellViewModel
     [RelayCommand]
     private void OpenDashboard()
     {
+        /*
+         * 他画面で点検状態が変更されている可能性があるため、
+         * ダッシュボードへ戻るたびに最新状態を取得する。
+         */
+        _dashboardViewModel.Refresh();
+
         CurrentContent =
             _dashboardViewModel;
 
@@ -582,6 +619,20 @@ public sealed partial class AdminShellViewModel
 
         SelectedMenu =
             AdminMenuItem.AuditLog;
+    }
+
+    // ============================================
+    // Backup / Restore
+    // ============================================
+
+    [RelayCommand]
+    private void OpenBackupRestore()
+    {
+        CurrentContent =
+            _backupRestoreViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.BackupRestore;
     }
 
 
