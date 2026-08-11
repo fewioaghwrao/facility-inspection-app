@@ -1,12 +1,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using FacilityInspection.Data;
 using System;
 
 namespace FacilityInspection.ViewModels;
 
-public sealed partial class AdminShellViewModel : ViewModelBase
+public sealed partial class AdminShellViewModel
+    : ViewModelBase
 {
-    private readonly Action _logoutRequested;
+    private readonly Action
+        _logoutRequested;
 
     private readonly AdminDashboardViewModel
         _dashboardViewModel;
@@ -17,9 +20,11 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     private readonly ScheduleCalendarViewModel
         _scheduleCalendarViewModel;
 
-
     private readonly InspectionStatusViewModel
-    _inspectionStatusViewModel;
+        _inspectionStatusViewModel;
+
+    private readonly AbnormalListViewModel
+        _abnormalListViewModel;
 
     private readonly InspectionTemplateManagementViewModel
         _inspectionTemplateManagementViewModel;
@@ -27,18 +32,33 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     private readonly OperatorManagementViewModel
         _operatorManagementViewModel;
 
+    private readonly InspectionRepository
+        _inspectionRepository;
+
+    private readonly NotStartedListViewModel
+    _notStartedListViewModel;
+
+    private readonly AuditLogViewModel
+    _auditLogViewModel;
+
+    // ============================================
+    // Constructor
+    // ============================================
 
     public AdminShellViewModel(
         string displayName,
         AdminDashboardViewModel dashboardViewModel,
-        EquipmentManagementViewModel
-            equipmentManagementViewModel,
+        EquipmentManagementViewModel equipmentManagementViewModel,
         ScheduleCalendarViewModel scheduleCalendarViewModel,
         InspectionStatusViewModel inspectionStatusViewModel,
+        AbnormalListViewModel abnormalListViewModel,
+        NotStartedListViewModel notStartedListViewModel,
+        AuditLogViewModel auditLogViewModel,
         InspectionTemplateManagementViewModel
             inspectionTemplateManagementViewModel,
         OperatorManagementViewModel
             operatorManagementViewModel,
+        InspectionRepository inspectionRepository,
         Action logoutRequested)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
@@ -54,7 +74,10 @@ public sealed partial class AdminShellViewModel : ViewModelBase
             scheduleCalendarViewModel);
 
         ArgumentNullException.ThrowIfNull(
-    inspectionStatusViewModel);
+            inspectionStatusViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            abnormalListViewModel);
 
         ArgumentNullException.ThrowIfNull(
             inspectionTemplateManagementViewModel);
@@ -63,11 +86,23 @@ public sealed partial class AdminShellViewModel : ViewModelBase
             operatorManagementViewModel);
 
         ArgumentNullException.ThrowIfNull(
+            inspectionRepository);
+
+        ArgumentNullException.ThrowIfNull(
             logoutRequested);
 
-        DisplayName = displayName;
+        ArgumentNullException.ThrowIfNull(
+    notStartedListViewModel);
 
-        _dashboardViewModel = dashboardViewModel;
+        ArgumentNullException.ThrowIfNull(
+    auditLogViewModel);
+
+
+        DisplayName =
+            displayName;
+
+        _dashboardViewModel =
+            dashboardViewModel;
 
         _equipmentManagementViewModel =
             equipmentManagementViewModel;
@@ -76,7 +111,10 @@ public sealed partial class AdminShellViewModel : ViewModelBase
             scheduleCalendarViewModel;
 
         _inspectionStatusViewModel =
-    inspectionStatusViewModel;
+            inspectionStatusViewModel;
+
+        _abnormalListViewModel =
+            abnormalListViewModel;
 
         _inspectionTemplateManagementViewModel =
             inspectionTemplateManagementViewModel;
@@ -84,16 +122,67 @@ public sealed partial class AdminShellViewModel : ViewModelBase
         _operatorManagementViewModel =
             operatorManagementViewModel;
 
-        _logoutRequested = logoutRequested;
+        _inspectionRepository =
+            inspectionRepository;
 
-        CurrentContent = _dashboardViewModel;
-        SelectedMenu = AdminMenuItem.Dashboard;
+        _logoutRequested =
+            logoutRequested;
+
+        _notStartedListViewModel =
+    notStartedListViewModel;
+
+        _auditLogViewModel =
+    auditLogViewModel;
+
+        // ========================================
+        // 点検実施状況 → 点検詳細
+        // ========================================
+
+        _inspectionStatusViewModel.DetailRequested =
+            OpenInspectionDetail;
+
+
+        // ========================================
+        // 異常一覧 → 点検詳細
+        // ========================================
+
+        _abnormalListViewModel.DetailRequested =
+            OpenAbnormalDetail;
+
+
+        // ========================================
+        // 初期画面
+        // ========================================
+
+        CurrentContent =
+            _dashboardViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.Dashboard;
+
+        _notStartedListViewModel.DetailRequested =
+    OpenNotStartedDetail;
     }
+
+
+    // ============================================
+    // Header
+    // ============================================
 
     public string DisplayName { get; }
 
+
+    // ============================================
+    // Current Content
+    // ============================================
+
     [ObservableProperty]
     private ViewModelBase currentContent = null!;
+
+
+    // ============================================
+    // Selected Menu
+    // ============================================
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
@@ -105,45 +194,89 @@ public sealed partial class AdminShellViewModel : ViewModelBase
     [NotifyPropertyChangedFor(
         nameof(IsScheduleCalendarSelected))]
     [NotifyPropertyChangedFor(
-    nameof(IsInspectionStatusSelected))]
+        nameof(IsInspectionStatusSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsAbnormalListSelected))]
     [NotifyPropertyChangedFor(
         nameof(IsOperatorManagementSelected))]
+    [NotifyPropertyChangedFor(
+    nameof(IsNotStartedListSelected))]
+    [NotifyPropertyChangedFor(
+    nameof(IsAuditLogSelected))]
     private AdminMenuItem selectedMenu;
+
+
+
+
+    // ============================================
+    // Logout Dialog
+    // ============================================
 
     [ObservableProperty]
     private bool isLogoutDialogOpen;
 
+
+    // ============================================
+    // Menu Selection State
+    // ============================================
+
     public bool IsDashboardSelected =>
-        SelectedMenu == AdminMenuItem.Dashboard;
+        SelectedMenu ==
+        AdminMenuItem.Dashboard;
 
     public bool IsEquipmentManagementSelected =>
         SelectedMenu ==
-            AdminMenuItem.EquipmentManagement;
+        AdminMenuItem.EquipmentManagement;
 
     public bool
         IsInspectionTemplateManagementSelected =>
             SelectedMenu ==
-                AdminMenuItem
-                    .InspectionTemplateManagement;
-
-    public bool IsInspectionStatusSelected =>
-    SelectedMenu ==
-        AdminMenuItem.InspectionStatus;
+            AdminMenuItem
+                .InspectionTemplateManagement;
 
     public bool IsScheduleCalendarSelected =>
         SelectedMenu ==
-            AdminMenuItem.ScheduleCalendar;
+        AdminMenuItem.ScheduleCalendar;
+
+    public bool IsInspectionStatusSelected =>
+        SelectedMenu ==
+        AdminMenuItem.InspectionStatus;
+
+    public bool IsAbnormalListSelected =>
+        SelectedMenu ==
+        AdminMenuItem.AbnormalList;
 
     public bool IsOperatorManagementSelected =>
         SelectedMenu ==
-            AdminMenuItem.OperatorManagement;
+        AdminMenuItem.OperatorManagement;
+
+    public bool IsNotStartedListSelected =>
+    SelectedMenu ==
+    AdminMenuItem.NotStartedList;
+
+    public bool IsAuditLogSelected =>
+    SelectedMenu ==
+    AdminMenuItem.AuditLog;
+
+
+    // ============================================
+    // Dashboard
+    // ============================================
 
     [RelayCommand]
     private void OpenDashboard()
     {
-        CurrentContent = _dashboardViewModel;
-        SelectedMenu = AdminMenuItem.Dashboard;
+        CurrentContent =
+            _dashboardViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.Dashboard;
     }
+
+
+    // ============================================
+    // Equipment Management
+    // ============================================
 
     [RelayCommand]
     private void OpenEquipmentManagement()
@@ -154,6 +287,120 @@ public sealed partial class AdminShellViewModel : ViewModelBase
         SelectedMenu =
             AdminMenuItem.EquipmentManagement;
     }
+
+
+    // ============================================
+    // Schedule Calendar
+    // ============================================
+
+    [RelayCommand]
+    private void OpenScheduleCalendar()
+    {
+        CurrentContent =
+            _scheduleCalendarViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.ScheduleCalendar;
+    }
+
+
+    // ============================================
+    // Inspection Status
+    // ============================================
+
+    [RelayCommand]
+    private void OpenInspectionStatus()
+    {
+        CurrentContent =
+            _inspectionStatusViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.InspectionStatus;
+    }
+
+
+    // ============================================
+    // Abnormal List
+    // ============================================
+
+    [RelayCommand]
+    private void OpenAbnormalList()
+    {
+        CurrentContent =
+            _abnormalListViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.AbnormalList;
+    }
+
+
+    // ============================================
+    // Inspection Status → Detail
+    // ============================================
+
+    private void OpenInspectionDetail(
+        Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        var detailViewModel =
+            new InspectionDetailViewModel(
+                _inspectionRepository,
+                scheduleId);
+
+        /*
+         * 点検実施状況から詳細を開いた場合は、
+         * 戻るボタンで点検実施状況へ戻る。
+         */
+        detailViewModel.BackRequested =
+            OpenInspectionStatus;
+
+        CurrentContent =
+            detailViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.InspectionStatus;
+    }
+
+
+    // ============================================
+    // Abnormal List → Detail
+    // ============================================
+
+    private void OpenAbnormalDetail(
+        Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        var detailViewModel =
+            new InspectionDetailViewModel(
+                _inspectionRepository,
+                scheduleId);
+
+        /*
+         * 異常一覧から詳細を開いた場合は、
+         * 戻るボタンで異常一覧へ戻る。
+         */
+        detailViewModel.BackRequested =
+            OpenAbnormalList;
+
+        CurrentContent =
+            detailViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.AbnormalList;
+    }
+
+
+    // ============================================
+    // Inspection Template Management
+    // ============================================
 
     [RelayCommand]
     private void OpenInspectionTemplateManagement()
@@ -166,15 +413,10 @@ public sealed partial class AdminShellViewModel : ViewModelBase
                 .InspectionTemplateManagement;
     }
 
-    [RelayCommand]
-    private void OpenScheduleCalendar()
-    {
-        CurrentContent =
-            _scheduleCalendarViewModel;
 
-        SelectedMenu =
-            AdminMenuItem.ScheduleCalendar;
-    }
+    // ============================================
+    // Operator Management
+    // ============================================
 
     [RelayCommand]
     private void OpenOperatorManagement()
@@ -186,31 +428,90 @@ public sealed partial class AdminShellViewModel : ViewModelBase
             AdminMenuItem.OperatorManagement;
     }
 
+
+    // ============================================
+    // Not Started List
+    // ============================================
+
+    [RelayCommand]
+    private void OpenNotStartedList()
+    {
+        CurrentContent =
+            _notStartedListViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.NotStartedList;
+    }
+
+    // ============================================
+    // Not Started List → Detail
+    // ============================================
+
+    private void OpenNotStartedDetail(
+        Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        var detailViewModel =
+            new InspectionDetailViewModel(
+                _inspectionRepository,
+                scheduleId);
+
+        /*
+         * 未実施一覧から開いた場合は、
+         * 戻るボタンで未実施一覧へ戻す。
+         */
+        detailViewModel.BackRequested =
+            OpenNotStartedList;
+
+        CurrentContent =
+            detailViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.NotStartedList;
+    }
+
+    // ============================================
+    // Audit Log
+    // ============================================
+
+    [RelayCommand]
+    private void OpenAuditLog()
+    {
+        CurrentContent =
+            _auditLogViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.AuditLog;
+    }
+
+    // ============================================
+    // Logout
+    // ============================================
+
     [RelayCommand]
     private void OpenLogoutDialog()
     {
-        IsLogoutDialogOpen = true;
+        IsLogoutDialogOpen =
+            true;
     }
 
     [RelayCommand]
     private void CancelLogout()
     {
-        IsLogoutDialogOpen = false;
+        IsLogoutDialogOpen =
+            false;
     }
 
     [RelayCommand]
     private void ConfirmLogout()
     {
-        IsLogoutDialogOpen = false;
-        _logoutRequested();
-    }
-    [RelayCommand]
-    private void OpenInspectionStatus()
-    {
-        CurrentContent =
-            _inspectionStatusViewModel;
+        IsLogoutDialogOpen =
+            false;
 
-        SelectedMenu =
-            AdminMenuItem.InspectionStatus;
+        _logoutRequested();
     }
 }

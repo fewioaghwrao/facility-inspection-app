@@ -1,3 +1,4 @@
+using FacilityInspection.Domain.AuditLogs;
 using FacilityInspection.Domain.Equipments;
 using FacilityInspection.Domain.Inspections;
 using FacilityInspection.Domain.InspectionTemplates;
@@ -9,17 +10,31 @@ using System;
 
 namespace FacilityInspection.Data;
 
-public sealed class InspectionDbContext : DbContext
+public sealed class InspectionDbContext
+    : DbContext
 {
-    private readonly string _databasePath;
+    private readonly string
+        _databasePath;
 
-    public InspectionDbContext(string databasePath)
+
+    // ============================================
+    // Constructor
+    // ============================================
+
+    public InspectionDbContext(
+        string databasePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             databasePath);
 
-        _databasePath = databasePath;
+        _databasePath =
+            databasePath;
     }
+
+
+    // ============================================
+    // Master
+    // ============================================
 
     public DbSet<FactorySite> FactorySites =>
         Set<FactorySite>();
@@ -33,6 +48,11 @@ public sealed class InspectionDbContext : DbContext
     public DbSet<Operator> Operators =>
         Set<Operator>();
 
+
+    // ============================================
+    // Inspection Template
+    // ============================================
+
     public DbSet<InspectionTemplate>
         InspectionTemplates =>
             Set<InspectionTemplate>();
@@ -41,6 +61,11 @@ public sealed class InspectionDbContext : DbContext
         InspectionTemplateItems =>
             Set<InspectionTemplateItem>();
 
+
+    // ============================================
+    // Inspection
+    // ============================================
+
     public DbSet<InspectionSchedule>
         InspectionSchedules =>
             Set<InspectionSchedule>();
@@ -48,11 +73,27 @@ public sealed class InspectionDbContext : DbContext
     public DbSet<Inspection> Inspections =>
         Set<Inspection>();
 
-    public DbSet<InspectionResult> InspectionResults =>
-    Set<InspectionResult>();
+    public DbSet<InspectionResult>
+        InspectionResults =>
+            Set<InspectionResult>();
 
-    public DbSet<InspectionPhoto> InspectionPhotos =>
-        Set<InspectionPhoto>();
+    public DbSet<InspectionPhoto>
+        InspectionPhotos =>
+            Set<InspectionPhoto>();
+
+
+    // ============================================
+    // Audit Log
+    // ============================================
+
+    public DbSet<AuditLog>
+        AuditLogs =>
+            Set<AuditLog>();
+
+
+    // ============================================
+    // Configuring
+    // ============================================
 
     protected override void OnConfiguring(
         DbContextOptionsBuilder optionsBuilder)
@@ -61,9 +102,22 @@ public sealed class InspectionDbContext : DbContext
             $"Data Source={_databasePath}");
     }
 
+
+    // ============================================
+    // Model
+    // ============================================
+
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
+        /*
+         * Data/Configurations にある
+         * IEntityTypeConfiguration<T>
+         * 実装を自動的に読み込む。
+         *
+         * AuditLogConfiguration も
+         * ここで自動適用される。
+         */
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(InspectionDbContext).Assembly);
     }

@@ -1,16 +1,27 @@
-﻿using FacilityInspection.Data;
+﻿using CommunityToolkit.Mvvm.Input;
+using FacilityInspection.Data;
 using FacilityInspection.Domain.Inspections;
 using System;
 
 namespace FacilityInspection.ViewModels;
 
-public sealed class InspectionStatusListItemViewModel
+public sealed partial class InspectionStatusListItemViewModel
 {
+    private readonly Action<Guid>
+        _openDetailRequested;
+
     public InspectionStatusListItemViewModel(
-        InspectionListData source)
+        InspectionListData source,
+        Action<Guid> openDetailRequested)
     {
         ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(
+            openDetailRequested);
 
+        _openDetailRequested =
+            openDetailRequested;
+
+        ScheduleId = source.ScheduleId;
         InspectionId = source.InspectionId;
         ScheduledDate = source.ScheduledDate;
         FactorySiteName = source.FactorySiteName;
@@ -24,6 +35,8 @@ public sealed class InspectionStatusListItemViewModel
         AbnormalCount = source.AbnormalCount;
         PhotoCount = source.PhotoCount;
     }
+
+    public Guid ScheduleId { get; }
 
     public Guid? InspectionId { get; }
 
@@ -97,7 +110,8 @@ public sealed class InspectionStatusListItemViewModel
             InspectionStatus.Returned =>
                 "差し戻し",
 
-            _ => Status.ToString()
+            _ =>
+                Status.ToString()
         };
 
     public string StatusBackground =>
@@ -118,7 +132,8 @@ public sealed class InspectionStatusListItemViewModel
             InspectionStatus.Returned =>
                 "#FEE2E2",
 
-            _ => "#F1F5F9"
+            _ =>
+                "#F1F5F9"
         };
 
     public string StatusForeground =>
@@ -139,6 +154,19 @@ public sealed class InspectionStatusListItemViewModel
             InspectionStatus.Returned =>
                 "#B91C1C",
 
-            _ => "#475569"
+            _ =>
+                "#475569"
         };
+
+    [RelayCommand]
+    private void OpenDetail()
+    {
+        if (ScheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        _openDetailRequested(
+            ScheduleId);
+    }
 }

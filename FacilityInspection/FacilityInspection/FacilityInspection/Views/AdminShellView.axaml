@@ -202,25 +202,21 @@
     Command="{Binding OpenInspectionStatusCommand}"
     ToolTip.Tip="点検実施状況" />
 
-                        <Button
-                            Classes="menuButton"
-                            Content="異常一覧" />
+<Button
+    Classes="menuButton"
+    Classes.selected="{Binding IsAbnormalListSelected}"
+    Content="異常一覧"
+    Command="{Binding OpenAbnormalListCommand}" />
+
+<Button
+    Classes="menuButton"
+    Classes.selected="{Binding IsNotStartedListSelected}"
+    Content="未実施一覧"
+    Command="{Binding OpenNotStartedListCommand}" />
 
                         <Button
                             Classes="menuButton"
-                            Content="対応中一覧" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="再点検待ち" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="完了承認" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="差し戻し" />
+                            Content="完了・承認待ち" />
 
                         <Border
                             Height="1"
@@ -258,9 +254,11 @@
                             Content="担当者管理"
                             Command="{Binding OpenOperatorManagementCommand}" />
 
-                        <Button
-                            Classes="menuButton"
-                            Content="操作履歴" />
+<Button
+    Classes="menuButton"
+    Classes.selected="{Binding IsAuditLogSelected}"
+    Content="操作履歴"
+    Command="{Binding OpenAuditLogCommand}" />
 
                         <Button
                             Classes="menuButton"

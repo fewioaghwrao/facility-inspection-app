@@ -95,6 +95,8 @@ public sealed partial class InspectionStatusViewModel
     [NotifyPropertyChangedFor(nameof(HasError))]
     private string? errorMessage;
 
+
+
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
             ErrorMessage);
@@ -104,7 +106,7 @@ public sealed partial class InspectionStatusViewModel
         Items.Count == 0;
 
     public string CountText =>
-        $"{Items.Count}件";
+        $"{_filteredInspections.Count}件";
 
     partial void OnSearchTextChanged(
         string value)
@@ -168,8 +170,7 @@ public sealed partial class InspectionStatusViewModel
         var keyword =
             SearchText.Trim();
 
-        if (!string.IsNullOrWhiteSpace(
-                keyword))
+        if (!string.IsNullOrWhiteSpace(keyword))
         {
             query = query.Where(x =>
                 x.FactorySiteName.Contains(
@@ -192,13 +193,72 @@ public sealed partial class InspectionStatusViewModel
                     StringComparison.OrdinalIgnoreCase));
         }
 
+        _filteredInspections =
+            query.ToList();
+
+        CurrentPage = 1;
+
+        ApplyPage();
+    }
+
+    private const int PageSize = 5;
+
+    private List<InspectionListData> _filteredInspections = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PageText))]
+    [NotifyPropertyChangedFor(nameof(HasPreviousPage))]
+    [NotifyPropertyChangedFor(nameof(HasNextPage))]
+    private int currentPage = 1;
+
+    public int TotalPages =>
+        Math.Max(
+            1,
+            (int)Math.Ceiling(
+                _filteredInspections.Count /
+                (double)PageSize));
+
+    public string PageText =>
+        $"{CurrentPage} / {TotalPages}";
+
+    public bool HasPreviousPage =>
+        CurrentPage > 1;
+
+    public bool HasNextPage =>
+        CurrentPage < TotalPages;
+
+    public Action<Guid>? DetailRequested
+    { get; set; }
+
+    private void OpenDetail(
+    Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        DetailRequested?.Invoke(
+            scheduleId);
+    }
+
+    private void ApplyPage()
+    {
         Items.Clear();
 
-        foreach (var inspection in query)
+        var pageItems =
+            _filteredInspections
+                .Skip(
+                    (CurrentPage - 1) *
+                    PageSize)
+                .Take(PageSize);
+
+        foreach (var inspection in pageItems)
         {
             Items.Add(
                 new InspectionStatusListItemViewModel(
-                    inspection));
+                    inspection,
+                    OpenDetail));
         }
 
         OnPropertyChanged(
@@ -206,6 +266,44 @@ public sealed partial class InspectionStatusViewModel
 
         OnPropertyChanged(
             nameof(CountText));
+
+        OnPropertyChanged(
+            nameof(PageText));
+
+        OnPropertyChanged(
+            nameof(TotalPages));
+
+        OnPropertyChanged(
+            nameof(HasPreviousPage));
+
+        OnPropertyChanged(
+            nameof(HasNextPage));
+    }
+
+    [RelayCommand]
+    private void PreviousPage()
+    {
+        if (!HasPreviousPage)
+        {
+            return;
+        }
+
+        CurrentPage--;
+
+        ApplyPage();
+    }
+
+    [RelayCommand]
+    private void NextPage()
+    {
+        if (!HasNextPage)
+        {
+            return;
+        }
+
+        CurrentPage++;
+
+        ApplyPage();
     }
 }
 

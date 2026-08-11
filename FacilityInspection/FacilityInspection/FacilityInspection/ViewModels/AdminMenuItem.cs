@@ -3,9 +3,15 @@ namespace FacilityInspection.ViewModels;
 public enum AdminMenuItem
 {
     Dashboard,
-    EquipmentManagement,
-    InspectionTemplateManagement,
-    ScheduleCalendar,
+
     InspectionStatus,
-    OperatorManagement
+    AbnormalList,
+    NotStartedList,
+
+    EquipmentManagement,
+    ScheduleCalendar,
+    InspectionTemplateManagement,
+    OperatorManagement,
+
+    AuditLog
 }

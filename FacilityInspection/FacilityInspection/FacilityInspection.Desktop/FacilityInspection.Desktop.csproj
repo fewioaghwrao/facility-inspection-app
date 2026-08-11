@@ -24,4 +24,12 @@
   <ItemGroup>
     <ProjectReference Include="..\FacilityInspection\FacilityInspection.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<Content Include="../../../sample/images/**/*.jpg">
+			<Link>sample/images/%(RecursiveDir)%(Filename)%(Extension)</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
 </Project>
