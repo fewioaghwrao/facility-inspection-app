@@ -578,4 +578,62 @@ public sealed class InspectionRepository
                     x.PhotoCount))
             .ToList();
     }
+
+    // ============================================
+    // 未実施一覧
+    // ============================================
+
+    public async Task<IReadOnlyList<InspectionListData>>
+        GetNotStartedAsync(
+            CancellationToken cancellationToken = default)
+    {
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        var rows =
+            await dbContext.InspectionSchedules
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsCancelled &&
+                    x.Inspection == null)
+                .OrderBy(x =>
+                    x.ScheduledDate)
+                .ThenBy(x =>
+                    x.Equipment.EquipmentCode)
+                .Select(x => new InspectionListData(
+                    x.Id,
+                    null,
+                    x.ScheduledDate,
+
+                    x.Equipment
+                        .Location
+                        .FactorySite
+                        .Name,
+
+                    x.Equipment
+                        .Location
+                        .Name,
+
+                    x.Equipment
+                        .EquipmentCode,
+
+                    x.Equipment
+                        .Name,
+
+                    x.InspectionTemplate
+                        .Name,
+
+                    x.AssignedOperator
+                        .DisplayName,
+
+                    InspectionStatus.NotStarted,
+
+                    0,
+                    0,
+                    0))
+                .ToListAsync(
+                    cancellationToken);
+
+        return rows;
+    }
 }

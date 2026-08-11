@@ -26,7 +26,8 @@ public partial class MainViewModel
 
     private readonly InspectionRepository
         _inspectionRepository;
-
+    private readonly AuditLogRepository
+    _auditLogRepository;
 
     // ============================================
     // Current Page
@@ -46,7 +47,8 @@ public partial class MainViewModel
         InspectionTemplateRepository inspectionTemplateRepository,
         OperatorRepository operatorRepository,
         ScheduleRepository scheduleRepository,
-        InspectionRepository inspectionRepository)
+        InspectionRepository inspectionRepository,
+        AuditLogRepository auditLogRepository)
     {
         ArgumentNullException.ThrowIfNull(
             authenticationService);
@@ -66,6 +68,8 @@ public partial class MainViewModel
         ArgumentNullException.ThrowIfNull(
             inspectionRepository);
 
+        ArgumentNullException.ThrowIfNull(
+    auditLogRepository);
 
         _authenticationService =
             authenticationService;
@@ -85,6 +89,8 @@ public partial class MainViewModel
         _inspectionRepository =
             inspectionRepository;
 
+        _auditLogRepository =
+    auditLogRepository;
 
         // 初期画面
         CurrentPage =
@@ -208,6 +214,14 @@ public partial class MainViewModel
 
 
         // ----------------------------------------
+        // 未実施一覧
+        // ----------------------------------------
+
+        var notStartedListViewModel =
+            new NotStartedListViewModel(
+                _inspectionRepository);
+
+        // ----------------------------------------
         // 点検表テンプレート
         // ----------------------------------------
 
@@ -227,6 +241,14 @@ public partial class MainViewModel
 
 
         // ----------------------------------------
+        // 監査ログ
+        // ----------------------------------------
+
+        var auditLogViewModel =
+            new AuditLogViewModel(
+                _auditLogRepository);
+
+        // ----------------------------------------
         // Admin Shell
         // ----------------------------------------
 
@@ -237,6 +259,8 @@ public partial class MainViewModel
             scheduleCalendarViewModel,
             inspectionStatusViewModel,
             abnormalListViewModel,
+            notStartedListViewModel,
+            auditLogViewModel,
             inspectionTemplateManagementViewModel,
             operatorManagementViewModel,
             _inspectionRepository,

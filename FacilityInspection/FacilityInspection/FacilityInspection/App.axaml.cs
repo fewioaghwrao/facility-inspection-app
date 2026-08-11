@@ -120,6 +120,10 @@ public partial class App : Application
         SeedInspections(
             dbContextFactory);
 
+        // AuditLog
+        SeedAuditLogs(
+            dbContextFactory);
+
 
         // ========================================
         // Service
@@ -155,6 +159,9 @@ public partial class App : Application
             new InspectionRepository(
                 dbContextFactory);
 
+        var auditLogRepository =
+    new AuditLogRepository(
+        dbContextFactory);
 
         // ========================================
         // MainViewModel
@@ -166,7 +173,8 @@ public partial class App : Application
             inspectionTemplateRepository,
             operatorRepository,
             scheduleRepository,
-            inspectionRepository);
+            inspectionRepository,
+            auditLogRepository);
     }
 
 
@@ -288,6 +296,23 @@ public partial class App : Application
     {
         var seedService =
             new InspectionSeedService(
+                dbContextFactory);
+
+        seedService
+            .SeedAsync()
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    // ============================================
+    // AuditLog Seed
+    // ============================================
+
+    private static void SeedAuditLogs(
+        InspectionDbContextFactory dbContextFactory)
+    {
+        var seedService =
+            new AuditLogSeedService(
                 dbContextFactory);
 
         seedService

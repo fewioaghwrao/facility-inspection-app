@@ -35,6 +35,11 @@ public sealed partial class AdminShellViewModel
     private readonly InspectionRepository
         _inspectionRepository;
 
+    private readonly NotStartedListViewModel
+    _notStartedListViewModel;
+
+    private readonly AuditLogViewModel
+    _auditLogViewModel;
 
     // ============================================
     // Constructor
@@ -47,6 +52,8 @@ public sealed partial class AdminShellViewModel
         ScheduleCalendarViewModel scheduleCalendarViewModel,
         InspectionStatusViewModel inspectionStatusViewModel,
         AbnormalListViewModel abnormalListViewModel,
+        NotStartedListViewModel notStartedListViewModel,
+        AuditLogViewModel auditLogViewModel,
         InspectionTemplateManagementViewModel
             inspectionTemplateManagementViewModel,
         OperatorManagementViewModel
@@ -84,6 +91,12 @@ public sealed partial class AdminShellViewModel
         ArgumentNullException.ThrowIfNull(
             logoutRequested);
 
+        ArgumentNullException.ThrowIfNull(
+    notStartedListViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+    auditLogViewModel);
+
 
         DisplayName =
             displayName;
@@ -115,6 +128,11 @@ public sealed partial class AdminShellViewModel
         _logoutRequested =
             logoutRequested;
 
+        _notStartedListViewModel =
+    notStartedListViewModel;
+
+        _auditLogViewModel =
+    auditLogViewModel;
 
         // ========================================
         // 点検実施状況 → 点検詳細
@@ -141,6 +159,9 @@ public sealed partial class AdminShellViewModel
 
         SelectedMenu =
             AdminMenuItem.Dashboard;
+
+        _notStartedListViewModel.DetailRequested =
+    OpenNotStartedDetail;
     }
 
 
@@ -178,7 +199,13 @@ public sealed partial class AdminShellViewModel
         nameof(IsAbnormalListSelected))]
     [NotifyPropertyChangedFor(
         nameof(IsOperatorManagementSelected))]
+    [NotifyPropertyChangedFor(
+    nameof(IsNotStartedListSelected))]
+    [NotifyPropertyChangedFor(
+    nameof(IsAuditLogSelected))]
     private AdminMenuItem selectedMenu;
+
+
 
 
     // ============================================
@@ -222,6 +249,14 @@ public sealed partial class AdminShellViewModel
     public bool IsOperatorManagementSelected =>
         SelectedMenu ==
         AdminMenuItem.OperatorManagement;
+
+    public bool IsNotStartedListSelected =>
+    SelectedMenu ==
+    AdminMenuItem.NotStartedList;
+
+    public bool IsAuditLogSelected =>
+    SelectedMenu ==
+    AdminMenuItem.AuditLog;
 
 
     // ============================================
@@ -393,6 +428,65 @@ public sealed partial class AdminShellViewModel
             AdminMenuItem.OperatorManagement;
     }
 
+
+    // ============================================
+    // Not Started List
+    // ============================================
+
+    [RelayCommand]
+    private void OpenNotStartedList()
+    {
+        CurrentContent =
+            _notStartedListViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.NotStartedList;
+    }
+
+    // ============================================
+    // Not Started List → Detail
+    // ============================================
+
+    private void OpenNotStartedDetail(
+        Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        var detailViewModel =
+            new InspectionDetailViewModel(
+                _inspectionRepository,
+                scheduleId);
+
+        /*
+         * 未実施一覧から開いた場合は、
+         * 戻るボタンで未実施一覧へ戻す。
+         */
+        detailViewModel.BackRequested =
+            OpenNotStartedList;
+
+        CurrentContent =
+            detailViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.NotStartedList;
+    }
+
+    // ============================================
+    // Audit Log
+    // ============================================
+
+    [RelayCommand]
+    private void OpenAuditLog()
+    {
+        CurrentContent =
+            _auditLogViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.AuditLog;
+    }
 
     // ============================================
     // Logout

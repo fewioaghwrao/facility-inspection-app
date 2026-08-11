@@ -1,0 +1,555 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.AuditLogView"
+    x:DataType="vm:AuditLogViewModel"
+    Background="#F3F6FA">
+
+    <UserControl.Styles>
+
+        <!-- 一覧行 -->
+        <Style Selector="Border.logRow">
+            <Setter Property="Background"
+                    Value="#FFFFFF" />
+            <Setter Property="BorderBrush"
+                    Value="#E2E8F0" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="CornerRadius"
+                    Value="8" />
+            <Setter Property="Padding"
+                    Value="14,11" />
+            <Setter Property="Margin"
+                    Value="0,0,0,7" />
+        </Style>
+
+        <!-- ページング -->
+        <Style Selector="Button.pageButton">
+            <Setter Property="MinWidth"
+                    Value="86" />
+            <Setter Property="Height"
+                    Value="38" />
+            <Setter Property="Padding"
+                    Value="14,0" />
+            <Setter Property="Background"
+                    Value="#FFFFFF" />
+            <Setter Property="Foreground"
+                    Value="#334155" />
+            <Setter Property="BorderBrush"
+                    Value="#CBD5E1" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="CornerRadius"
+                    Value="7" />
+        </Style>
+
+    </UserControl.Styles>
+
+
+    <Grid
+        RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- ========================================
+             Header
+             ======================================== -->
+
+        <Border
+            Grid.Row="0"
+            Padding="24,20"
+            Background="#FFFFFF"
+            BorderBrush="#E2E8F0"
+            BorderThickness="0,0,0,1">
+
+            <Grid
+                ColumnDefinitions="*,Auto"
+                ColumnSpacing="16">
+
+                <StackPanel
+                    Grid.Column="0"
+                    Spacing="5">
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="10">
+
+                        <TextBlock
+                            Text="{Binding Title}"
+                            FontSize="25"
+                            FontWeight="Bold"
+                            Foreground="#0F172A"
+                            VerticalAlignment="Center" />
+
+                        <Border
+                            Padding="10,4"
+                            Background="#E2E8F0"
+                            CornerRadius="12"
+                            VerticalAlignment="Center">
+
+                            <TextBlock
+                                Text="{Binding CountText}"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="#475569" />
+
+                        </Border>
+
+                    </StackPanel>
+
+                    <TextBlock
+                        Text="{Binding Description}"
+                        FontSize="13"
+                        Foreground="#64748B"
+                        TextWrapping="Wrap" />
+
+                </StackPanel>
+
+
+                <Button
+                    Grid.Column="1"
+                    Content="再読み込み"
+                    Command="{Binding LoadCommand}"
+                    MinWidth="100"
+                    Height="38"
+                    Padding="14,0"
+                    VerticalAlignment="Center"
+                    Background="#FFFFFF"
+                    Foreground="#334155"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1"
+                    CornerRadius="7" />
+
+            </Grid>
+
+        </Border>
+
+
+        <!-- ========================================
+             Filter
+             ======================================== -->
+
+        <Border
+            Grid.Row="1"
+            Margin="24,18,24,12"
+            Padding="16"
+            Background="#FFFFFF"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
+            CornerRadius="10">
+
+            <Grid
+                ColumnDefinitions="2*,Auto,180,Auto,180,Auto"
+                ColumnSpacing="10">
+
+                <!-- 検索 -->
+                <TextBox
+                    Grid.Column="0"
+                    Text="{Binding SearchText}"
+                    Watermark="操作者・操作・対象・ID・理由で検索"
+                    MinHeight="38"
+                    Padding="10,7"
+                    Background="#F8FAFC"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1"
+                    CornerRadius="7" />
+
+
+                <!-- 操作 -->
+                <TextBlock
+                    Grid.Column="1"
+                    Text="操作"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="#475569"
+                    VerticalAlignment="Center" />
+
+                <ComboBox
+                    Grid.Column="2"
+                    ItemsSource="{Binding ActionFilterOptions}"
+                    SelectedItem="{Binding SelectedActionFilter}"
+                    MinHeight="38"
+                    HorizontalContentAlignment="Stretch">
+
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate
+                            x:DataType="vm:AuditActionFilterOption">
+
+                            <TextBlock
+                                Text="{Binding Label}" />
+
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+
+                </ComboBox>
+
+
+                <!-- 対象 -->
+                <TextBlock
+                    Grid.Column="3"
+                    Text="対象"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="#475569"
+                    VerticalAlignment="Center" />
+
+                <ComboBox
+                    Grid.Column="4"
+                    ItemsSource="{Binding EntityFilterOptions}"
+                    SelectedItem="{Binding SelectedEntityFilter}"
+                    MinHeight="38"
+                    HorizontalContentAlignment="Stretch">
+
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate
+                            x:DataType="vm:AuditEntityFilterOption">
+
+                            <TextBlock
+                                Text="{Binding Label}" />
+
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+
+                </ComboBox>
+
+
+                <!-- 条件クリア -->
+                <Button
+                    Grid.Column="5"
+                    Content="条件クリア"
+                    Command="{Binding ResetFilterCommand}"
+                    MinWidth="92"
+                    Height="38"
+                    Padding="12,0"
+                    Background="#FFFFFF"
+                    Foreground="#475569"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1"
+                    CornerRadius="7" />
+
+            </Grid>
+
+        </Border>
+
+
+        <!-- ========================================
+             Content
+             ======================================== -->
+
+        <Grid
+            Grid.Row="2"
+            Margin="24,0,24,0">
+
+            <Grid
+                RowDefinitions="Auto,*">
+
+                <!-- Header -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,0,0,8"
+                    Padding="14,10"
+                    Background="#E2E8F0"
+                    CornerRadius="8">
+
+                    <Grid
+                        ColumnDefinitions="155,140,125,150,100,*"
+                        ColumnSpacing="12">
+
+                        <TextBlock
+                            Grid.Column="0"
+                            Text="日時"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#475569" />
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="操作者"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#475569" />
+
+                        <TextBlock
+                            Grid.Column="2"
+                            Text="操作"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#475569" />
+
+                        <TextBlock
+                            Grid.Column="3"
+                            Text="対象"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#475569" />
+
+                        <TextBlock
+                            Grid.Column="4"
+                            Text="対象ID"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#475569" />
+
+                        <TextBlock
+                            Grid.Column="5"
+                            Text="理由"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Foreground="#475569" />
+
+                    </Grid>
+
+                </Border>
+
+
+                <!-- 一覧 -->
+                <ScrollViewer
+                    Grid.Row="1"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Auto">
+
+                    <ItemsControl
+                        ItemsSource="{Binding Items}">
+
+                        <ItemsControl.ItemTemplate>
+
+                            <DataTemplate
+                                x:DataType="vm:AuditLogListItemViewModel">
+
+                                <Border
+                                    Classes="logRow"
+                                    MinWidth="900">
+
+                                    <Grid
+                                        ColumnDefinitions="155,140,125,150,100,*"
+                                        ColumnSpacing="12">
+
+                                        <!-- 日時 -->
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Text="{Binding OccurredAtText}"
+                                            FontSize="12"
+                                            Foreground="#334155"
+                                            VerticalAlignment="Center" />
+
+
+                                        <!-- 操作者 -->
+                                        <TextBlock
+                                            Grid.Column="1"
+                                            Text="{Binding OperatorName}"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="#334155"
+                                            TextWrapping="Wrap"
+                                            VerticalAlignment="Center" />
+
+
+                                        <!-- 操作 -->
+                                        <Border
+                                            Grid.Column="2"
+                                            Padding="8,4"
+                                            Background="#EFF6FF"
+                                            CornerRadius="6"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center">
+
+                                            <TextBlock
+                                                Text="{Binding ActionTypeText}"
+                                                FontSize="11"
+                                                FontWeight="SemiBold"
+                                                Foreground="#1D4ED8" />
+
+                                        </Border>
+
+
+                                        <!-- 対象 -->
+                                        <TextBlock
+                                            Grid.Column="3"
+                                            Text="{Binding EntityTypeText}"
+                                            FontSize="12"
+                                            Foreground="#475569"
+                                            TextWrapping="Wrap"
+                                            VerticalAlignment="Center" />
+
+
+                                        <!-- 対象ID -->
+                                        <TextBlock
+                                            Grid.Column="4"
+                                            Text="{Binding ShortEntityIdText}"
+                                            FontFamily="Consolas"
+                                            FontSize="11"
+                                            Foreground="#64748B"
+                                            VerticalAlignment="Center"
+                                            ToolTip.Tip="{Binding EntityIdText}" />
+
+
+                                        <!-- 理由 -->
+                                        <TextBlock
+                                            Grid.Column="5"
+                                            Text="{Binding Reason}"
+                                            FontSize="12"
+                                            Foreground="#64748B"
+                                            TextWrapping="Wrap"
+                                            MaxLines="2"
+                                            VerticalAlignment="Center" />
+
+                                    </Grid>
+
+                                </Border>
+
+                            </DataTemplate>
+
+                        </ItemsControl.ItemTemplate>
+
+                    </ItemsControl>
+
+                </ScrollViewer>
+
+            </Grid>
+
+
+            <!-- ====================================
+                 Loading
+                 ==================================== -->
+
+            <Border
+                IsVisible="{Binding IsLoading}"
+                Background="#88F3F6FA"
+                ZIndex="10">
+
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+
+                    <ProgressBar
+                        Width="180"
+                        Height="6"
+                        IsIndeterminate="True" />
+
+                    <TextBlock
+                        Text="操作履歴を読み込んでいます..."
+                        FontSize="13"
+                        Foreground="#64748B" />
+
+                </StackPanel>
+
+            </Border>
+
+
+            <!-- ====================================
+                 Empty
+                 ==================================== -->
+
+            <Border
+                IsVisible="{Binding IsEmpty}"
+                Padding="30"
+                Background="#FFFFFF"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="10"
+                VerticalAlignment="Top">
+
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    Spacing="8">
+
+                    <TextBlock
+                        Text="≡"
+                        FontSize="30"
+                        Foreground="#94A3B8"
+                        HorizontalAlignment="Center" />
+
+                    <TextBlock
+                        Text="操作履歴はありません"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Foreground="#334155"
+                        HorizontalAlignment="Center" />
+
+                    <TextBlock
+                        Text="操作が記録されるとここに表示されます。"
+                        FontSize="12"
+                        Foreground="#64748B"
+                        HorizontalAlignment="Center" />
+
+                </StackPanel>
+
+            </Border>
+
+
+            <!-- ====================================
+                 Error
+                 ==================================== -->
+
+            <Border
+                IsVisible="{Binding HasError}"
+                Padding="16"
+                Background="#FEF2F2"
+                BorderBrush="#FECACA"
+                BorderThickness="1"
+                CornerRadius="9"
+                VerticalAlignment="Top"
+                ZIndex="20">
+
+                <TextBlock
+                    Text="{Binding ErrorMessage}"
+                    Foreground="#B91C1C"
+                    FontSize="12"
+                    TextWrapping="Wrap" />
+
+            </Border>
+
+        </Grid>
+
+
+        <!-- ========================================
+             Pagination
+             ======================================== -->
+
+        <Border
+            Grid.Row="3"
+            Margin="24,12,24,18"
+            Padding="14"
+            Background="#FFFFFF"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
+            CornerRadius="10">
+
+            <Grid
+                ColumnDefinitions="*,Auto,*"
+                ColumnSpacing="14">
+
+                <Button
+                    Grid.Column="0"
+                    Classes="pageButton"
+                    Content="← 前へ"
+                    Command="{Binding PreviousPageCommand}"
+                    IsEnabled="{Binding HasPreviousPage}"
+                    HorizontalAlignment="Right" />
+
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding PageText}"
+                    MinWidth="70"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="#475569"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    TextAlignment="Center" />
+
+                <Button
+                    Grid.Column="2"
+                    Classes="pageButton"
+                    Content="次へ →"
+                    Command="{Binding NextPageCommand}"
+                    IsEnabled="{Binding HasNextPage}"
+                    HorizontalAlignment="Left" />
+
+            </Grid>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>
