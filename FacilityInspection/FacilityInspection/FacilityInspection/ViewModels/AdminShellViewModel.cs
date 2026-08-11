@@ -36,16 +36,27 @@ public sealed partial class AdminShellViewModel
         _inspectionRepository;
 
     private readonly NotStartedListViewModel
-    _notStartedListViewModel;
+        _notStartedListViewModel;
 
     private readonly AuditLogViewModel
-    _auditLogViewModel;
+        _auditLogViewModel;
+
+    private readonly ApprovalPendingListViewModel
+        _approvalPendingListViewModel;
+
+    private readonly Guid
+    _operatorId;
+
+    private readonly BackupRestoreViewModel
+    _backupRestoreViewModel;
+
 
     // ============================================
     // Constructor
     // ============================================
 
     public AdminShellViewModel(
+        Guid operatorId,
         string displayName,
         AdminDashboardViewModel dashboardViewModel,
         EquipmentManagementViewModel equipmentManagementViewModel,
@@ -54,6 +65,8 @@ public sealed partial class AdminShellViewModel
         AbnormalListViewModel abnormalListViewModel,
         NotStartedListViewModel notStartedListViewModel,
         AuditLogViewModel auditLogViewModel,
+        ApprovalPendingListViewModel approvalPendingListViewModel,
+        BackupRestoreViewModel backupRestoreViewModel,
         InspectionTemplateManagementViewModel
             inspectionTemplateManagementViewModel,
         OperatorManagementViewModel
@@ -80,6 +93,15 @@ public sealed partial class AdminShellViewModel
             abnormalListViewModel);
 
         ArgumentNullException.ThrowIfNull(
+            notStartedListViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            auditLogViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            approvalPendingListViewModel);
+
+        ArgumentNullException.ThrowIfNull(
             inspectionTemplateManagementViewModel);
 
         ArgumentNullException.ThrowIfNull(
@@ -92,10 +114,10 @@ public sealed partial class AdminShellViewModel
             logoutRequested);
 
         ArgumentNullException.ThrowIfNull(
-    notStartedListViewModel);
+    backupRestoreViewModel);
 
-        ArgumentNullException.ThrowIfNull(
-    auditLogViewModel);
+        _backupRestoreViewModel =
+            backupRestoreViewModel;
 
 
         DisplayName =
@@ -116,6 +138,15 @@ public sealed partial class AdminShellViewModel
         _abnormalListViewModel =
             abnormalListViewModel;
 
+        _notStartedListViewModel =
+            notStartedListViewModel;
+
+        _auditLogViewModel =
+            auditLogViewModel;
+
+        _approvalPendingListViewModel =
+            approvalPendingListViewModel;
+
         _inspectionTemplateManagementViewModel =
             inspectionTemplateManagementViewModel;
 
@@ -128,11 +159,16 @@ public sealed partial class AdminShellViewModel
         _logoutRequested =
             logoutRequested;
 
-        _notStartedListViewModel =
-    notStartedListViewModel;
 
-        _auditLogViewModel =
-    auditLogViewModel;
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "操作担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        _operatorId =
+            operatorId;
 
         // ========================================
         // 点検実施状況 → 点検詳細
@@ -151,6 +187,22 @@ public sealed partial class AdminShellViewModel
 
 
         // ========================================
+        // 未実施一覧 → 点検詳細
+        // ========================================
+
+        _notStartedListViewModel.DetailRequested =
+            OpenNotStartedDetail;
+
+
+        // ========================================
+        // 完了・承認待ち一覧 → 点検詳細
+        // ========================================
+
+        _approvalPendingListViewModel.DetailRequested =
+            OpenApprovalPendingDetail;
+
+
+        // ========================================
         // 初期画面
         // ========================================
 
@@ -160,8 +212,21 @@ public sealed partial class AdminShellViewModel
         SelectedMenu =
             AdminMenuItem.Dashboard;
 
-        _notStartedListViewModel.DetailRequested =
-    OpenNotStartedDetail;
+        // ========================================
+        // Dashboard → 各管理画面
+        // ========================================
+
+        _dashboardViewModel.InspectionStatusRequested =
+            OpenInspectionStatus;
+
+        _dashboardViewModel.NotStartedRequested =
+            OpenNotStartedList;
+
+        _dashboardViewModel.ApprovalPendingRequested =
+            OpenApprovalPending;
+
+        _dashboardViewModel.AbnormalListRequested =
+            OpenAbnormalList;
     }
 
 
@@ -200,12 +265,14 @@ public sealed partial class AdminShellViewModel
     [NotifyPropertyChangedFor(
         nameof(IsOperatorManagementSelected))]
     [NotifyPropertyChangedFor(
-    nameof(IsNotStartedListSelected))]
+        nameof(IsNotStartedListSelected))]
     [NotifyPropertyChangedFor(
-    nameof(IsAuditLogSelected))]
+        nameof(IsApprovalPendingSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsAuditLogSelected))]
+    [NotifyPropertyChangedFor(
+    nameof(IsBackupRestoreSelected))]
     private AdminMenuItem selectedMenu;
-
-
 
 
     // ============================================
@@ -251,13 +318,20 @@ public sealed partial class AdminShellViewModel
         AdminMenuItem.OperatorManagement;
 
     public bool IsNotStartedListSelected =>
-    SelectedMenu ==
-    AdminMenuItem.NotStartedList;
+        SelectedMenu ==
+        AdminMenuItem.NotStartedList;
+
+    public bool IsApprovalPendingSelected =>
+        SelectedMenu ==
+        AdminMenuItem.ApprovalPending;
 
     public bool IsAuditLogSelected =>
-    SelectedMenu ==
-    AdminMenuItem.AuditLog;
+        SelectedMenu ==
+        AdminMenuItem.AuditLog;
 
+    public bool IsBackupRestoreSelected =>
+    SelectedMenu ==
+    AdminMenuItem.BackupRestore;
 
     // ============================================
     // Dashboard
@@ -266,6 +340,12 @@ public sealed partial class AdminShellViewModel
     [RelayCommand]
     private void OpenDashboard()
     {
+        /*
+         * 他画面で点検状態が変更されている可能性があるため、
+         * ダッシュボードへ戻るたびに最新状態を取得する。
+         */
+        _dashboardViewModel.Refresh();
+
         CurrentContent =
             _dashboardViewModel;
 
@@ -443,6 +523,7 @@ public sealed partial class AdminShellViewModel
             AdminMenuItem.NotStartedList;
     }
 
+
     // ============================================
     // Not Started List → Detail
     // ============================================
@@ -474,6 +555,58 @@ public sealed partial class AdminShellViewModel
             AdminMenuItem.NotStartedList;
     }
 
+
+    // ============================================
+    // Approval Pending List
+    // ============================================
+
+    [RelayCommand]
+    private void OpenApprovalPending()
+    {
+        /*
+         * 承認や差し戻し後に一覧へ戻ったとき、
+         * 最新の状態を取得する。
+         */
+        _approvalPendingListViewModel
+            .ReloadCommand
+            .Execute(null);
+
+        CurrentContent =
+            _approvalPendingListViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.ApprovalPending;
+    }
+
+
+    // ============================================
+    // Approval Pending List → Detail
+    // ============================================
+
+    private void OpenApprovalPendingDetail(
+        Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+        var detailViewModel =
+            new ApprovalPendingDetailViewModel(
+                _inspectionRepository,
+                scheduleId,
+                _operatorId);
+
+        detailViewModel.BackRequested =
+            OpenApprovalPending;
+
+        CurrentContent =
+            detailViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.ApprovalPending;
+    }
+
     // ============================================
     // Audit Log
     // ============================================
@@ -487,6 +620,21 @@ public sealed partial class AdminShellViewModel
         SelectedMenu =
             AdminMenuItem.AuditLog;
     }
+
+    // ============================================
+    // Backup / Restore
+    // ============================================
+
+    [RelayCommand]
+    private void OpenBackupRestore()
+    {
+        CurrentContent =
+            _backupRestoreViewModel;
+
+        SelectedMenu =
+            AdminMenuItem.BackupRestore;
+    }
+
 
     // ============================================
     // Logout

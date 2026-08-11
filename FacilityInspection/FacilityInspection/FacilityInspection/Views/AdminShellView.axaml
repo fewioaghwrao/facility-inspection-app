@@ -8,293 +8,600 @@
 
     <UserControl.Styles>
 
-        <!-- 左端のアイコンボタン -->
-        <Style Selector="Button.railButton">
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="48" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0,3" />
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="Foreground" Value="#CBD5E1" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter
-                Property="HorizontalContentAlignment"
-                Value="Center" />
-            <Setter
-                Property="VerticalContentAlignment"
-                Value="Center" />
-        </Style>
+        <!-- ========================================
+             Navigation Button
+             ======================================== -->
 
-        <Style Selector="Button.railButton:pointerover">
-            <Setter Property="Background" Value="#334155" />
-            <Setter Property="Foreground" Value="#FFFFFF" />
-        </Style>
-
-        <!-- 中央メニュー -->
-        <Style Selector="Button.menuButton">
-            <Setter Property="MinHeight" Value="40" />
+        <Style Selector="Button.navButton">
+            <Setter Property="MinHeight" Value="44" />
             <Setter Property="Padding" Value="12,8" />
             <Setter Property="Margin" Value="0,2" />
             <Setter Property="FontSize" Value="13" />
-            <Setter Property="Foreground" Value="#334155" />
+            <Setter Property="Foreground" Value="#475569" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="CornerRadius" Value="9" />
             <Setter
                 Property="HorizontalContentAlignment"
-                Value="Left" />
+                Value="Stretch" />
         </Style>
 
-        <Style Selector="Button.menuButton:pointerover">
-            <Setter Property="Background" Value="#E2E8F0" />
+        <Style Selector="Button.navButton:pointerover">
+            <Setter Property="Background" Value="#F1F5F9" />
             <Setter Property="Foreground" Value="#0F172A" />
         </Style>
 
         <!-- 選択中 -->
-        <Style Selector="Button.menuButton.selected">
-            <Setter Property="FontWeight" Value="SemiBold" />
+        <Style Selector="Button.navButton.selected">
+            <Setter Property="Background" Value="#E8F0FE" />
             <Setter Property="Foreground" Value="#1D4ED8" />
-            <Setter Property="Background" Value="#DBEAFE" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+
+        <!-- ========================================
+             Navigation Icon
+             ======================================== -->
+
+        <Style Selector="Border.navIcon">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Background" Value="#F1F5F9" />
+        </Style>
+
+
+        <!-- ========================================
+             Section Label
+             ======================================== -->
+
+        <Style Selector="TextBlock.sectionLabel">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#94A3B8" />
+            <Setter Property="Margin" Value="10,18,0,6" />
         </Style>
 
     </UserControl.Styles>
 
-    <Grid ColumnDefinitions="64,240,*">
 
-        <!-- 左端アイコンバー -->
+    <!-- ============================================
+         Root
+         左アイコンレールを廃止し、
+         Sidebar + Content の2カラムにする
+         ============================================ -->
+
+    <Grid ColumnDefinitions="280,*">
+
+
+        <!-- ========================================
+             Sidebar
+             ======================================== -->
+
         <Border
             Grid.Column="0"
-            Background="#172033">
-
-            <Grid
-                Margin="8"
-                RowDefinitions="Auto,*,Auto">
-
-                <Border
-                    Grid.Row="0"
-                    Width="48"
-                    Height="48"
-                    Margin="0,6,0,18"
-                    CornerRadius="10"
-                    ClipToBounds="True">
-
-                    <Image
-                        Source="/Assets/facility-inspection.png"
-                        Stretch="UniformToFill" />
-
-                </Border>
-
-                <StackPanel
-                    Grid.Row="1"
-                    HorizontalAlignment="Center"
-                    Spacing="3">
-
-                    <Button
-                        Classes="railButton"
-                        Content="⌂"
-                        Command="{Binding OpenDashboardCommand}"
-                        ToolTip.Tip="ダッシュボード" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="✓"
-                        ToolTip.Tip="点検管理" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="⚙"
-                        Command="{Binding OpenEquipmentManagementCommand}"
-                        ToolTip.Tip="設備管理" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="♙"
-                        Command="{Binding OpenOperatorManagementCommand}"
-                        ToolTip.Tip="担当者管理" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="≡"
-                        ToolTip.Tip="操作履歴" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="↻"
-                        ToolTip.Tip="バックアップ・復元" />
-
-                </StackPanel>
-
-                <StackPanel
-                    Grid.Row="2"
-                    HorizontalAlignment="Center"
-                    Spacing="4">
-
-                    <Button
-                        Classes="railButton"
-                        Content="?"
-                        ToolTip.Tip="ヘルプ" />
-
-                    <Button
-                        Classes="railButton"
-                        Content="⎋"
-                        Command="{Binding OpenLogoutDialogCommand}"
-                        ToolTip.Tip="ログアウト" />
-
-                </StackPanel>
-
-            </Grid>
-
-        </Border>
-
-        <!-- 管理者専用詳細メニュー -->
-        <Border
-            Grid.Column="1"
-            Background="#F8FAFC"
+            Background="#FFFFFF"
             BorderBrush="#E2E8F0"
             BorderThickness="0,0,1,0">
 
             <Grid
                 Margin="16"
-                RowDefinitions="Auto,*,Auto">
+                RowDefinitions="Auto,Auto,*,Auto">
+
+
+                <!-- ========================================
+                     Application Header
+                     ======================================== -->
 
                 <StackPanel
                     Grid.Row="0"
-                    Margin="0,6,0,16"
-                    Spacing="4">
+                    Margin="4,8,4,18"
+                    Spacing="14">
 
-                    <TextBlock
-                        Text="管理メニュー"
-                        FontSize="19"
-                        FontWeight="Bold"
-                        Foreground="#0F172A" />
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="12">
 
-                    <TextBlock
-                        Text="{Binding DisplayName}"
-                        FontSize="13"
-                        Foreground="#475569" />
+                        <Border
+                            Width="44"
+                            Height="44"
+                            CornerRadius="10"
+                            ClipToBounds="True"
+                            Background="#EFF6FF">
+
+                            <Image
+                                Source="/Assets/facility-inspection.png"
+                                Stretch="UniformToFill" />
+
+                        </Border>
+
+
+                        <StackPanel
+                            VerticalAlignment="Center"
+                            Spacing="2">
+
+                            <TextBlock
+                                Text="設備点検・保守記録"
+                                FontSize="15"
+                                FontWeight="Bold"
+                                Foreground="#0F172A" />
+
+                            <TextBlock
+                                Text="管理者コンソール"
+                                FontSize="11"
+                                Foreground="#94A3B8" />
+
+                        </StackPanel>
+
+                    </StackPanel>
 
                 </StackPanel>
 
-                <ScrollViewer
+
+                <!-- ========================================
+                     Current User
+                     ======================================== -->
+
+                <Border
                     Grid.Row="1"
-                    VerticalScrollBarVisibility="Auto">
+                    Padding="12"
+                    Margin="0,0,0,8"
+                    Background="#F8FAFC"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="10">
 
-                    <StackPanel Spacing="2">
-
-                        <Button
-                            Classes="menuButton"
-                            Classes.selected="{Binding IsDashboardSelected}"
-                            Content="ダッシュボード"
-                            Command="{Binding OpenDashboardCommand}" />
-
-                        <TextBlock
-                            Margin="10,16,0,5"
-                            Text="点検管理"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="#64748B" />
-
-<Button
-    Classes="menuButton"
-    Content="点検実施状況"
-    Command="{Binding OpenInspectionStatusCommand}"
-    ToolTip.Tip="点検実施状況" />
-
-<Button
-    Classes="menuButton"
-    Classes.selected="{Binding IsAbnormalListSelected}"
-    Content="異常一覧"
-    Command="{Binding OpenAbnormalListCommand}" />
-
-<Button
-    Classes="menuButton"
-    Classes.selected="{Binding IsNotStartedListSelected}"
-    Content="未実施一覧"
-    Command="{Binding OpenNotStartedListCommand}" />
-
-                        <Button
-                            Classes="menuButton"
-                            Content="完了・承認待ち" />
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="10">
 
                         <Border
-                            Height="1"
-                            Margin="4,14"
-                            Background="#E2E8F0" />
+                            Grid.Column="0"
+                            Width="36"
+                            Height="36"
+                            CornerRadius="18"
+                            Background="#DBEAFE">
+
+                            <TextBlock
+                                Text="管"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Foreground="#1D4ED8" />
+
+                        </Border>
+
+
+                        <StackPanel
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Spacing="1">
+
+                            <TextBlock
+                                Text="{Binding DisplayName}"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="#0F172A"
+                                TextTrimming="CharacterEllipsis" />
+
+                            <TextBlock
+                                Text="保全責任者"
+                                FontSize="11"
+                                Foreground="#64748B" />
+
+                        </StackPanel>
+
+                    </Grid>
+
+                </Border>
+
+
+                <!-- ========================================
+                     Navigation
+                     ======================================== -->
+
+                <ScrollViewer
+                    Grid.Row="2"
+                    VerticalScrollBarVisibility="Auto"
+                    HorizontalScrollBarVisibility="Disabled">
+
+                    <StackPanel>
+
+
+                        <!-- ====================================
+                             Dashboard
+                             ==================================== -->
+
+                        <Button
+                            Classes="navButton"
+                            Classes.selected="{Binding IsDashboardSelected}"
+                            Command="{Binding OpenDashboardCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="⌂"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="16" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="ダッシュボード"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <!-- ====================================
+                             Inspection
+                             ==================================== -->
 
                         <TextBlock
-                            Margin="10,0,0,5"
-                            Text="マスター・システム管理"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            Foreground="#64748B" />
+                            Classes="sectionLabel"
+                            Text="点検管理" />
+
 
                         <Button
-                            Classes="menuButton"
+                            Classes="navButton"
+                            Classes.selected="{Binding IsInspectionStatusSelected}"
+                            Command="{Binding OpenInspectionStatusCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="✓"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="15" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="点検実施状況"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <Button
+                            Classes="navButton"
+                            Classes.selected="{Binding IsAbnormalListSelected}"
+                            Command="{Binding OpenAbnormalListCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="!"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="15"
+                                        FontWeight="Bold" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="異常一覧"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <Button
+                            Classes="navButton"
+                            Classes.selected="{Binding IsNotStartedListSelected}"
+                            Command="{Binding OpenNotStartedListCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="○"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="15" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="未実施一覧"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <Button
+                            Classes="navButton"
+                            Classes.selected="{Binding IsApprovalPendingSelected}"
+                            Command="{Binding OpenApprovalPendingCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="↩"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="16" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="承認・差し戻し"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <!-- ====================================
+                             Master
+                             ==================================== -->
+
+                        <TextBlock
+                            Classes="sectionLabel"
+                            Text="マスター管理" />
+
+
+                        <Button
+                            Classes="navButton"
                             Classes.selected="{Binding IsEquipmentManagementSelected}"
-                            Content="設備台帳管理"
-                            Command="{Binding OpenEquipmentManagementCommand}" />
+                            Command="{Binding OpenEquipmentManagementCommand}">
 
-<Button
-    Classes="menuButton"
-    Classes.selected="{Binding IsInspectionTemplateManagementSelected}"
-    Content="点検票テンプレート管理"
-    Command="{Binding OpenInspectionTemplateManagementCommand}" />
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="▣"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="14" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="設備台帳管理"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
 
                         <Button
-                            Classes="menuButton"
+                            Classes="navButton"
+                            Classes.selected="{Binding IsInspectionTemplateManagementSelected}"
+                            Command="{Binding OpenInspectionTemplateManagementCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="☷"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="15" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="点検票テンプレート管理"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <Button
+                            Classes="navButton"
                             Classes.selected="{Binding IsScheduleCalendarSelected}"
-                            Content="点検予定管理"
-                            Command="{Binding OpenScheduleCalendarCommand}" />
+                            Command="{Binding OpenScheduleCalendarCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="▦"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="14" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="点検予定管理"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
 
                         <Button
-                            Classes="menuButton"
+                            Classes="navButton"
                             Classes.selected="{Binding IsOperatorManagementSelected}"
-                            Content="担当者管理"
-                            Command="{Binding OpenOperatorManagementCommand}" />
+                            Command="{Binding OpenOperatorManagementCommand}">
 
-<Button
-    Classes="menuButton"
-    Classes.selected="{Binding IsAuditLogSelected}"
-    Content="操作履歴"
-    Command="{Binding OpenAuditLogCommand}" />
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="♙"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="16" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="担当者管理"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <!-- ====================================
+                             System
+                             ==================================== -->
+
+                        <TextBlock
+                            Classes="sectionLabel"
+                            Text="システム" />
+
 
                         <Button
-                            Classes="menuButton"
-                            Content="バックアップ・復元" />
+                            Classes="navButton"
+                            Classes.selected="{Binding IsAuditLogSelected}"
+                            Command="{Binding OpenAuditLogCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="≡"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="16" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="操作履歴"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
+
+
+                        <Button
+                            Classes="navButton"
+                            Classes.selected="{Binding IsBackupRestoreSelected}"
+                            Command="{Binding OpenBackupRestoreCommand}">
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="11">
+
+                                <Border Classes="navIcon">
+                                    <TextBlock
+                                        Text="↻"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        FontSize="17" />
+                                </Border>
+
+                                <TextBlock
+                                    Text="バックアップ・復元"
+                                    VerticalAlignment="Center" />
+
+                            </StackPanel>
+
+                        </Button>
 
                     </StackPanel>
 
                 </ScrollViewer>
 
-                <Button
-                    Grid.Row="2"
+
+                <!-- ========================================
+                     Logout
+                     ======================================== -->
+
+                <Border
+                    Grid.Row="3"
                     Margin="0,12,0,4"
-                    MinHeight="40"
-                    Content="ログアウト"
-                    Command="{Binding OpenLogoutDialogCommand}"
-                    HorizontalContentAlignment="Center"
-                    Background="#FFFFFF"
-                    Foreground="#475569"
-                    BorderBrush="#CBD5E1"
-                    BorderThickness="1"
-                    CornerRadius="7" />
+                    Padding="0,12,0,0"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="0,1,0,0">
+
+                    <Button
+                        Classes="navButton"
+                        Command="{Binding OpenLogoutDialogCommand}">
+
+                        <StackPanel
+                            Orientation="Horizontal"
+                            Spacing="11">
+
+                            <Border
+                                Classes="navIcon"
+                                Background="#FEF2F2">
+
+                                <TextBlock
+                                    Text="⎋"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontSize="16"
+                                    Foreground="#DC2626" />
+
+                            </Border>
+
+                            <TextBlock
+                                Text="ログアウト"
+                                VerticalAlignment="Center"
+                                Foreground="#B91C1C" />
+
+                        </StackPanel>
+
+                    </Button>
+
+                </Border>
 
             </Grid>
 
         </Border>
 
-        <!-- 管理者画面の表示領域 -->
-        <ContentControl
-            Grid.Column="2"
-            Content="{Binding CurrentContent}" />
 
-        <!-- 管理者用ログアウト確認 -->
+        <!-- ========================================
+             Main Content
+             ======================================== -->
+
+        <Border
+            Grid.Column="1"
+            Background="#F3F6FA">
+
+            <ContentControl
+                Content="{Binding CurrentContent}" />
+
+        </Border>
+
+
+        <!-- ========================================
+             Logout Dialog
+             最後に配置して前面表示するため
+             ZIndexは使用しない
+             ======================================== -->
+
         <Border
             Grid.Column="0"
-            Grid.ColumnSpan="3"
-            ZIndex="100"
+            Grid.ColumnSpan="2"
             IsVisible="{Binding IsLogoutDialogOpen}"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
@@ -313,6 +620,7 @@
 
                 <StackPanel Spacing="20">
 
+
                     <Border
                         Width="52"
                         Height="52"
@@ -329,6 +637,7 @@
                             Foreground="#DC2626" />
 
                     </Border>
+
 
                     <StackPanel Spacing="8">
 
@@ -348,6 +657,7 @@
                             Foreground="#64748B" />
 
                     </StackPanel>
+
 
                     <Grid
                         ColumnDefinitions="*,*"

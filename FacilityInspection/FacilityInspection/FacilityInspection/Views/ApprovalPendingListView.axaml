@@ -1,0 +1,129 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.ApprovalPendingListView"
+    x:DataType="vm:ApprovalPendingListViewModel">
+
+    <Grid
+        Margin="24"
+        RowDefinitions="Auto,Auto,*">
+
+        <!-- Header -->
+        <Grid
+            Grid.Row="0"
+            ColumnDefinitions="*,Auto"
+            Margin="0,0,0,20">
+
+            <StackPanel>
+                <TextBlock
+                    Text="完了・承認待ち"
+                    FontSize="26"
+                    FontWeight="Bold"
+                    Foreground="#0F172A" />
+
+                <TextBlock
+                    Margin="0,6,0,0"
+                    Text="点検担当者が完了し、管理者の承認を待っている点検です。"
+                    FontSize="13"
+                    Foreground="#64748B" />
+            </StackPanel>
+
+            <Button
+                Grid.Column="1"
+                Content="再読み込み"
+                Command="{Binding ReloadCommand}"
+                Padding="16,8" />
+
+        </Grid>
+
+        <TextBlock
+            Grid.Row="1"
+            Margin="0,0,0,12"
+            Text="{Binding ErrorMessage}"
+            Foreground="#DC2626"
+            TextWrapping="Wrap" />
+
+        <ScrollViewer
+            Grid.Row="2"
+            VerticalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Auto">
+
+            <ItemsControl
+                ItemsSource="{Binding Items}">
+
+                <ItemsControl.ItemTemplate>
+
+                    <DataTemplate
+                        x:DataType="vm:ApprovalPendingListItemViewModel">
+
+                        <Border
+                            Margin="0,0,0,10"
+                            Padding="16"
+                            Background="#FFFFFF"
+                            BorderBrush="#E2E8F0"
+                            BorderThickness="1"
+                            CornerRadius="10">
+
+                            <Grid
+                                ColumnDefinitions="110,160,*,150,100">
+
+                                <TextBlock
+                                    Grid.Column="0"
+                                    Text="{Binding ScheduledDateText}"
+                                    VerticalAlignment="Center" />
+
+                                <StackPanel
+                                    Grid.Column="1">
+
+                                    <TextBlock
+                                        Text="{Binding FactorySiteName}"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        Text="{Binding LocationName}"
+                                        FontSize="12"
+                                        Foreground="#64748B" />
+
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="2">
+
+                                    <TextBlock
+                                        Text="{Binding EquipmentName}"
+                                        FontWeight="SemiBold" />
+
+                                    <TextBlock
+                                        Text="{Binding EquipmentCode}"
+                                        FontSize="12"
+                                        Foreground="#64748B" />
+
+                                </StackPanel>
+
+                                <TextBlock
+                                    Grid.Column="3"
+                                    Text="{Binding OperatorName}"
+                                    VerticalAlignment="Center" />
+
+                                <Button
+                                    Grid.Column="4"
+                                    Content="詳細"
+                                    Command="{Binding OpenDetailCommand}"
+                                    HorizontalAlignment="Stretch" />
+
+                            </Grid>
+
+                        </Border>
+
+                    </DataTemplate>
+
+                </ItemsControl.ItemTemplate>
+
+            </ItemsControl>
+
+        </ScrollViewer>
+
+    </Grid>
+
+</UserControl>

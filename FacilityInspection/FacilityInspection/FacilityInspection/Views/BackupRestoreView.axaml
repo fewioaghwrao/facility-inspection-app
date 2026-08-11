@@ -1,0 +1,268 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.BackupRestoreView"
+    x:DataType="vm:BackupRestoreViewModel">
+
+    <Grid>
+
+        <!-- ========================================
+             Main
+             ======================================== -->
+        <ScrollViewer>
+            <StackPanel
+                Margin="32"
+                Spacing="20"
+                MaxWidth="900"
+                HorizontalAlignment="Stretch">
+
+                <!-- Header -->
+                <StackPanel
+                    Spacing="6">
+
+                    <TextBlock
+                        Text="{Binding Title}"
+                        FontSize="28"
+                        FontWeight="Bold" />
+
+                    <TextBlock
+                        Text="{Binding Description}"
+                        FontSize="14"
+                        Opacity="0.7"
+                        TextWrapping="Wrap" />
+
+                </StackPanel>
+
+
+                <!-- Message -->
+                <Border
+                    IsVisible="{Binding HasMessage}"
+                    Padding="14"
+                    CornerRadius="8"
+                    Background="#DCFCE7">
+
+                    <TextBlock
+                        Text="{Binding OperationMessage}"
+                        Foreground="#166534"
+                        TextWrapping="Wrap" />
+
+                </Border>
+
+
+                <!-- Error -->
+                <Border
+                    IsVisible="{Binding HasError}"
+                    Padding="14"
+                    CornerRadius="8"
+                    Background="#FEE2E2">
+
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        Foreground="#B91C1C"
+                        TextWrapping="Wrap" />
+
+                </Border>
+
+
+                <!-- ========================================
+                     Backup
+                     ======================================== -->
+                <Border
+                    Padding="24"
+                    CornerRadius="12"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1">
+
+                    <Grid
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="24">
+
+                        <StackPanel
+                            Spacing="8">
+
+                            <TextBlock
+                                Text="バックアップ"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Text="現在の設備点検データベースをバックアップファイルとして保存します。"
+                                TextWrapping="Wrap"
+                                Opacity="0.75" />
+
+                            <TextBlock
+                                Text="保存先とファイル名は実行時に選択できます。"
+                                FontSize="13"
+                                Opacity="0.6" />
+
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="バックアップを作成"
+                            Command="{Binding BackupCommand}"
+                            IsEnabled="{Binding CanOperate}"
+                            VerticalAlignment="Center"
+                            Padding="20,10" />
+
+                    </Grid>
+
+                </Border>
+
+
+                <!-- ========================================
+                     Restore
+                     ======================================== -->
+                <Border
+                    Padding="24"
+                    CornerRadius="12"
+                    BorderBrush="#CBD5E1"
+                    BorderThickness="1">
+
+                    <Grid
+                        ColumnDefinitions="*,Auto"
+                        ColumnSpacing="24">
+
+                        <StackPanel
+                            Spacing="8">
+
+                            <TextBlock
+                                Text="復元"
+                                FontSize="20"
+                                FontWeight="SemiBold" />
+
+                            <TextBlock
+                                Text="バックアップDBを使用して、現在の設備点検データを復元します。"
+                                TextWrapping="Wrap"
+                                Opacity="0.75" />
+
+                            <TextBlock
+                                Text="復元前の現在DBは自動的に退避されます。"
+                                FontSize="13"
+                                Foreground="#B45309" />
+
+                        </StackPanel>
+
+                        <Button
+                            Grid.Column="1"
+                            Content="バックアップDBを選択"
+                            Command="{Binding SelectRestoreFileCommand}"
+                            IsEnabled="{Binding CanOperate}"
+                            VerticalAlignment="Center"
+                            Padding="20,10" />
+
+                    </Grid>
+
+                </Border>
+
+
+                <!-- Loading -->
+                <StackPanel
+                    IsVisible="{Binding IsBusy}"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    HorizontalAlignment="Center">
+
+                    <ProgressBar
+                        Width="160"
+                        Height="6"
+                        IsIndeterminate="True" />
+
+                    <TextBlock
+                        Text="処理中..."
+                        VerticalAlignment="Center" />
+
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+
+        <!-- ========================================
+             Restore Confirm Dialog
+             後に記述することで前面表示。
+             ZIndexは使用しない。
+             ======================================== -->
+        <Border
+            IsVisible="{Binding IsRestoreConfirmDialogOpen}"
+            Background="#99000000">
+
+            <Border
+                Width="520"
+                Padding="28"
+                CornerRadius="12"
+                Background="#FFFFFF"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+                <StackPanel
+                    Spacing="18">
+
+                    <TextBlock
+                        Text="データベースを復元しますか？"
+                        FontSize="22"
+                        FontWeight="Bold"
+                        Foreground="#111827" />
+
+                    <TextBlock
+                        Text="現在のデータは選択したバックアップDBの内容で置き換えられます。"
+                        Foreground="#374151"
+                        TextWrapping="Wrap" />
+
+                    <Border
+                        Padding="12"
+                        CornerRadius="6"
+                        Background="#F1F5F9">
+
+                        <StackPanel
+                            Spacing="4">
+
+                            <TextBlock
+                                Text="選択ファイル"
+                                FontSize="12"
+                                Foreground="#64748B" />
+
+                            <TextBlock
+                                Text="{Binding SelectedRestoreFileName}"
+                                FontWeight="SemiBold"
+                                Foreground="#0F172A"
+                                TextWrapping="Wrap" />
+
+                        </StackPanel>
+
+                    </Border>
+
+                    <TextBlock
+                        Text="※ 復元前の現在DBは自動的に退避されます。"
+                        Foreground="#B45309"
+                        TextWrapping="Wrap" />
+
+                    <StackPanel
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="10">
+
+                        <Button
+                            Content="キャンセル"
+                            Command="{Binding CancelRestoreCommand}"
+                            IsEnabled="{Binding CanOperate}"
+                            Padding="18,9" />
+
+                        <Button
+                            Content="復元する"
+                            Command="{Binding ConfirmRestoreCommand}"
+                            IsEnabled="{Binding CanOperate}"
+                            Padding="18,9" />
+
+                    </StackPanel>
+
+                </StackPanel>
+
+            </Border>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>

@@ -15,5 +15,7 @@ public enum AuditEntityType
 
     Operator = 5,
 
+    Database = 90,
+
     System = 99
 }

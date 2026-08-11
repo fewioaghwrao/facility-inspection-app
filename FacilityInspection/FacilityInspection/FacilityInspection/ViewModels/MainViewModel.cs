@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using FacilityInspection.Data;
 using FacilityInspection.Domain.Operators;
 using FacilityInspection.Services.Authentication;
+using FacilityInspection.Services.Backup;
 using System;
 
 namespace FacilityInspection.ViewModels;
@@ -29,6 +30,12 @@ public partial class MainViewModel
     private readonly AuditLogRepository
     _auditLogRepository;
 
+    private readonly DatabaseBackupService
+    _databaseBackupService;
+
+    private readonly BackupFilePickerService
+        _backupFilePickerService;
+
     // ============================================
     // Current Page
     // ============================================
@@ -48,7 +55,9 @@ public partial class MainViewModel
         OperatorRepository operatorRepository,
         ScheduleRepository scheduleRepository,
         InspectionRepository inspectionRepository,
-        AuditLogRepository auditLogRepository)
+        AuditLogRepository auditLogRepository,
+        DatabaseBackupService databaseBackupService,
+        BackupFilePickerService backupFilePickerService)
     {
         ArgumentNullException.ThrowIfNull(
             authenticationService);
@@ -70,6 +79,18 @@ public partial class MainViewModel
 
         ArgumentNullException.ThrowIfNull(
     auditLogRepository);
+
+        ArgumentNullException.ThrowIfNull(
+    databaseBackupService);
+
+        ArgumentNullException.ThrowIfNull(
+            backupFilePickerService);
+
+        _databaseBackupService =
+            databaseBackupService;
+
+        _backupFilePickerService =
+            backupFilePickerService;
 
         _authenticationService =
             authenticationService;
@@ -175,7 +196,8 @@ public partial class MainViewModel
 
         var adminDashboardViewModel =
             new AdminDashboardViewModel(
-                signedInOperator.DisplayName);
+                signedInOperator.DisplayName,
+                _inspectionRepository);
 
 
         // ----------------------------------------
@@ -221,6 +243,16 @@ public partial class MainViewModel
             new NotStartedListViewModel(
                 _inspectionRepository);
 
+
+        // ----------------------------------------
+        // 承認待ち一覧
+        // ----------------------------------------
+
+        var approvalPendingListViewModel =
+            new ApprovalPendingListViewModel(
+                _inspectionRepository);
+
+
         // ----------------------------------------
         // 点検表テンプレート
         // ----------------------------------------
@@ -248,11 +280,34 @@ public partial class MainViewModel
             new AuditLogViewModel(
                 _auditLogRepository);
 
+
+        // ----------------------------------------
+        // バックアップ・復元
+        // ----------------------------------------
+
+        var backupRestoreViewModel =
+            new BackupRestoreViewModel(
+                _databaseBackupService,
+                _backupFilePickerService,
+                _auditLogRepository,
+                signedInOperator.Id);
+
+        /*
+         * 復元後は全ViewModelを作り直して、
+         * 復元されたDBからデータを再取得する。
+         */
+        backupRestoreViewModel.RestoreCompleted =
+            () =>
+                NavigateTo(
+                    CreateAdminShellViewModel(
+                        signedInOperator));
+
         // ----------------------------------------
         // Admin Shell
         // ----------------------------------------
 
         return new AdminShellViewModel(
+            signedInOperator.Id,
             signedInOperator.DisplayName,
             adminDashboardViewModel,
             equipmentManagementViewModel,
@@ -261,6 +316,8 @@ public partial class MainViewModel
             abnormalListViewModel,
             notStartedListViewModel,
             auditLogViewModel,
+            approvalPendingListViewModel,
+            backupRestoreViewModel,
             inspectionTemplateManagementViewModel,
             operatorManagementViewModel,
             _inspectionRepository,
