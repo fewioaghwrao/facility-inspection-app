@@ -176,11 +176,12 @@ public partial class MainViewModel
             SignedInOperator signedInOperator)
     {
         return new MemberShellViewModel(
+            signedInOperator.Id,
             signedInOperator.DisplayName,
             _scheduleRepository,
+            _inspectionRepository,
             Logout);
     }
-
 
     // ============================================
     // Admin Shell

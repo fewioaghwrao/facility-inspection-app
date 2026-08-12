@@ -110,6 +110,40 @@ public sealed record AbnormalResultListData(
     int PhotoCount);
 
 
+
+
+// ============================================
+// 点検担当者向け 点検入力
+// ============================================
+
+public sealed record InspectionEntryData(
+    Guid ScheduleId,
+    Guid InspectionId,
+    DateOnly ScheduledDate,
+    string FactorySiteName,
+    string LocationName,
+    string EquipmentCode,
+    string EquipmentName,
+    string TemplateName,
+    InspectionStatus Status,
+    IReadOnlyList<InspectionEntryItemData> Items);
+
+public sealed record InspectionEntryItemData(
+    Guid TemplateItemId,
+    int DisplayOrder,
+    string ItemName,
+    InspectionInputType InputType,
+    string? Unit,
+    double? MinimumValue,
+    double? MaximumValue,
+    bool IsRequired,
+    string? Description,
+    bool? CheckValue,
+    decimal? NumericValue,
+    string? TextValue,
+    string? Comment);
+
+
 public sealed class InspectionRepository
 {
     private readonly InspectionDbContextFactory
@@ -128,6 +162,198 @@ public sealed class InspectionRepository
 
         _dbContextFactory =
             dbContextFactory;
+    }
+
+
+    // ============================================
+    // 点検担当者向け 点検開始 / 再開
+    // ============================================
+
+    public async Task<InspectionEntryData>
+        StartOrResumeAsync(
+            Guid scheduleId,
+            Guid operatorId,
+            CancellationToken cancellationToken = default)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検予定IDを指定してください。",
+                nameof(scheduleId));
+        }
+
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        var schedule =
+            await dbContext.InspectionSchedules
+                .Include(x =>
+                    x.Equipment)
+                    .ThenInclude(x =>
+                        x.Location)
+                        .ThenInclude(x =>
+                            x.FactorySite)
+                .Include(x =>
+                    x.InspectionTemplate)
+                    .ThenInclude(x =>
+                        x.Items)
+                .Include(x =>
+                    x.Inspection)
+                    .ThenInclude(x =>
+                        x!.Results)
+                .AsSplitQuery()
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.Id == scheduleId &&
+                        !x.IsCancelled,
+                    cancellationToken);
+
+        if (schedule is null)
+        {
+            throw new InvalidOperationException(
+                "点検予定が見つからないか、取消済みです。");
+        }
+
+        if (schedule.AssignedOperatorId !=
+            operatorId)
+        {
+            throw new InvalidOperationException(
+                "この点検予定は現在の点検担当者には" +
+                "割り当てられていません。");
+        }
+
+        var inspection =
+            schedule.Inspection;
+
+        var stateChanged =
+            false;
+
+        if (inspection is null)
+        {
+            inspection =
+                new Inspection(
+                    schedule.Id);
+
+            schedule.AttachInspection(
+                inspection);
+
+            dbContext.Inspections.Add(
+                inspection);
+
+            inspection.Start(
+                operatorId,
+                DateTime.UtcNow);
+
+            stateChanged =
+                true;
+        }
+        else
+        {
+            switch (inspection.Status)
+            {
+                case InspectionStatus.NotStarted:
+                case InspectionStatus.Returned:
+                    inspection.Start(
+                        operatorId,
+                        DateTime.UtcNow);
+
+                    stateChanged =
+                        true;
+                    break;
+
+                case InspectionStatus.InProgress:
+                    if (inspection.PerformedByOperatorId !=
+                            operatorId)
+                    {
+                        throw new InvalidOperationException(
+                            "この点検は別の担当者が実施中です。");
+                    }
+
+                    break;
+
+                case InspectionStatus.Completed:
+                    throw new InvalidOperationException(
+                        "この点検は完了済みです。");
+
+                case InspectionStatus.Approved:
+                    throw new InvalidOperationException(
+                        "この点検は承認済みです。");
+
+                default:
+                    throw new InvalidOperationException(
+                        $"未対応の点検状態です: " +
+                        $"{inspection.Status}");
+            }
+        }
+
+        if (stateChanged)
+        {
+            await dbContext.SaveChangesAsync(
+                cancellationToken);
+        }
+
+        var existingResults =
+            inspection.Results
+                .ToDictionary(
+                    x =>
+                        x.InspectionTemplateItemId);
+
+        var items =
+            schedule.InspectionTemplate
+                .Items
+                .Where(x =>
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.DisplayOrder)
+                .Select(item =>
+                {
+                    existingResults.TryGetValue(
+                        item.Id,
+                        out var existingResult);
+
+                    return new InspectionEntryItemData(
+                        item.Id,
+                        item.DisplayOrder,
+                        item.ItemName,
+                        item.InputType,
+                        item.Unit,
+                        item.MinimumValue,
+                        item.MaximumValue,
+                        item.IsRequired,
+                        item.Description,
+                        existingResult?.CheckValue,
+                        existingResult?.NumericValue,
+                        existingResult?.TextValue,
+                        existingResult?.Comment);
+                })
+                .ToList();
+
+        return new InspectionEntryData(
+            schedule.Id,
+            inspection.Id,
+            schedule.ScheduledDate,
+            schedule.Equipment
+                .Location
+                .FactorySite
+                .Name,
+            schedule.Equipment
+                .Location
+                .Name,
+            schedule.Equipment
+                .EquipmentCode,
+            schedule.Equipment
+                .Name,
+            schedule.InspectionTemplate
+                .Name,
+            inspection.Status,
+            items);
     }
 
 
@@ -711,6 +937,13 @@ public sealed class InspectionRepository
         Guid operatorId,
         CancellationToken cancellationToken = default)
     {
+        if (scheduleId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検予定IDを指定してください。",
+                nameof(scheduleId));
+        }
+
         if (operatorId == Guid.Empty)
         {
             throw new ArgumentException(
@@ -743,19 +976,11 @@ public sealed class InspectionRepository
                 "承認待ちの点検のみ承認できます。");
         }
 
-        var beforeValue =
-            inspection.Status.ToString();
-
-        // ----------------------------------------
-        // 承認
-        // ----------------------------------------
+        var beforeStatus =
+            inspection.Status;
 
         inspection.Approve(
             DateTime.UtcNow);
-
-        // ----------------------------------------
-        // 操作履歴
-        // ----------------------------------------
 
         var auditLog =
             new AuditLog(
@@ -763,14 +988,13 @@ public sealed class InspectionRepository
                 AuditActionType.Approve,
                 AuditEntityType.Inspection,
                 inspection.Id,
-                beforeValue,
+                beforeStatus.ToString(),
                 inspection.Status.ToString(),
                 null);
 
         dbContext.AuditLogs.Add(
             auditLog);
 
-        // Inspection と AuditLog を同時保存
         await dbContext.SaveChangesAsync(
             cancellationToken);
     }
@@ -778,15 +1002,20 @@ public sealed class InspectionRepository
     // ============================================
     // 点検差し戻し
     // ============================================
-
     public async Task ReturnAsync(
         Guid scheduleId,
         string reason,
         Guid operatorId,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(
-                reason))
+        if (scheduleId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検予定IDを指定してください。",
+                nameof(scheduleId));
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
         {
             throw new ArgumentException(
                 "差し戻し理由を入力してください。",
@@ -799,9 +1028,6 @@ public sealed class InspectionRepository
                 "操作担当者IDを指定してください。",
                 nameof(operatorId));
         }
-
-        var trimmedReason =
-            reason.Trim();
 
         await using var dbContext =
             _dbContextFactory.CreateDbContext();
@@ -828,20 +1054,15 @@ public sealed class InspectionRepository
                 "承認待ちの点検のみ差し戻しできます。");
         }
 
-        var beforeValue =
-            inspection.Status.ToString();
+        var normalizedReason =
+            reason.Trim();
 
-        // ----------------------------------------
-        // 差し戻し
-        // ----------------------------------------
+        var beforeStatus =
+            inspection.Status;
 
         inspection.Return(
-            trimmedReason,
+            normalizedReason,
             DateTime.UtcNow);
-
-        // ----------------------------------------
-        // 操作履歴
-        // ----------------------------------------
 
         var auditLog =
             new AuditLog(
@@ -849,14 +1070,13 @@ public sealed class InspectionRepository
                 AuditActionType.ReturnForCorrection,
                 AuditEntityType.Inspection,
                 inspection.Id,
-                beforeValue,
+                beforeStatus.ToString(),
                 inspection.Status.ToString(),
-                trimmedReason);
+                normalizedReason);
 
         dbContext.AuditLogs.Add(
             auditLog);
 
-        // Inspection と AuditLog を同時保存
         await dbContext.SaveChangesAsync(
             cancellationToken);
     }
