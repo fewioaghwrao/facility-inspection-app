@@ -1,0 +1,321 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.InspectionEntryView"
+    x:DataType="vm:InspectionEntryViewModel">
+
+    <ScrollViewer>
+        <StackPanel
+            Margin="32"
+            Spacing="20"
+            MaxWidth="980"
+            HorizontalAlignment="Stretch">
+
+            <!-- タイトル -->
+            <StackPanel Spacing="6">
+                <TextBlock
+                    Text="{Binding Title}"
+                    FontSize="28"
+                    FontWeight="Bold"
+                    Foreground="#0F172A" />
+
+                <TextBlock
+                    Text="{Binding Description}"
+                    FontSize="14"
+                    Foreground="#64748B" />
+            </StackPanel>
+
+            <!-- 読み込み中 -->
+            <Border
+                IsVisible="{Binding IsLoading}"
+                Padding="20"
+                Background="#F8FAFC"
+                BorderBrush="#E2E8F0"
+                BorderThickness="1"
+                CornerRadius="12">
+
+                <TextBlock
+                    Text="点検情報を読み込んでいます..."
+                    Foreground="#475569" />
+            </Border>
+
+            <!-- エラー -->
+            <Border
+                IsVisible="{Binding HasError}"
+                Padding="16"
+                Background="#FEF2F2"
+                BorderBrush="#FECACA"
+                BorderThickness="1"
+                CornerRadius="12">
+
+                <StackPanel Spacing="12">
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        Foreground="#B91C1C"
+                        TextWrapping="Wrap" />
+
+                    <Button
+                        Content="カレンダーへ戻る"
+                        Command="{Binding BackCommand}"
+                        HorizontalAlignment="Left"
+                        MinWidth="140" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel
+                IsVisible="{Binding IsContentVisible}"
+                Spacing="20">
+
+                <!-- 点検対象情報 -->
+                <Border
+                    Padding="20"
+                    Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="14">
+
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                        ColumnSpacing="20"
+                        RowSpacing="8">
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Text="予定日"
+                            Foreground="#64748B" />
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="{Binding ScheduledDateText}"
+                            FontWeight="SemiBold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Text="工場・場所"
+                            Foreground="#64748B" />
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Text="{Binding LocationText}"
+                            FontWeight="SemiBold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Text="設備"
+                            Foreground="#64748B" />
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Text="{Binding EquipmentText}"
+                            FontWeight="SemiBold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Text="点検票"
+                            Foreground="#64748B" />
+
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Text="{Binding TemplateName}"
+                            FontWeight="SemiBold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            Text="状態"
+                            Foreground="#64748B" />
+
+                        <TextBlock
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Text="{Binding StatusText}"
+                            FontWeight="SemiBold"
+                            Foreground="#1D4ED8" />
+
+                    </Grid>
+                </Border>
+
+                <!-- 点検項目 -->
+                <StackPanel Spacing="10">
+                    <TextBlock
+                        Text="点検項目"
+                        FontSize="20"
+                        FontWeight="Bold"
+                        Foreground="#0F172A" />
+
+                    <ItemsControl
+                        ItemsSource="{Binding Items}">
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate
+                                x:DataType="vm:InspectionEntryItemViewModel">
+
+                                <Border
+                                    Margin="0,0,0,12"
+                                    Padding="20"
+                                    Background="#FFFFFF"
+                                    BorderBrush="#E2E8F0"
+                                    BorderThickness="1"
+                                    CornerRadius="12">
+
+                                    <StackPanel Spacing="14">
+
+                                        <!-- 項目名 -->
+                                        <Grid
+                                            ColumnDefinitions="Auto,*,Auto"
+                                            ColumnSpacing="8">
+
+                                            <TextBlock
+                                                Grid.Column="0"
+                                                Text="{Binding OrderText}"
+                                                FontSize="16"
+                                                FontWeight="Bold"
+                                                Foreground="#475569" />
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding ItemName}"
+                                                FontSize="16"
+                                                FontWeight="Bold"
+                                                Foreground="#0F172A"
+                                                TextWrapping="Wrap" />
+
+                                            <Border
+                                                Grid.Column="2"
+                                                Padding="8,3"
+                                                Background="#F1F5F9"
+                                                CornerRadius="999">
+
+                                                <TextBlock
+                                                    Text="{Binding RequiredText}"
+                                                    FontSize="11"
+                                                    Foreground="#475569" />
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock
+                                            IsVisible="{Binding HasDescription}"
+                                            Text="{Binding Description}"
+                                            Foreground="#64748B"
+                                            FontSize="13"
+                                            TextWrapping="Wrap" />
+
+                                        <!-- 正常 / 異常、実施 / 未実施 -->
+                                        <StackPanel
+                                            IsVisible="{Binding IsChoiceInput}"
+                                            Orientation="Horizontal"
+                                            Spacing="24">
+
+                                            <RadioButton
+                                                Content="{Binding PositiveLabel}"
+                                                IsChecked="{Binding IsPositiveSelected, Mode=TwoWay}" />
+
+                                            <RadioButton
+                                                Content="{Binding NegativeLabel}"
+                                                IsChecked="{Binding IsNegativeSelected, Mode=TwoWay}" />
+                                        </StackPanel>
+
+                                        <!-- 数値 -->
+                                        <StackPanel
+                                            IsVisible="{Binding IsNumericInput}"
+                                            Spacing="6">
+
+                                            <StackPanel
+                                                Orientation="Horizontal"
+                                                Spacing="8">
+
+                                                <TextBox
+                                                    Text="{Binding NumericText, Mode=TwoWay}"
+                                                    Width="220"
+                                                    Watermark="数値を入力" />
+
+                                                <TextBlock
+                                                    IsVisible="{Binding HasUnit}"
+                                                    Text="{Binding Unit}"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="#475569" />
+                                            </StackPanel>
+
+                                            <TextBlock
+                                                IsVisible="{Binding HasCriteria}"
+                                                Text="{Binding CriteriaText}"
+                                                FontSize="12"
+                                                Foreground="#64748B" />
+                                        </StackPanel>
+
+                                        <!-- テキスト -->
+                                        <TextBox
+                                            IsVisible="{Binding IsTextInput}"
+                                            Text="{Binding TextValue, Mode=TwoWay}"
+                                            AcceptsReturn="True"
+                                            MinHeight="72"
+                                            TextWrapping="Wrap"
+                                            Watermark="内容を入力" />
+
+                                        <!-- 共通コメント -->
+                                        <TextBox
+                                            Text="{Binding Comment, Mode=TwoWay}"
+                                            AcceptsReturn="True"
+                                            MinHeight="64"
+                                            TextWrapping="Wrap"
+                                            Watermark="コメント（任意）" />
+
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- フッター -->
+                <Border
+                    Padding="16"
+                    Background="#F8FAFC"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="12">
+
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Button
+                            Grid.Column="0"
+                            Content="カレンダーへ戻る"
+                            Command="{Binding BackCommand}"
+                            MinWidth="140"
+                            Height="40" />
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Margin="16,0"
+                            Text="{Binding NextStepMessage}"
+                            VerticalAlignment="Center"
+                            Foreground="#64748B"
+                            FontSize="12"
+                            TextWrapping="Wrap" />
+
+                        <Button
+                            Grid.Column="2"
+                            Content="入力内容を確認"
+                            MinWidth="150"
+                            Height="40"
+                            IsEnabled="False" />
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

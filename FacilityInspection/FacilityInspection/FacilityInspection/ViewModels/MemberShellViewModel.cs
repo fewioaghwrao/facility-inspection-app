@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Data;
 using System;
@@ -9,8 +9,14 @@ public partial class MemberShellViewModel : ViewModelBase
 {
     private readonly Action _logout;
 
+    private readonly Guid
+        _operatorId;
+
     private readonly ScheduleRepository
         _scheduleRepository;
+
+    private readonly InspectionRepository
+        _inspectionRepository;
 
     private MemberDashboardViewModel?
         _dashboardViewModel;
@@ -31,10 +37,19 @@ public partial class MemberShellViewModel : ViewModelBase
     private MemberMenuItem selectedMenuItem;
 
     public MemberShellViewModel(
+        Guid operatorId,
         string operatorName,
         ScheduleRepository scheduleRepository,
+        InspectionRepository inspectionRepository,
         Action logout)
     {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(
             operatorName);
 
@@ -42,14 +57,25 @@ public partial class MemberShellViewModel : ViewModelBase
             scheduleRepository);
 
         ArgumentNullException.ThrowIfNull(
+            inspectionRepository);
+
+        ArgumentNullException.ThrowIfNull(
             logout);
 
-        OperatorName = operatorName;
+        _operatorId =
+            operatorId;
+
+        OperatorName =
+            operatorName;
 
         _scheduleRepository =
             scheduleRepository;
 
-        _logout = logout;
+        _inspectionRepository =
+            inspectionRepository;
+
+        _logout =
+            logout;
 
         currentContent =
             GetDashboardViewModel();
@@ -63,11 +89,8 @@ public partial class MemberShellViewModel : ViewModelBase
     [RelayCommand]
     private void OpenDashboard()
     {
-        CurrentContent =
-            GetDashboardViewModel();
-
-        SelectedMenuItem =
-            MemberMenuItem.Dashboard;
+        ShowDashboard(
+            reload: true);
     }
 
     [RelayCommand]
@@ -115,7 +138,9 @@ public partial class MemberShellViewModel : ViewModelBase
     {
         return _dashboardViewModel ??=
             new MemberDashboardViewModel(
-                OpenScheduleCalendar);
+                _operatorId,
+                _scheduleRepository,
+                OpenInspection);
     }
 
     private EquipmentManagementViewModel
@@ -131,5 +156,40 @@ public partial class MemberShellViewModel : ViewModelBase
         return _scheduleCalendarViewModel ??=
             new ScheduleCalendarViewModel(
                 _scheduleRepository);
+    }
+
+    private void OpenInspection(
+        Guid scheduleId)
+    {
+        CurrentContent =
+            new InspectionEntryViewModel(
+                scheduleId,
+                _operatorId,
+                _inspectionRepository,
+                ReturnFromInspection);
+
+        SelectedMenuItem =
+            MemberMenuItem.Dashboard;
+    }
+
+    private void ReturnFromInspection()
+    {
+        ShowDashboard(
+            reload: true);
+    }
+
+    private void ShowDashboard(
+        bool reload)
+    {
+        if (reload)
+        {
+            _dashboardViewModel = null;
+        }
+
+        CurrentContent =
+            GetDashboardViewModel();
+
+        SelectedMenuItem =
+            MemberMenuItem.Dashboard;
     }
 }

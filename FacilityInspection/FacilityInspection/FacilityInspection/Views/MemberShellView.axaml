@@ -58,7 +58,7 @@
                         Command="{Binding OpenDashboardCommand}">
 
                         <TextBlock
-                            Text="ダッシュボード"
+                            Text="点検予定"
                             FontSize="14"
                             Foreground="#CBD5E1" />
 
@@ -74,23 +74,7 @@
                         Command="{Binding OpenEquipmentManagementCommand}">
 
                         <TextBlock
-                            Text="設備台帳"
-                            FontSize="14"
-                            Foreground="#CBD5E1" />
-
-                    </Button>
-
-                    <Button
-                        Height="46"
-                        Padding="16,0"
-                        HorizontalContentAlignment="Left"
-                        Background="Transparent"
-                        BorderThickness="0"
-                        CornerRadius="8"
-                        Command="{Binding OpenScheduleCalendarCommand}">
-
-                        <TextBlock
-                            Text="予定カレンダー"
+                            Text="設備一覧"
                             FontSize="14"
                             Foreground="#CBD5E1" />
 

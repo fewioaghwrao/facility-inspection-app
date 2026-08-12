@@ -1,4 +1,4 @@
-using FacilityInspection.Domain.Equipments;
+﻿using FacilityInspection.Domain.Equipments;
 using FacilityInspection.Domain.Inspections;
 using FacilityInspection.Domain.InspectionTemplates;
 using FacilityInspection.Domain.Locations;
@@ -56,6 +56,93 @@ public sealed class ScheduleRepository
                 x.ScheduledDate >= monthStart &&
                 x.ScheduledDate < nextMonth)
             .OrderBy(x => x.ScheduledDate)
+            .ThenBy(x =>
+                x.Equipment.EquipmentCode)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<InspectionSchedule>>
+        GetMonthForOperatorAsync(
+            Guid operatorId,
+            DateOnly displayedMonth,
+            CancellationToken cancellationToken = default)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            return [];
+        }
+
+        var monthStart =
+            new DateOnly(
+                displayedMonth.Year,
+                displayedMonth.Month,
+                1);
+
+        var nextMonth =
+            monthStart.AddMonths(1);
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        return await dbContext.InspectionSchedules
+            .AsNoTracking()
+            .Include(x => x.Equipment)
+                .ThenInclude(x => x.Location)
+                    .ThenInclude(x => x.FactorySite)
+            .Include(x => x.InspectionTemplate)
+            .Include(x => x.AssignedOperator)
+            .Include(x => x.Inspection)
+            .Where(x =>
+                !x.IsCancelled &&
+                x.AssignedOperatorId == operatorId &&
+                x.ScheduledDate >= monthStart &&
+                x.ScheduledDate < nextMonth)
+            .OrderBy(x => x.ScheduledDate)
+            .ThenBy(x =>
+                x.Equipment.Location.FactorySite.Name)
+            .ThenBy(x =>
+                x.Equipment.Location.Name)
+            .ThenBy(x =>
+                x.Equipment.EquipmentCode)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<InspectionSchedule>>
+        GetDayForOperatorAsync(
+            Guid operatorId,
+            DateOnly scheduledDate,
+            CancellationToken cancellationToken = default)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            return [];
+        }
+
+        if (scheduledDate == default)
+        {
+            return [];
+        }
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        return await dbContext.InspectionSchedules
+            .AsNoTracking()
+            .Include(x => x.Equipment)
+                .ThenInclude(x => x.Location)
+                    .ThenInclude(x => x.FactorySite)
+            .Include(x => x.InspectionTemplate)
+            .Include(x => x.AssignedOperator)
+            .Include(x => x.Inspection)
+                .ThenInclude(x => x!.Results)
+            .Where(x =>
+                !x.IsCancelled &&
+                x.AssignedOperatorId == operatorId &&
+                x.ScheduledDate == scheduledDate)
+            .OrderBy(x =>
+                x.Equipment.Location.FactorySite.Name)
+            .ThenBy(x =>
+                x.Equipment.Location.Name)
             .ThenBy(x =>
                 x.Equipment.EquipmentCode)
             .ToListAsync(cancellationToken);
