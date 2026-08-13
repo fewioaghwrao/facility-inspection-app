@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Data;
 using FacilityInspection.Domain.Inspections;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -15,12 +16,19 @@ public sealed class InspectionEntryViewModel : ViewModelBase
     private readonly Action _backRequested;
 
     private bool _isLoading;
+    private bool _isSaving;
+    private bool _isCompletionConfirmVisible;
+    private bool _isCompletionSuccessVisible;
     private string? _errorMessage;
+    private string? _validationMessage;
+    private string? _completionErrorMessage;
     private string _scheduledDateText = string.Empty;
     private string _locationText = string.Empty;
     private string _equipmentText = string.Empty;
     private string _templateName = string.Empty;
     private string _statusText = string.Empty;
+    private List<InspectionCompletionItemData>?
+        _pendingCompletionItems;
 
     public InspectionEntryViewModel(
         Guid scheduleId,
@@ -57,6 +65,22 @@ public sealed class InspectionEntryViewModel : ViewModelBase
             new RelayCommand(
                 Back);
 
+        ReviewCompletionCommand =
+            new RelayCommand(
+                ReviewCompletion);
+
+        CancelCompletionCommand =
+            new RelayCommand(
+                CancelCompletion);
+
+        ConfirmCompletionCommand =
+            new AsyncRelayCommand(
+                ConfirmCompletionAsync);
+
+        FinishCompletionCommand =
+            new RelayCommand(
+                FinishCompletion);
+
         _ = InitializeAsync();
     }
 
@@ -66,12 +90,23 @@ public sealed class InspectionEntryViewModel : ViewModelBase
     public string Description =>
         "点検項目を確認し、現場の状態を入力します。";
 
+    public Guid ScheduleId =>
+        _scheduleId;
+
     public ObservableCollection<
         InspectionEntryItemViewModel>
         Items
     { get; } = [];
 
     public IRelayCommand BackCommand { get; }
+
+    public IRelayCommand ReviewCompletionCommand { get; }
+
+    public IRelayCommand CancelCompletionCommand { get; }
+
+    public IAsyncRelayCommand ConfirmCompletionCommand { get; }
+
+    public IRelayCommand FinishCompletionCommand { get; }
 
     public bool IsLoading
     {
@@ -88,6 +123,25 @@ public sealed class InspectionEntryViewModel : ViewModelBase
             }
         }
     }
+
+    public bool IsSaving
+    {
+        get => _isSaving;
+
+        private set
+        {
+            if (SetProperty(
+                    ref _isSaving,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(IsNotSaving));
+            }
+        }
+    }
+
+    public bool IsNotSaving =>
+        !IsSaving;
 
     public bool IsContentVisible =>
         !IsLoading &&
@@ -115,6 +169,64 @@ public sealed class InspectionEntryViewModel : ViewModelBase
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
             ErrorMessage);
+
+    public string? ValidationMessage
+    {
+        get => _validationMessage;
+
+        private set
+        {
+            if (SetProperty(
+                    ref _validationMessage,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(HasValidationMessage));
+            }
+        }
+    }
+
+    public bool HasValidationMessage =>
+        !string.IsNullOrWhiteSpace(
+            ValidationMessage);
+
+    public string? CompletionErrorMessage
+    {
+        get => _completionErrorMessage;
+
+        private set
+        {
+            if (SetProperty(
+                    ref _completionErrorMessage,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(HasCompletionError));
+            }
+        }
+    }
+
+    public bool HasCompletionError =>
+        !string.IsNullOrWhiteSpace(
+            CompletionErrorMessage);
+
+    public bool IsCompletionConfirmVisible
+    {
+        get => _isCompletionConfirmVisible;
+
+        private set => SetProperty(
+            ref _isCompletionConfirmVisible,
+            value);
+    }
+
+    public bool IsCompletionSuccessVisible
+    {
+        get => _isCompletionSuccessVisible;
+
+        private set => SetProperty(
+            ref _isCompletionSuccessVisible,
+            value);
+    }
 
     public string ScheduledDateText
     {
@@ -162,7 +274,13 @@ public sealed class InspectionEntryViewModel : ViewModelBase
     }
 
     public string NextStepMessage =>
-        "入力内容の確認・点検完了保存は次工程で接続します。";
+        "入力内容を確認し、問題がなければ点検を完了します。";
+
+    public string CompletionConfirmMessage =>
+        "入力内容を保存し、点検状態を「完了・承認待ち」に変更します。";
+
+    public string CompletionSuccessMessage =>
+        "点検が完了しました。管理者の承認待ちとして保存されています。";
 
     private async Task InitializeAsync()
     {
@@ -194,23 +312,8 @@ public sealed class InspectionEntryViewModel : ViewModelBase
                 data.TemplateName;
 
             StatusText =
-                data.Status switch
-                {
-                    InspectionStatus.InProgress =>
-                            "実施中",
-
-                    InspectionStatus.Completed =>
-                            "完了・承認待ち",
-
-                    InspectionStatus.Returned =>
-                            "差し戻し",
-
-                    InspectionStatus.Approved =>
-                            "承認済み",
-
-                    _ =>
-                        "未実施"
-                };
+                GetStatusText(
+                    data.Status);
 
             Items.Clear();
 
@@ -235,8 +338,144 @@ public sealed class InspectionEntryViewModel : ViewModelBase
         }
     }
 
+    private void ReviewCompletion()
+    {
+        ValidationMessage = null;
+        CompletionErrorMessage = null;
+        _pendingCompletionItems = null;
+
+        var completionItems =
+            new List<InspectionCompletionItemData>(
+                Items.Count);
+
+        var errorCount = 0;
+
+        foreach (var item
+                 in Items)
+        {
+            if (item.TryCreateCompletionData(
+                    out var completionItem))
+            {
+                completionItems.Add(
+                    completionItem);
+            }
+            else
+            {
+                errorCount++;
+            }
+        }
+
+        if (errorCount > 0)
+        {
+            ValidationMessage =
+                $"入力内容に {errorCount} 件のエラーがあります。" +
+                "赤字の項目を修正してください。";
+
+            return;
+        }
+
+        _pendingCompletionItems =
+            completionItems;
+
+        IsCompletionConfirmVisible = true;
+    }
+
+    private void CancelCompletion()
+    {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        IsCompletionConfirmVisible = false;
+        CompletionErrorMessage = null;
+        _pendingCompletionItems = null;
+    }
+
+    private async Task ConfirmCompletionAsync()
+    {
+        if (_pendingCompletionItems is null)
+        {
+            CompletionErrorMessage =
+                "完了対象の入力内容を確認できませんでした。" +
+                "いったんキャンセルして、もう一度入力内容を確認してください。";
+
+            return;
+        }
+
+        IsSaving = true;
+        CompletionErrorMessage = null;
+
+        try
+        {
+            await _inspectionRepository
+                .CompleteAsync(
+                    _scheduleId,
+                    _operatorId,
+                    _pendingCompletionItems);
+
+            StatusText =
+                GetStatusText(
+                    InspectionStatus.Completed);
+
+            IsCompletionConfirmVisible = false;
+            IsCompletionSuccessVisible = true;
+            _pendingCompletionItems = null;
+        }
+        catch (Exception exception)
+        {
+            CompletionErrorMessage =
+                "点検を完了できませんでした。" +
+                Environment.NewLine +
+                exception.Message;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void FinishCompletion()
+    {
+        IsCompletionSuccessVisible = false;
+
+        _backRequested();
+    }
+
     private void Back()
     {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        foreach (var item in Items)
+        {
+            item.CleanupUnsavedPhotos();
+        }
+
         _backRequested();
+    }
+
+    private static string GetStatusText(
+        InspectionStatus status)
+    {
+        return status switch
+        {
+            InspectionStatus.InProgress =>
+                "実施中",
+
+            InspectionStatus.Completed =>
+                "完了・承認待ち",
+
+            InspectionStatus.Returned =>
+                "差し戻し",
+
+            InspectionStatus.Approved =>
+                "承認済み",
+
+            _ =>
+                "未実施"
+        };
     }
 }
