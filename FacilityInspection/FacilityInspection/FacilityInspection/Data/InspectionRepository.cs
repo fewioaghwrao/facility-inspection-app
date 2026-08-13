@@ -1,4 +1,4 @@
-﻿using FacilityInspection.Domain.Inspections;
+using FacilityInspection.Domain.Inspections;
 using FacilityInspection.Domain.InspectionTemplates;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -142,6 +142,19 @@ public sealed record InspectionEntryItemData(
     decimal? NumericValue,
     string? TextValue,
     string? Comment);
+
+
+public sealed record InspectionCompletionPhotoData(
+    string RelativePath,
+    DateTime CapturedAtUtc);
+
+public sealed record InspectionCompletionItemData(
+    Guid TemplateItemId,
+    bool? CheckValue,
+    decimal? NumericValue,
+    string? TextValue,
+    string? Comment,
+    IReadOnlyList<InspectionCompletionPhotoData> Photos);
 
 
 public sealed class InspectionRepository
@@ -354,6 +367,249 @@ public sealed class InspectionRepository
                 .Name,
             inspection.Status,
             items);
+    }
+
+
+    // ============================================
+    // 点検担当者向け 点検完了
+    // ============================================
+
+    public async Task CompleteAsync(
+        Guid scheduleId,
+        Guid operatorId,
+        IReadOnlyCollection<InspectionCompletionItemData> items,
+        CancellationToken cancellationToken = default)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検予定IDを指定してください。",
+                nameof(scheduleId));
+        }
+
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            items);
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        var schedule =
+            await dbContext.InspectionSchedules
+                .Include(x =>
+                    x.InspectionTemplate)
+                    .ThenInclude(x =>
+                        x.Items)
+                .Include(x =>
+                    x.Inspection)
+                    .ThenInclude(x =>
+                        x!.Results)
+                .Include(x =>
+                    x.Inspection)
+                    .ThenInclude(x =>
+                        x!.Photos)
+                .AsSplitQuery()
+                .SingleOrDefaultAsync(
+                    x =>
+                        x.Id == scheduleId &&
+                        !x.IsCancelled,
+                    cancellationToken);
+
+        if (schedule is null)
+        {
+            throw new InvalidOperationException(
+                "点検予定が見つからないか、取消済みです。");
+        }
+
+        if (schedule.AssignedOperatorId !=
+            operatorId)
+        {
+            throw new InvalidOperationException(
+                "この点検予定は現在の点検担当者には" +
+                "割り当てられていません。");
+        }
+
+        var inspection =
+            schedule.Inspection
+            ?? throw new InvalidOperationException(
+                "点検実績が見つかりません。");
+
+        if (inspection.Status !=
+            InspectionStatus.InProgress)
+        {
+            throw new InvalidOperationException(
+                "実施中の点検だけ完了できます。");
+        }
+
+        if (inspection.PerformedByOperatorId !=
+            operatorId)
+        {
+            throw new InvalidOperationException(
+                "この点検は別の担当者が実施中です。");
+        }
+
+        var templateItems =
+            schedule.InspectionTemplate
+                .Items
+                .Where(x =>
+                    x.IsActive)
+                .OrderBy(x =>
+                    x.DisplayOrder)
+                .ToList();
+
+        var submittedItems =
+            new Dictionary<
+                Guid,
+                InspectionCompletionItemData>();
+
+        foreach (var item in items)
+        {
+            if (item.TemplateItemId ==
+                Guid.Empty)
+            {
+                throw new InvalidOperationException(
+                    "点検項目IDが不正です。");
+            }
+
+            if (!submittedItems.TryAdd(
+                    item.TemplateItemId,
+                    item))
+            {
+                throw new InvalidOperationException(
+                    "同じ点検項目が重複しています。");
+            }
+        }
+
+        if (templateItems.Count !=
+            submittedItems.Count ||
+            templateItems.Any(
+                x =>
+                    !submittedItems.ContainsKey(
+                        x.Id)))
+        {
+            throw new InvalidOperationException(
+                "点検票の項目構成が画面表示後に変更されています。" +
+                "画面を開き直してから、もう一度実施してください。");
+        }
+
+        var existingResults =
+            inspection.Results
+                .ToDictionary(
+                    x =>
+                        x.InspectionTemplateItemId);
+
+        var nextPhotoDisplayOrder =
+            inspection.Photos.Count == 0
+                ? 0
+                : inspection.Photos
+                    .Max(x => x.DisplayOrder) + 1;
+
+        var submittedPhotoPaths =
+            new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var templateItem
+                 in templateItems)
+        {
+            var input =
+                submittedItems[
+                    templateItem.Id];
+
+            ValidateCompletionItem(
+                templateItem,
+                input);
+
+            if (!existingResults.TryGetValue(
+                    templateItem.Id,
+                    out var result))
+            {
+                result =
+                    new InspectionResult(
+                        inspection.Id,
+                        templateItem.Id,
+                        templateItem.DisplayOrder,
+                        templateItem.ItemName,
+                        templateItem.InputType,
+                        templateItem.Unit);
+
+                inspection.Results.Add(
+                    result);
+
+                existingResults.Add(
+                    templateItem.Id,
+                    result);
+            }
+
+            var isAbnormal =
+                CalculateIsAbnormal(
+                    templateItem,
+                    input);
+
+            result.UpdateResult(
+                input.CheckValue,
+                input.NumericValue,
+                input.TextValue,
+                isAbnormal,
+                input.Comment);
+
+            foreach (var photoInput in
+                     input.Photos)
+            {
+                if (string.IsNullOrWhiteSpace(
+                        photoInput.RelativePath))
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」の写真パスが不正です。");
+                }
+
+                if (!submittedPhotoPaths.Add(
+                        photoInput.RelativePath))
+                {
+                    throw new InvalidOperationException(
+                        "同じ写真が重複して指定されています。");
+                }
+
+                var photo =
+                    new InspectionPhoto(
+                        inspection.Id,
+                        photoInput.RelativePath,
+                        photoInput.CapturedAtUtc,
+                        nextPhotoDisplayOrder++,
+                        result.Id,
+                        null);
+
+                inspection.Photos.Add(
+                    photo);
+            }
+        }
+
+        var beforeStatus =
+            inspection.Status;
+
+        inspection.Complete(
+            DateTime.UtcNow);
+
+        var auditLog =
+            new AuditLog(
+                operatorId,
+                AuditActionType.InspectionComplete,
+                AuditEntityType.Inspection,
+                inspection.Id,
+                beforeStatus.ToString(),
+                inspection.Status.ToString(),
+                null);
+
+        dbContext.AuditLogs.Add(
+            auditLog);
+
+        await dbContext.SaveChangesAsync(
+            cancellationToken);
     }
 
 
@@ -1080,4 +1336,258 @@ public sealed class InspectionRepository
         await dbContext.SaveChangesAsync(
             cancellationToken);
     }
+
+    private static void ValidateCompletionItem(
+        InspectionTemplateItem templateItem,
+        InspectionCompletionItemData input)
+    {
+        ArgumentNullException.ThrowIfNull(
+            input.Photos);
+
+        switch (templateItem.InputType)
+        {
+            case InspectionInputType.NormalAbnormal:
+            case InspectionInputType.DoneNotDone:
+                if (templateItem.IsRequired &&
+                    !input.CheckValue.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」を選択してください。");
+                }
+
+                if (input.NumericValue.HasValue ||
+                    !string.IsNullOrWhiteSpace(
+                        input.TextValue))
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」の入力形式が不正です。");
+                }
+
+                break;
+
+            case InspectionInputType.Numeric:
+                if (templateItem.IsRequired &&
+                    !input.NumericValue.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」に数値を入力してください。");
+                }
+
+                if (input.CheckValue.HasValue ||
+                    !string.IsNullOrWhiteSpace(
+                        input.TextValue))
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」の入力形式が不正です。");
+                }
+
+                break;
+
+            case InspectionInputType.Text:
+                if (templateItem.IsRequired &&
+                    string.IsNullOrWhiteSpace(
+                        input.TextValue))
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」を入力してください。");
+                }
+
+                if (input.CheckValue.HasValue ||
+                    input.NumericValue.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"「{templateItem.ItemName}」の入力形式が不正です。");
+                }
+
+                break;
+
+            default:
+                throw new InvalidOperationException(
+                    $"未対応の入力形式です: " +
+                    $"{templateItem.InputType}");
+        }
+    }
+
+    private static bool CalculateIsAbnormal(
+        InspectionTemplateItem templateItem,
+        InspectionCompletionItemData input)
+    {
+        switch (templateItem.InputType)
+        {
+            case InspectionInputType.NormalAbnormal:
+            case InspectionInputType.DoneNotDone:
+                return input.CheckValue == false;
+
+            case InspectionInputType.Numeric:
+                if (!input.NumericValue.HasValue)
+                {
+                    return false;
+                }
+
+                var value =
+                    input.NumericValue.Value;
+
+                if (templateItem.MinimumValue.HasValue &&
+                    value <
+                    (decimal)templateItem.MinimumValue.Value)
+                {
+                    return true;
+                }
+
+                if (templateItem.MaximumValue.HasValue &&
+                    value >
+                    (decimal)templateItem.MaximumValue.Value)
+                {
+                    return true;
+                }
+
+                return false;
+
+            case InspectionInputType.Text:
+                return false;
+
+            default:
+                throw new InvalidOperationException(
+                    $"未対応の入力形式です: " +
+                    $"{templateItem.InputType}");
+        }
+
+
+    }
+
+    // ============================================
+    // 点検担当者向け 点検一覧件数
+    // ============================================
+
+    public async Task<int>
+        GetCountForOperatorAsync(
+            Guid operatorId,
+            CancellationToken cancellationToken = default)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        return await dbContext
+            .InspectionSchedules
+            .AsNoTracking()
+            .CountAsync(
+                x =>
+                    !x.IsCancelled &&
+                    x.AssignedOperatorId ==
+                        operatorId,
+                cancellationToken);
+    }
+
+
+    // ============================================
+    // 点検担当者向け 点検一覧
+    // 5件単位などのページング対応
+    // ============================================
+
+    public async Task<IReadOnlyList<InspectionListData>>
+        GetPageForOperatorAsync(
+            Guid operatorId,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        if (pageNumber < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pageNumber),
+                "ページ番号は1以上で指定してください。");
+        }
+
+        if (pageSize < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pageSize),
+                "1ページの件数は1件以上で指定してください。");
+        }
+
+        await using var dbContext =
+            _dbContextFactory.CreateDbContext();
+
+        return await dbContext
+            .InspectionSchedules
+            .AsNoTracking()
+            .Where(x =>
+                !x.IsCancelled &&
+                x.AssignedOperatorId ==
+                    operatorId)
+            .OrderByDescending(x =>
+                x.ScheduledDate)
+            .ThenBy(x =>
+                x.Equipment.EquipmentCode)
+            .Skip(
+                (pageNumber - 1) *
+                pageSize)
+            .Take(
+                pageSize)
+            .Select(x =>
+                new InspectionListData(
+                    x.Id,
+
+                    x.Inspection == null
+                        ? null
+                        : x.Inspection.Id,
+
+                    x.ScheduledDate,
+
+                    x.Equipment
+                        .Location
+                        .FactorySite
+                        .Name,
+
+                    x.Equipment
+                        .Location
+                        .Name,
+
+                    x.Equipment
+                        .EquipmentCode,
+
+                    x.Equipment
+                        .Name,
+
+                    x.InspectionTemplate
+                        .Name,
+
+                    x.AssignedOperator
+                        .DisplayName,
+
+                    x.Inspection == null
+                        ? InspectionStatus.NotStarted
+                        : x.Inspection.Status,
+
+                    x.Inspection == null
+                        ? 0
+                        : x.Inspection.Results.Count,
+
+                    x.Inspection == null
+                        ? 0
+                        : x.Inspection.Results.Count(
+                            result =>
+                                result.IsAbnormal),
+
+                    x.Inspection == null
+                        ? 0
+                        : x.Inspection.Photos.Count))
+            .ToListAsync(
+                cancellationToken);
+    }
+
 }

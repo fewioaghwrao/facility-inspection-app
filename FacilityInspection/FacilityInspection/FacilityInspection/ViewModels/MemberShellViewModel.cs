@@ -5,9 +5,11 @@ using System;
 
 namespace FacilityInspection.ViewModels;
 
-public partial class MemberShellViewModel : ViewModelBase
+public partial class MemberShellViewModel
+    : ViewModelBase
 {
-    private readonly Action _logout;
+    private readonly Action
+        _logout;
 
     private readonly Guid
         _operatorId;
@@ -21,20 +23,41 @@ public partial class MemberShellViewModel : ViewModelBase
     private MemberDashboardViewModel?
         _dashboardViewModel;
 
-    private EquipmentManagementViewModel?
-        _equipmentManagementViewModel;
-
     private ScheduleCalendarViewModel?
         _scheduleCalendarViewModel;
+
+
+    // ============================================
+    // 表示中コンテンツ
+    // ============================================
 
     [ObservableProperty]
     private ViewModelBase currentContent;
 
+
+    // ============================================
+    // ログアウト確認
+    // ============================================
+
     [ObservableProperty]
     private bool isLogoutDialogOpen;
 
+
+    // ============================================
+    // 選択中メニュー
+    // ============================================
+
     [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(IsDashboardSelected))]
+    [NotifyPropertyChangedFor(
+        nameof(IsInspectionListSelected))]
     private MemberMenuItem selectedMenuItem;
+
+
+    // ============================================
+    // Constructor
+    // ============================================
 
     public MemberShellViewModel(
         Guid operatorId,
@@ -84,7 +107,30 @@ public partial class MemberShellViewModel : ViewModelBase
             MemberMenuItem.Dashboard;
     }
 
+
+    // ============================================
+    // ログインユーザー
+    // ============================================
+
     public string OperatorName { get; }
+
+
+    // ============================================
+    // メニュー選択状態
+    // ============================================
+
+    public bool IsDashboardSelected =>
+        SelectedMenuItem ==
+            MemberMenuItem.Dashboard;
+
+    public bool IsInspectionListSelected =>
+        SelectedMenuItem ==
+            MemberMenuItem.InspectionList;
+
+
+    // ============================================
+    // 点検予定
+    // ============================================
 
     [RelayCommand]
     private void OpenDashboard()
@@ -93,15 +139,35 @@ public partial class MemberShellViewModel : ViewModelBase
             reload: true);
     }
 
+
+    // ============================================
+    // 点検一覧
+    // ============================================
+
     [RelayCommand]
-    private void OpenEquipmentManagement()
+    private void OpenInspectionList()
     {
+        /*
+         * 点検完了・承認・差し戻し等の状態を
+         * 常に最新DBから表示できるよう、
+         * メニューを開くたびにVMを作り直す。
+         */
         CurrentContent =
-            GetEquipmentManagementViewModel();
+            new MemberInspectionListViewModel(
+                _operatorId,
+                _inspectionRepository);
 
         SelectedMenuItem =
-            MemberMenuItem.EquipmentManagement;
+            MemberMenuItem.InspectionList;
     }
+
+
+    // ============================================
+    // カレンダー
+    //
+    // 現在のサイドメニューには表示しないが、
+    // Dashboard等から呼ぶ場合に備えて残す。
+    // ============================================
 
     [RelayCommand]
     private void OpenScheduleCalendar()
@@ -113,25 +179,40 @@ public partial class MemberShellViewModel : ViewModelBase
             MemberMenuItem.ScheduleCalendar;
     }
 
+
+    // ============================================
+    // ログアウト
+    // ============================================
+
     [RelayCommand]
     private void OpenLogoutDialog()
     {
-        IsLogoutDialogOpen = true;
+        IsLogoutDialogOpen =
+            true;
     }
+
 
     [RelayCommand]
     private void CancelLogout()
     {
-        IsLogoutDialogOpen = false;
+        IsLogoutDialogOpen =
+            false;
     }
+
 
     [RelayCommand]
     private void ConfirmLogout()
     {
-        IsLogoutDialogOpen = false;
+        IsLogoutDialogOpen =
+            false;
 
         _logout();
     }
+
+
+    // ============================================
+    // Dashboard
+    // ============================================
 
     private MemberDashboardViewModel
         GetDashboardViewModel()
@@ -143,12 +224,10 @@ public partial class MemberShellViewModel : ViewModelBase
                 OpenInspection);
     }
 
-    private EquipmentManagementViewModel
-        GetEquipmentManagementViewModel()
-    {
-        return _equipmentManagementViewModel ??=
-            new EquipmentManagementViewModel();
-    }
+
+    // ============================================
+    // Schedule Calendar
+    // ============================================
 
     private ScheduleCalendarViewModel
         GetScheduleCalendarViewModel()
@@ -157,6 +236,11 @@ public partial class MemberShellViewModel : ViewModelBase
             new ScheduleCalendarViewModel(
                 _scheduleRepository);
     }
+
+
+    // ============================================
+    // 点検実施
+    // ============================================
 
     private void OpenInspection(
         Guid scheduleId)
@@ -168,22 +252,41 @@ public partial class MemberShellViewModel : ViewModelBase
                 _inspectionRepository,
                 ReturnFromInspection);
 
+        /*
+         * 点検実施画面は「点検予定」から開始するため、
+         * 左メニュー上は点検予定を選択状態にする。
+         */
         SelectedMenuItem =
             MemberMenuItem.Dashboard;
     }
 
+
+    // ============================================
+    // 点検実施から戻る
+    // ============================================
+
     private void ReturnFromInspection()
     {
+        /*
+         * 完了後の件数・ステータスを反映するため
+         * Dashboardを再生成する。
+         */
         ShowDashboard(
             reload: true);
     }
+
+
+    // ============================================
+    // Dashboard表示
+    // ============================================
 
     private void ShowDashboard(
         bool reload)
     {
         if (reload)
         {
-            _dashboardViewModel = null;
+            _dashboardViewModel =
+                null;
         }
 
         CurrentContent =

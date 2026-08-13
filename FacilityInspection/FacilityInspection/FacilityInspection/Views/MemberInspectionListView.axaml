@@ -1,0 +1,263 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:FacilityInspection.ViewModels"
+    x:Class="FacilityInspection.Views.MemberInspectionListView"
+    x:DataType="vm:MemberInspectionListViewModel"
+    Background="#F8FAFC">
+
+    <Grid
+        RowDefinitions="Auto,Auto,*,Auto"
+        Margin="32"
+        RowSpacing="20">
+
+        <!-- タイトル -->
+        <Grid
+            Grid.Row="0"
+            ColumnDefinitions="*,Auto">
+
+            <StackPanel
+                Grid.Column="0"
+                Spacing="5">
+
+                <TextBlock
+                    Text="{Binding Title}"
+                    FontSize="28"
+                    FontWeight="Bold"
+                    Foreground="#0F172A" />
+
+                <TextBlock
+                    Text="{Binding Description}"
+                    FontSize="14"
+                    Foreground="#64748B" />
+
+            </StackPanel>
+
+            <Button
+                Grid.Column="1"
+                Content="更新"
+                Command="{Binding RefreshCommand}"
+                MinWidth="90"
+                Height="40"
+                Background="#FFFFFF"
+                Foreground="#334155"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="8" />
+
+        </Grid>
+
+
+        <!-- 件数 -->
+        <Border
+            Grid.Row="1"
+            Padding="16,12"
+            Background="#FFFFFF"
+            BorderBrush="#E2E8F0"
+            BorderThickness="1"
+            CornerRadius="10">
+
+            <TextBlock
+                Text="{Binding TotalCountText}"
+                FontSize="13"
+                FontWeight="SemiBold"
+                Foreground="#475569" />
+
+        </Border>
+
+
+        <!-- 一覧 -->
+        <ScrollViewer
+            Grid.Row="2">
+
+            <StackPanel Spacing="10">
+
+                <ItemsControl
+                    ItemsSource="{Binding Items}">
+
+                    <ItemsControl.ItemTemplate>
+
+                        <DataTemplate
+                            x:DataType="vm:MemberInspectionListItemViewModel">
+
+                            <Border
+                                Margin="0,0,0,10"
+                                Padding="18"
+                                Background="#FFFFFF"
+                                BorderBrush="#E2E8F0"
+                                BorderThickness="1"
+                                CornerRadius="10">
+
+                                <Grid
+                                    ColumnDefinitions="120,*,180"
+                                    ColumnSpacing="20">
+
+                                    <!-- 日付 -->
+                                    <StackPanel
+                                        Grid.Column="0"
+                                        Spacing="4">
+
+                                        <TextBlock
+                                            Text="点検予定日"
+                                            FontSize="11"
+                                            Foreground="#94A3B8" />
+
+                                        <TextBlock
+                                            Text="{Binding ScheduledDateText}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Foreground="#0F172A" />
+
+                                    </StackPanel>
+
+
+                                    <!-- 設備 -->
+                                    <StackPanel
+                                        Grid.Column="1"
+                                        Spacing="4">
+
+                                        <TextBlock
+                                            Text="{Binding EquipmentText}"
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
+                                            Foreground="#0F172A" />
+
+                                        <TextBlock
+                                            Text="{Binding LocationText}"
+                                            FontSize="12"
+                                            Foreground="#64748B" />
+
+                                        <TextBlock
+                                            Text="{Binding TemplateName}"
+                                            FontSize="12"
+                                            Foreground="#64748B" />
+
+                                    </StackPanel>
+
+
+                                    <!-- 状態 -->
+                                    <StackPanel
+                                        Grid.Column="2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Spacing="5">
+
+                                        <TextBlock
+                                            Text="{Binding StatusText}"
+                                            HorizontalAlignment="Right"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="#1D4ED8" />
+
+                                        <TextBlock
+                                            Text="{Binding AbnormalText}"
+                                            HorizontalAlignment="Right"
+                                            FontSize="11"
+                                            Foreground="#64748B" />
+
+                                    </StackPanel>
+
+                                </Grid>
+
+                            </Border>
+
+                        </DataTemplate>
+
+                    </ItemsControl.ItemTemplate>
+
+                </ItemsControl>
+
+
+                <!-- 0件 -->
+                <Border
+                    IsVisible="{Binding IsEmpty}"
+                    Padding="32"
+                    Background="#FFFFFF"
+                    BorderBrush="#E2E8F0"
+                    BorderThickness="1"
+                    CornerRadius="10">
+
+                    <TextBlock
+                        Text="担当している点検はありません。"
+                        HorizontalAlignment="Center"
+                        FontSize="14"
+                        Foreground="#64748B" />
+
+                </Border>
+
+
+                <!-- エラー -->
+                <Border
+                    IsVisible="{Binding HasError}"
+                    Padding="16"
+                    Background="#FEF2F2"
+                    BorderBrush="#FECACA"
+                    BorderThickness="1"
+                    CornerRadius="8">
+
+                    <TextBlock
+                        Text="{Binding ErrorMessage}"
+                        TextWrapping="Wrap"
+                        Foreground="#B91C1C" />
+
+                </Border>
+
+            </StackPanel>
+
+        </ScrollViewer>
+
+
+        <!-- ページング -->
+        <Grid
+            Grid.Row="3"
+            ColumnDefinitions="*,Auto,Auto,Auto"
+            ColumnSpacing="10">
+
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                Text="1ページ 5件"
+                FontSize="12"
+                Foreground="#94A3B8" />
+
+            <Button
+                Grid.Column="1"
+                Content="前へ"
+                Command="{Binding PreviousPageCommand}"
+                IsEnabled="{Binding CanPreviousPage}"
+                MinWidth="80"
+                Height="38"
+                Background="#FFFFFF"
+                Foreground="#334155"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="8" />
+
+            <TextBlock
+                Grid.Column="2"
+                MinWidth="70"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Text="{Binding PageText}"
+                FontSize="13"
+                FontWeight="SemiBold"
+                Foreground="#334155" />
+
+            <Button
+                Grid.Column="3"
+                Content="次へ"
+                Command="{Binding NextPageCommand}"
+                IsEnabled="{Binding CanNextPage}"
+                MinWidth="80"
+                Height="38"
+                Background="#FFFFFF"
+                Foreground="#334155"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="8" />
+
+        </Grid>
+
+    </Grid>
+
+</UserControl>

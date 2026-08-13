@@ -5,7 +5,8 @@
     x:Class="FacilityInspection.Views.InspectionEntryView"
     x:DataType="vm:InspectionEntryViewModel">
 
-    <ScrollViewer>
+    <Grid>
+        <ScrollViewer>
         <StackPanel
             Margin="32"
             Spacing="20"
@@ -266,13 +267,107 @@
                                             TextWrapping="Wrap"
                                             Watermark="内容を入力" />
 
-                                        <!-- 共通コメント -->
-                                        <TextBox
-                                            Text="{Binding Comment, Mode=TwoWay}"
-                                            AcceptsReturn="True"
-                                            MinHeight="64"
-                                            TextWrapping="Wrap"
-                                            Watermark="コメント（任意）" />
+                                        <!-- 写真（任意） -->
+                                        <StackPanel Spacing="8">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <StackPanel
+                                                    Grid.Column="0"
+                                                    Orientation="Horizontal"
+                                                    Spacing="8"
+                                                    VerticalAlignment="Center">
+
+                                                    <TextBlock
+                                                        Text="写真"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="#334155" />
+
+                                                    <TextBlock
+                                                        Text="任意"
+                                                        FontSize="12"
+                                                        Foreground="#64748B" />
+
+                                                    <TextBlock
+                                                        IsVisible="{Binding HasPhotos}"
+                                                        Text="{Binding PhotoCountText}"
+                                                        FontSize="12"
+                                                        Foreground="#475569" />
+                                                </StackPanel>
+
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Content="写真を選択"
+                                                    Click="SelectPhotos_Click"
+                                                    MinWidth="110"
+                                                    Height="36" />
+                                            </Grid>
+
+                                            <ItemsControl
+                                                IsVisible="{Binding HasPhotos}"
+                                                ItemsSource="{Binding Photos}">
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate
+                                                        x:DataType="vm:InspectionEntryPhotoViewModel">
+
+                                                        <Border
+                                                            Margin="0,0,0,6"
+                                                            Padding="10"
+                                                            Background="#F8FAFC"
+                                                            BorderBrush="#E2E8F0"
+                                                            BorderThickness="1"
+                                                            CornerRadius="8">
+
+                                                            <Grid ColumnDefinitions="*,Auto">
+                                                                <TextBlock
+                                                                    Grid.Column="0"
+                                                                    Text="{Binding FileName}"
+                                                                    VerticalAlignment="Center"
+                                                                    Foreground="#334155"
+                                                                    TextTrimming="CharacterEllipsis" />
+
+                                                                <Button
+                                                                    Grid.Column="1"
+                                                                    Margin="10,0,0,0"
+                                                                    Content="削除"
+                                                                    Command="{Binding RemoveCommand}"
+                                                                    MinWidth="70"
+                                                                    Height="32" />
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <TextBlock
+                                                IsVisible="{Binding HasPhotoError}"
+                                                Text="{Binding PhotoErrorMessage}"
+                                                Foreground="#B91C1C"
+                                                FontSize="12"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+
+                                        <!-- 共通コメント（任意） -->
+                                        <StackPanel Spacing="6">
+                                            <TextBlock
+                                                Text="コメント（任意）"
+                                                FontWeight="SemiBold"
+                                                Foreground="#334155" />
+
+                                            <TextBox
+                                                Text="{Binding Comment, Mode=TwoWay}"
+                                                AcceptsReturn="True"
+                                                MinHeight="64"
+                                                TextWrapping="Wrap"
+                                                Watermark="コメントを入力" />
+                                        </StackPanel>
+
+                                        <TextBlock
+                                            IsVisible="{Binding HasValidationError}"
+                                            Text="{Binding ValidationMessage}"
+                                            Foreground="#B91C1C"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            TextWrapping="Wrap" />
 
                                     </StackPanel>
                                 </Border>
@@ -280,6 +375,22 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
+
+                <!-- 入力バリデーション -->
+                <Border
+                    IsVisible="{Binding HasValidationMessage}"
+                    Padding="14"
+                    Background="#FEF2F2"
+                    BorderBrush="#FECACA"
+                    BorderThickness="1"
+                    CornerRadius="10">
+
+                    <TextBlock
+                        Text="{Binding ValidationMessage}"
+                        Foreground="#B91C1C"
+                        FontWeight="SemiBold"
+                        TextWrapping="Wrap" />
+                </Border>
 
                 <!-- フッター -->
                 <Border
@@ -309,13 +420,138 @@
                         <Button
                             Grid.Column="2"
                             Content="入力内容を確認"
+                            Command="{Binding ReviewCompletionCommand}"
                             MinWidth="150"
-                            Height="40"
-                            IsEnabled="False" />
+                            Height="40" />
                     </Grid>
                 </Border>
 
             </StackPanel>
         </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+
+        <!-- 点検完了確認 -->
+        <Border
+            IsVisible="{Binding IsCompletionConfirmVisible}"
+            Background="#990F172A">
+
+            <Border
+                Width="520"
+                Padding="24"
+                Margin="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="16">
+
+                <StackPanel Spacing="18">
+                    <StackPanel Spacing="6">
+                        <TextBlock
+                            Text="点検を完了しますか？"
+                            FontSize="22"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Text="{Binding CompletionConfirmMessage}"
+                            Foreground="#475569"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border
+                        Padding="12"
+                        Background="#FFF7ED"
+                        BorderBrush="#FED7AA"
+                        BorderThickness="1"
+                        CornerRadius="8">
+
+                        <TextBlock
+                            Text="完了後は「完了・承認待ち」となり、管理者の承認または差し戻しまで点検内容を編集できません。"
+                            Foreground="#9A3412"
+                            TextWrapping="Wrap" />
+                    </Border>
+
+                    <Border
+                        IsVisible="{Binding HasCompletionError}"
+                        Padding="12"
+                        Background="#FEF2F2"
+                        BorderBrush="#FECACA"
+                        BorderThickness="1"
+                        CornerRadius="8">
+
+                        <TextBlock
+                            Text="{Binding CompletionErrorMessage}"
+                            Foreground="#B91C1C"
+                            TextWrapping="Wrap" />
+                    </Border>
+
+                    <TextBlock
+                        IsVisible="{Binding IsSaving}"
+                        Text="点検結果を保存しています..."
+                        Foreground="#475569" />
+
+                    <Grid
+                        ColumnDefinitions="*,Auto,Auto"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Grid.Column="1"
+                            Content="キャンセル"
+                            Command="{Binding CancelCompletionCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            MinWidth="110"
+                            Height="40" />
+
+                        <Button
+                            Grid.Column="2"
+                            Content="完了する"
+                            Command="{Binding ConfirmCompletionCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            MinWidth="110"
+                            Height="40" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- 点検完了後の確認 -->
+        <Border
+            IsVisible="{Binding IsCompletionSuccessVisible}"
+            Background="#990F172A">
+
+            <Border
+                Width="480"
+                Padding="24"
+                Margin="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="16">
+
+                <StackPanel Spacing="18">
+                    <TextBlock
+                        Text="点検が完了しました"
+                        FontSize="22"
+                        FontWeight="Bold"
+                        Foreground="#0F172A" />
+
+                    <TextBlock
+                        Text="{Binding CompletionSuccessMessage}"
+                        Foreground="#475569"
+                        TextWrapping="Wrap" />
+
+                    <Button
+                        Content="確認"
+                        Command="{Binding FinishCompletionCommand}"
+                        HorizontalAlignment="Right"
+                        MinWidth="110"
+                        Height="40" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
 </UserControl>

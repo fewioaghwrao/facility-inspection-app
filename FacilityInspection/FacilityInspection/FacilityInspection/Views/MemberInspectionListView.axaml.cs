@@ -2,10 +2,10 @@ using Avalonia.Controls;
 
 namespace FacilityInspection.Views;
 
-public partial class MemberShellView
+public partial class MemberInspectionListView
     : UserControl
 {
-    public MemberShellView()
+    public MemberInspectionListView()
     {
         InitializeComponent();
     }

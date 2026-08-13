@@ -1,8 +1,13 @@
-﻿namespace FacilityInspection.ViewModels;
+namespace FacilityInspection.ViewModels;
 
 public enum MemberMenuItem
 {
     Dashboard,
-    EquipmentManagement,
+    InspectionList,
+
+    /*
+     * 現在はサイドメニュー非表示。
+     * Dashboard等からカレンダーを開く場合に使用する。
+     */
     ScheduleCalendar
 }
