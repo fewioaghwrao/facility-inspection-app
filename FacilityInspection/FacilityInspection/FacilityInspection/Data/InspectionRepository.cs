@@ -498,11 +498,43 @@ public sealed class InspectionRepository
                 "画面を開き直してから、もう一度実施してください。");
         }
 
+        var duplicateResults =
+            inspection.Results
+                .GroupBy(
+                    x => x.InspectionTemplateItemId)
+                .Where(
+                    group => group.Count() > 1)
+                .Select(
+                    group => new
+                    {
+                        TemplateItemId = group.Key,
+                        Count = group.Count(),
+                        ResultIds = string.Join(
+                            ", ",
+                            group.Select(x => x.Id))
+                    })
+                .ToList();
+
+        if (duplicateResults.Count > 0)
+        {
+            var detail =
+                string.Join(
+                    Environment.NewLine,
+                    duplicateResults.Select(x =>
+                        $"TemplateItemId={x.TemplateItemId}, " +
+                        $"Count={x.Count}, " +
+                        $"ResultIds={x.ResultIds}"));
+
+            throw new InvalidOperationException(
+                "InspectionResultの重複データがあります。" +
+                Environment.NewLine +
+                detail);
+        }
+
         var existingResults =
             inspection.Results
                 .ToDictionary(
-                    x =>
-                        x.InspectionTemplateItemId);
+                    x => x.InspectionTemplateItemId);
 
         var nextPhotoDisplayOrder =
             inspection.Photos.Count == 0
@@ -538,8 +570,13 @@ public sealed class InspectionRepository
                         templateItem.InputType,
                         templateItem.Unit);
 
-                inspection.Results.Add(
+                existingResults.Add(
+                    templateItem.Id,
                     result);
+
+                dbContext
+    .Set<InspectionResult>()
+    .Add(result);
 
                 existingResults.Add(
                     templateItem.Id,
@@ -584,8 +621,10 @@ public sealed class InspectionRepository
                         result.Id,
                         null);
 
-                inspection.Photos.Add(
-                    photo);
+
+                dbContext
+    .Set<InspectionPhoto>()
+    .Add(photo);
             }
         }
 
