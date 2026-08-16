@@ -292,7 +292,10 @@ public sealed class DatabaseBackupService
                     sourcePath,
 
                 Mode =
-                    SqliteOpenMode.ReadOnly
+                    SqliteOpenMode.ReadOnly,
+
+                Pooling =
+                    false
             }
             .ToString();
 
@@ -303,7 +306,10 @@ public sealed class DatabaseBackupService
                     destinationPath,
 
                 Mode =
-                    SqliteOpenMode.ReadWriteCreate
+                    SqliteOpenMode.ReadWriteCreate,
+
+                Pooling =
+                    false
             }
             .ToString();
 
@@ -343,7 +349,10 @@ public sealed class DatabaseBackupService
                     sourceBackupPath,
 
                 Mode =
-                    SqliteOpenMode.ReadOnly
+                    SqliteOpenMode.ReadOnly,
+
+                Pooling =
+                    false
             }
             .ToString();
 
@@ -354,7 +363,10 @@ public sealed class DatabaseBackupService
                     destinationDatabasePath,
 
                 Mode =
-                    SqliteOpenMode.ReadWriteCreate
+                    SqliteOpenMode.ReadWriteCreate,
+
+                Pooling =
+                    false
             }
             .ToString();
 
@@ -397,7 +409,10 @@ public sealed class DatabaseBackupService
                     databasePath,
 
                 Mode =
-                    SqliteOpenMode.ReadOnly
+                    SqliteOpenMode.ReadOnly,
+
+                Pooling =
+                    false
             }
             .ToString();
 

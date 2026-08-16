@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="FacilityInspection/FacilityInspection.Desktop/FacilityInspection.Desktop.csproj" />
+  <Project Path="FacilityInspection/FacilityInspection.Tests/FacilityInspection.Tests.csproj" />
   <Project Path="FacilityInspection/FacilityInspection/FacilityInspection.csproj" />
 </Solution>
