@@ -38,6 +38,10 @@
     </Compile>
   </ItemGroup>
 
+	<ItemGroup>
+		<InternalsVisibleTo Include="FacilityInspection.Tests" />
+	</ItemGroup>
+
 	<!--
 <ItemGroup>
 	<None

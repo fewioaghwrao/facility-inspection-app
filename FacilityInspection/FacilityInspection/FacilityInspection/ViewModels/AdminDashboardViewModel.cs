@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Data;
 using FacilityInspection.Domain.Inspections;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -11,8 +12,12 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class AdminDashboardViewModel
     : ViewModelBase
 {
-    private readonly InspectionRepository
-        _inspectionRepository;
+    private readonly Func<
+        Task<IReadOnlyList<InspectionListData>>>
+        _loadInspectionsAsync;
+
+    private readonly Func<DateTime>
+        _nowProvider;
 
 
     // ============================================
@@ -46,6 +51,7 @@ public sealed partial class AdminDashboardViewModel
 
     // ============================================
     // Constructor
+    // 本番用
     // ============================================
 
     public AdminDashboardViewModel(
@@ -61,10 +67,47 @@ public sealed partial class AdminDashboardViewModel
         DisplayName =
             displayName;
 
-        _inspectionRepository =
-            inspectionRepository;
+        _loadInspectionsAsync =
+            () =>
+                inspectionRepository
+                    .GetAllAsync();
+
+        _nowProvider =
+            () => DateTime.Now;
 
         _ = LoadAsync();
+    }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal AdminDashboardViewModel(
+        string displayName,
+        Func<
+            Task<IReadOnlyList<InspectionListData>>>
+            loadInspectionsAsync,
+        Func<DateTime> nowProvider)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            displayName);
+
+        ArgumentNullException.ThrowIfNull(
+            loadInspectionsAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            nowProvider);
+
+        DisplayName =
+            displayName;
+
+        _loadInspectionsAsync =
+            loadInspectionsAsync;
+
+        _nowProvider =
+            nowProvider;
     }
 
 
@@ -81,8 +124,9 @@ public sealed partial class AdminDashboardViewModel
         $"{DisplayName}さん、お疲れさまです。";
 
     public string CurrentDateText =>
-        DateTime.Now.ToString(
-            "yyyy年M月d日");
+        _nowProvider()
+            .ToString(
+                "yyyy年M月d日");
 
 
     // ============================================
@@ -190,12 +234,11 @@ public sealed partial class AdminDashboardViewModel
                 null;
 
             var rows =
-                await _inspectionRepository
-                    .GetAllAsync();
+                await _loadInspectionsAsync();
 
             var today =
                 DateOnly.FromDateTime(
-                    DateTime.Now);
+                    _nowProvider());
 
             var todayRows =
                 rows
@@ -311,17 +354,20 @@ public sealed partial class AdminDashboardViewModel
         InspectionStatusRequested?.Invoke();
     }
 
+
     [RelayCommand]
     private void OpenNotStarted()
     {
         NotStartedRequested?.Invoke();
     }
 
+
     [RelayCommand]
     private void OpenApprovalPending()
     {
         ApprovalPendingRequested?.Invoke();
     }
+
 
     [RelayCommand]
     private void OpenAbnormalList()

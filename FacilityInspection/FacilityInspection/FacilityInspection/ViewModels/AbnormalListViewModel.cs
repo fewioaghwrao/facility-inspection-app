@@ -14,8 +14,9 @@ public sealed partial class AbnormalListViewModel
 {
     private const int PageSize = 5;
 
-    private readonly InspectionRepository
-        _inspectionRepository;
+    private readonly Func<
+        Task<IReadOnlyList<AbnormalResultListData>>>
+        _loadAbnormalResultsAsync;
 
     private IReadOnlyList<AbnormalResultListData>
         _allItems = [];
@@ -23,17 +24,42 @@ public sealed partial class AbnormalListViewModel
     private List<AbnormalResultListData>
         _filteredItems = [];
 
+
+    // ============================================
+    // 本番用
+    // ============================================
+
     public AbnormalListViewModel(
         InspectionRepository inspectionRepository)
     {
         ArgumentNullException.ThrowIfNull(
             inspectionRepository);
 
-        _inspectionRepository =
-            inspectionRepository;
+        _loadAbnormalResultsAsync =
+            () =>
+                inspectionRepository
+                    .GetAbnormalResultsAsync();
 
         _ = LoadAsync();
     }
+
+
+    // ============================================
+    // テスト用
+    // ============================================
+
+    internal AbnormalListViewModel(
+        Func<
+            Task<IReadOnlyList<AbnormalResultListData>>>
+            loadAbnormalResultsAsync)
+    {
+        ArgumentNullException.ThrowIfNull(
+            loadAbnormalResultsAsync);
+
+        _loadAbnormalResultsAsync =
+            loadAbnormalResultsAsync;
+    }
+
 
     public Action<Guid>? DetailRequested
     {
@@ -41,44 +67,59 @@ public sealed partial class AbnormalListViewModel
         set;
     }
 
+
     public string Title =>
         "異常一覧";
 
+
     public string Description =>
         "点検結果で異常と判定された項目を一覧表示します。";
+
 
     public ObservableCollection<
         AbnormalListItemViewModel>
         Items
     { get; } = [];
 
+
     [ObservableProperty]
     private string searchText =
         string.Empty;
 
+
     [ObservableProperty]
     private bool isLoading;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
-    private string? errorMessage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PageText))]
-    [NotifyPropertyChangedFor(nameof(HasPreviousPage))]
-    [NotifyPropertyChangedFor(nameof(HasNextPage))]
+    [NotifyPropertyChangedFor(
+        nameof(HasError))]
+    private string? errorMessage;
+
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(PageText))]
+    [NotifyPropertyChangedFor(
+        nameof(HasPreviousPage))]
+    [NotifyPropertyChangedFor(
+        nameof(HasNextPage))]
     private int currentPage = 1;
+
 
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
             ErrorMessage);
 
+
     public bool IsEmpty =>
         !IsLoading &&
         _filteredItems.Count == 0;
 
+
     public string CountText =>
         $"{_filteredItems.Count}件";
+
 
     public int TotalPages =>
         Math.Max(
@@ -87,20 +128,25 @@ public sealed partial class AbnormalListViewModel
                 _filteredItems.Count /
                 (double)PageSize));
 
+
     public string PageText =>
         $"{CurrentPage} / {TotalPages}";
+
 
     public bool HasPreviousPage =>
         CurrentPage > 1;
 
+
     public bool HasNextPage =>
         CurrentPage < TotalPages;
+
 
     partial void OnSearchTextChanged(
         string value)
     {
         ApplyFilter();
     }
+
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -116,8 +162,7 @@ public sealed partial class AbnormalListViewModel
             ErrorMessage = null;
 
             _allItems =
-                await _inspectionRepository
-                    .GetAbnormalResultsAsync();
+                await _loadAbnormalResultsAsync();
 
             ApplyFilter();
         }
@@ -136,6 +181,7 @@ public sealed partial class AbnormalListViewModel
                 nameof(IsEmpty));
         }
     }
+
 
     private void ApplyFilter()
     {
@@ -188,6 +234,7 @@ public sealed partial class AbnormalListViewModel
         ApplyPage();
     }
 
+
     private void ApplyPage()
     {
         Items.Clear();
@@ -224,12 +271,14 @@ public sealed partial class AbnormalListViewModel
             nameof(HasNextPage));
     }
 
+
     private void OpenDetail(
         Guid scheduleId)
     {
         DetailRequested?.Invoke(
             scheduleId);
     }
+
 
     [RelayCommand]
     private void PreviousPage()
@@ -243,6 +292,7 @@ public sealed partial class AbnormalListViewModel
 
         ApplyPage();
     }
+
 
     [RelayCommand]
     private void NextPage()
