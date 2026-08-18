@@ -14,30 +14,160 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class InspectionTemplateManagementViewModel
     : ViewModelBase
 {
-    private readonly InspectionTemplateRepository
-        _inspectionTemplateRepository;
+    // ============================================
+    // Dependencies
+    // ============================================
+
+    private readonly Func<
+        Task<IReadOnlyList<InspectionTemplate>>>
+        _loadTemplatesAsync;
+
+    private readonly Func<
+        EquipmentType,
+        string,
+        IReadOnlyList<InspectionTemplateItemCreateData>,
+        Task<Guid>>
+        _createTemplateAsync;
+
+    private readonly Func<
+        Guid,
+        string,
+        IReadOnlyList<InspectionTemplateItemUpdateData>,
+        Task>
+        _updateTemplateAsync;
+
+    private readonly Func<
+        Guid,
+        bool,
+        Task>
+        _setActiveAsync;
+
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
 
     public InspectionTemplateManagementViewModel(
-        InspectionTemplateRepository inspectionTemplateRepository)
+        InspectionTemplateRepository
+            inspectionTemplateRepository)
     {
         ArgumentNullException.ThrowIfNull(
             inspectionTemplateRepository);
 
-        _inspectionTemplateRepository =
-            inspectionTemplateRepository;
+        /*
+         * Repository側はoptional CancellationTokenを持つため
+         * method groupではなくlambdaでラップする。
+         */
+        _loadTemplatesAsync =
+            () =>
+                inspectionTemplateRepository
+                    .GetAllAsync();
 
+        _createTemplateAsync =
+            (equipmentType, name, items) =>
+                inspectionTemplateRepository
+                    .CreateAsync(
+                        equipmentType,
+                        name,
+                        items);
+
+        _updateTemplateAsync =
+            (templateId, name, items) =>
+                inspectionTemplateRepository
+                    .UpdateAsync(
+                        templateId,
+                        name,
+                        items);
+
+        _setActiveAsync =
+            (templateId, isActive) =>
+                inspectionTemplateRepository
+                    .SetActiveAsync(
+                        templateId,
+                        isActive);
+
+        /*
+         * 本番では従来どおり
+         * コンストラクタ生成後に自動ロード。
+         */
         _ = LoadTemplatesAsync();
     }
 
-    public ObservableCollection<InspectionTemplateListItemViewModel>
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal InspectionTemplateManagementViewModel(
+        Func<Task<IReadOnlyList<InspectionTemplate>>>
+            loadTemplatesAsync,
+        Func<
+            EquipmentType,
+            string,
+            IReadOnlyList<InspectionTemplateItemCreateData>,
+            Task<Guid>>
+            createTemplateAsync,
+        Func<
+            Guid,
+            string,
+            IReadOnlyList<InspectionTemplateItemUpdateData>,
+            Task>
+            updateTemplateAsync,
+        Func<Guid, bool, Task>
+            setActiveAsync)
+    {
+        ArgumentNullException.ThrowIfNull(
+            loadTemplatesAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            createTemplateAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            updateTemplateAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            setActiveAsync);
+
+        _loadTemplatesAsync =
+            loadTemplatesAsync;
+
+        _createTemplateAsync =
+            createTemplateAsync;
+
+        _updateTemplateAsync =
+            updateTemplateAsync;
+
+        _setActiveAsync =
+            setActiveAsync;
+
+        /*
+         * テスト用では自動ロードしない。
+         * LoadTemplatesCommandを明示的に実行する。
+         */
+    }
+
+
+    // ============================================
+    // Collections
+    // ============================================
+
+    public ObservableCollection<
+        InspectionTemplateListItemViewModel>
         Templates
     { get; } = [];
 
-    public ObservableCollection<InspectionTemplateItemEditorViewModel>
+
+    public ObservableCollection<
+        InspectionTemplateItemEditorViewModel>
         EditingItems
     { get; } = [];
 
-    public IReadOnlyList<string> EquipmentTypeChoices { get; } =
+
+    public IReadOnlyList<string>
+        EquipmentTypeChoices
+    { get; } =
     [
         "エアコンプレッサー",
         "冷却水ポンプ",
@@ -46,77 +176,141 @@ public sealed partial class InspectionTemplateManagementViewModel
         "その他"
     ];
 
+
+    // ============================================
+    // Selected Template
+    // ============================================
+
     [ObservableProperty]
     private InspectionTemplateListItemViewModel?
         selectedTemplate;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
-    private bool isLoading;
+
+    // ============================================
+    // Loading
+    // ============================================
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
-    private string? errorMessage;
+    [NotifyPropertyChangedFor(
+        nameof(IsEmpty))]
+    private bool
+        isLoading;
+
+
+    // ============================================
+    // Error
+    // ============================================
 
     [ObservableProperty]
-    private bool isEditDialogOpen;
+    [NotifyPropertyChangedFor(
+        nameof(HasError))]
+    private string?
+        errorMessage;
+
+
+    // ============================================
+    // Edit Dialog
+    // ============================================
 
     [ObservableProperty]
-    private string editTemplateName = string.Empty;
+    private bool
+        isEditDialogOpen;
+
 
     [ObservableProperty]
-    private string selectedEquipmentTypeName =
-        "エアコンプレッサー";
+    private string
+        editTemplateName =
+            string.Empty;
+
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DialogTitle))]
-    [NotifyPropertyChangedFor(nameof(DialogDescription))]
-    [NotifyPropertyChangedFor(nameof(SaveButtonText))]
-    [NotifyPropertyChangedFor(nameof(IsEquipmentTypeEditable))]
-    private bool isCreateMode;
+    private string
+        selectedEquipmentTypeName =
+            "エアコンプレッサー";
+
 
     [ObservableProperty]
-    private bool isSaving;
+    [NotifyPropertyChangedFor(
+        nameof(DialogTitle))]
+    [NotifyPropertyChangedFor(
+        nameof(DialogDescription))]
+    [NotifyPropertyChangedFor(
+        nameof(SaveButtonText))]
+    [NotifyPropertyChangedFor(
+        nameof(IsEquipmentTypeEditable))]
+    private bool
+        isCreateMode;
+
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasEditError))]
-    private string? editErrorMessage;
+    private bool
+        isSaving;
+
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasOperationMessage))]
-    private string? operationMessage;
+    [NotifyPropertyChangedFor(
+        nameof(HasEditError))]
+    private string?
+        editErrorMessage;
+
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(HasOperationMessage))]
+    private string?
+        operationMessage;
+
+
+    // ============================================
+    // Calculated Properties
+    // ============================================
 
     public bool HasError =>
-        !string.IsNullOrWhiteSpace(ErrorMessage);
+        !string.IsNullOrWhiteSpace(
+            ErrorMessage);
+
 
     public bool HasEditError =>
-        !string.IsNullOrWhiteSpace(EditErrorMessage);
+        !string.IsNullOrWhiteSpace(
+            EditErrorMessage);
+
 
     public bool HasOperationMessage =>
-        !string.IsNullOrWhiteSpace(OperationMessage);
+        !string.IsNullOrWhiteSpace(
+            OperationMessage);
+
 
     public bool IsEmpty =>
         !IsLoading &&
         Templates.Count == 0 &&
         !HasError;
 
+
     public string DialogTitle =>
         IsCreateMode
             ? "点検票テンプレート新規作成"
             : "点検票テンプレート編集";
+
 
     public string DialogDescription =>
         IsCreateMode
             ? "設備種別と点検項目を入力して、新しい点検票を作成します。"
             : "テンプレート名と各点検項目を編集します。";
 
+
     public string SaveButtonText =>
         IsCreateMode
             ? "作成"
             : "保存";
 
+
     public bool IsEquipmentTypeEditable =>
         IsCreateMode;
+
+
+    // ============================================
+    // Load
+    // ============================================
 
     [RelayCommand]
     private async Task LoadTemplatesAsync()
@@ -131,26 +325,31 @@ public sealed partial class InspectionTemplateManagementViewModel
 
         try
         {
-            IsLoading = true;
-            ErrorMessage = null;
+            IsLoading =
+                true;
+
+            ErrorMessage =
+                null;
 
             var templates =
-                await _inspectionTemplateRepository
-                    .GetAllAsync();
+                await _loadTemplatesAsync();
 
             Templates.Clear();
 
-            foreach (var template in templates)
+            foreach (var template
+                     in templates)
             {
                 Templates.Add(
-                    CreateListItemViewModel(template));
+                    CreateListItemViewModel(
+                        template));
             }
 
             SelectedTemplate =
                 previouslySelectedId.HasValue
                     ? Templates.FirstOrDefault(
-                        x => x.Id ==
-                             previouslySelectedId.Value)
+                        x =>
+                            x.Id ==
+                            previouslySelectedId.Value)
                     : null;
 
             SelectedTemplate ??=
@@ -159,16 +358,24 @@ public sealed partial class InspectionTemplateManagementViewModel
         catch (Exception exception)
         {
             ErrorMessage =
-                $"点検票テンプレートを読み込めませんでした。" +
-                $"{Environment.NewLine}{exception.Message}";
+                "点検票テンプレートを読み込めませんでした。" +
+                Environment.NewLine +
+                exception.Message;
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
 
-            OnPropertyChanged(nameof(IsEmpty));
+            OnPropertyChanged(
+                nameof(IsEmpty));
         }
     }
+
+
+    // ============================================
+    // Open Create Dialog
+    // ============================================
 
     [RelayCommand]
     private void OpenCreateDialog()
@@ -178,22 +385,33 @@ public sealed partial class InspectionTemplateManagementViewModel
             return;
         }
 
-        IsCreateMode = true;
+        IsCreateMode =
+            true;
 
-        EditTemplateName = string.Empty;
+        EditTemplateName =
+            string.Empty;
 
         SelectedEquipmentTypeName =
             EquipmentTypeChoices[0];
 
-        EditErrorMessage = null;
-        OperationMessage = null;
+        EditErrorMessage =
+            null;
+
+        OperationMessage =
+            null;
 
         EditingItems.Clear();
 
         AddBlankEditingItem();
 
-        IsEditDialogOpen = true;
+        IsEditDialogOpen =
+            true;
     }
+
+
+    // ============================================
+    // Open Edit Dialog
+    // ============================================
 
     [RelayCommand]
     private void OpenEditDialog()
@@ -206,7 +424,8 @@ public sealed partial class InspectionTemplateManagementViewModel
             return;
         }
 
-        IsCreateMode = false;
+        IsCreateMode =
+            false;
 
         EditTemplateName =
             SelectedTemplate.Name;
@@ -214,14 +433,19 @@ public sealed partial class InspectionTemplateManagementViewModel
         SelectedEquipmentTypeName =
             SelectedTemplate.EquipmentTypeName;
 
-        EditErrorMessage = null;
-        OperationMessage = null;
+        EditErrorMessage =
+            null;
+
+        OperationMessage =
+            null;
 
         EditingItems.Clear();
 
         foreach (var item in
                  SelectedTemplate.Items
-                     .OrderBy(x => x.DisplayOrder))
+                     .OrderBy(
+                         x =>
+                             x.DisplayOrder))
         {
             EditingItems.Add(
                 new InspectionTemplateItemEditorViewModel(
@@ -237,16 +461,28 @@ public sealed partial class InspectionTemplateManagementViewModel
                     RemoveEditingItem));
         }
 
-        IsEditDialogOpen = true;
+        IsEditDialogOpen =
+            true;
     }
+
+
+    // ============================================
+    // Add Editing Item
+    // ============================================
 
     [RelayCommand]
     private void AddEditingItem()
     {
         AddBlankEditingItem();
 
-        EditErrorMessage = null;
+        EditErrorMessage =
+            null;
     }
+
+
+    // ============================================
+    // Cancel Edit
+    // ============================================
 
     [RelayCommand]
     private void CancelEdit()
@@ -256,10 +492,19 @@ public sealed partial class InspectionTemplateManagementViewModel
             return;
         }
 
-        IsEditDialogOpen = false;
-        EditErrorMessage = null;
+        IsEditDialogOpen =
+            false;
+
+        EditErrorMessage =
+            null;
+
         EditingItems.Clear();
     }
+
+
+    // ============================================
+    // Save
+    // ============================================
 
     [RelayCommand]
     private async Task SaveEditAsync()
@@ -283,96 +528,132 @@ public sealed partial class InspectionTemplateManagementViewModel
             return;
         }
 
-        Guid? createdTemplateId = null;
+        Guid? createdTemplateId =
+            null;
 
         try
         {
-            IsSaving = true;
-            EditErrorMessage = null;
-            OperationMessage = null;
+            IsSaving =
+                true;
+
+            EditErrorMessage =
+                null;
+
+            OperationMessage =
+                null;
+
+            // ====================================
+            // Create
+            // ====================================
 
             if (IsCreateMode)
             {
                 var createItems =
                     EditingItems
-                        .OrderBy(x => x.DisplayOrder)
-                        .Select(x =>
-                            new InspectionTemplateItemCreateData(
-                                x.DisplayOrder,
-                                x.ItemName.Trim(),
-                                x.GetInputType(),
-                                NormalizeText(x.Unit),
-                                x.MinimumValue,
-                                x.MaximumValue,
-                                x.IsRequired,
-                                x.IsActive))
+                        .OrderBy(
+                            x =>
+                                x.DisplayOrder)
+                        .Select(
+                            x =>
+                                new InspectionTemplateItemCreateData(
+                                    x.DisplayOrder,
+                                    x.ItemName.Trim(),
+                                    x.GetInputType(),
+                                    NormalizeText(
+                                        x.Unit),
+                                    x.MinimumValue,
+                                    x.MaximumValue,
+                                    x.IsRequired,
+                                    x.IsActive))
                         .ToList();
 
                 createdTemplateId =
-                    await _inspectionTemplateRepository
-                        .CreateAsync(
-                            GetSelectedEquipmentType(),
-                            EditTemplateName.Trim(),
-                            createItems);
+                    await _createTemplateAsync(
+                        GetSelectedEquipmentType(),
+                        EditTemplateName.Trim(),
+                        createItems);
 
                 OperationMessage =
                     "点検票テンプレートを作成しました。";
             }
+
+            // ====================================
+            // Update
+            // ====================================
+
             else
             {
                 var updateItems =
                     EditingItems
-                        .OrderBy(x => x.DisplayOrder)
-                        .Select(x =>
-                            new InspectionTemplateItemUpdateData(
-                                x.Id,
-                                x.DisplayOrder,
-                                x.ItemName.Trim(),
-                                x.GetInputType(),
-                                NormalizeText(x.Unit),
-                                x.MinimumValue,
-                                x.MaximumValue,
-                                x.IsRequired,
-                                x.IsActive))
+                        .OrderBy(
+                            x =>
+                                x.DisplayOrder)
+                        .Select(
+                            x =>
+                                new InspectionTemplateItemUpdateData(
+                                    x.Id,
+                                    x.DisplayOrder,
+                                    x.ItemName.Trim(),
+                                    x.GetInputType(),
+                                    NormalizeText(
+                                        x.Unit),
+                                    x.MinimumValue,
+                                    x.MaximumValue,
+                                    x.IsRequired,
+                                    x.IsActive))
                         .ToList();
 
-                await _inspectionTemplateRepository
-                    .UpdateAsync(
-                        SelectedTemplate!.Id,
-                        EditTemplateName.Trim(),
-                        updateItems);
+                await _updateTemplateAsync(
+                    SelectedTemplate!.Id,
+                    EditTemplateName.Trim(),
+                    updateItems);
 
                 OperationMessage =
                     "点検票テンプレートを更新しました。";
             }
 
-            IsEditDialogOpen = false;
+            IsEditDialogOpen =
+                false;
+
             EditingItems.Clear();
 
             await LoadTemplatesAsync();
 
+            /*
+             * 新規作成時はReload後に
+             * 作成したテンプレートを選択する。
+             */
             if (createdTemplateId.HasValue)
             {
                 SelectedTemplate =
                     Templates.FirstOrDefault(
-                        x => x.Id ==
-                             createdTemplateId.Value);
+                        x =>
+                            x.Id ==
+                            createdTemplateId.Value);
             }
         }
         catch (Exception exception)
         {
             EditErrorMessage =
                 IsCreateMode
-                    ? $"点検票テンプレートを作成できませんでした。" +
-                      $"{Environment.NewLine}{exception.Message}"
-                    : $"点検票テンプレートを更新できませんでした。" +
-                      $"{Environment.NewLine}{exception.Message}";
+                    ? "点検票テンプレートを作成できませんでした。" +
+                      Environment.NewLine +
+                      exception.Message
+                    : "点検票テンプレートを更新できませんでした。" +
+                      Environment.NewLine +
+                      exception.Message;
         }
         finally
         {
-            IsSaving = false;
+            IsSaving =
+                false;
         }
     }
+
+
+    // ============================================
+    // Toggle Active
+    // ============================================
 
     [RelayCommand]
     private async Task ToggleActiveAsync()
@@ -391,14 +672,18 @@ public sealed partial class InspectionTemplateManagementViewModel
 
         try
         {
-            IsSaving = true;
-            ErrorMessage = null;
-            OperationMessage = null;
+            IsSaving =
+                true;
 
-            await _inspectionTemplateRepository
-                .SetActiveAsync(
-                    templateId,
-                    newActiveState);
+            ErrorMessage =
+                null;
+
+            OperationMessage =
+                null;
+
+            await _setActiveAsync(
+                templateId,
+                newActiveState);
 
             OperationMessage =
                 newActiveState
@@ -410,14 +695,21 @@ public sealed partial class InspectionTemplateManagementViewModel
         catch (Exception exception)
         {
             ErrorMessage =
-                $"テンプレートの状態を変更できませんでした。" +
-                $"{Environment.NewLine}{exception.Message}";
+                "テンプレートの状態を変更できませんでした。" +
+                Environment.NewLine +
+                exception.Message;
         }
         finally
         {
-            IsSaving = false;
+            IsSaving =
+                false;
         }
     }
+
+
+    // ============================================
+    // Add Blank Item
+    // ============================================
 
     private void AddBlankEditingItem()
     {
@@ -435,6 +727,11 @@ public sealed partial class InspectionTemplateManagementViewModel
                 RemoveEditingItem));
     }
 
+
+    // ============================================
+    // Remove Item
+    // ============================================
+
     private void RemoveEditingItem(
         InspectionTemplateItemEditorViewModel item)
     {
@@ -446,12 +743,19 @@ public sealed partial class InspectionTemplateManagementViewModel
             return;
         }
 
-        EditingItems.Remove(item);
+        EditingItems.Remove(
+            item);
 
         RenumberEditingItems();
 
-        EditErrorMessage = null;
+        EditErrorMessage =
+            null;
     }
+
+
+    // ============================================
+    // Renumber
+    // ============================================
 
     private void RenumberEditingItems()
     {
@@ -460,9 +764,15 @@ public sealed partial class InspectionTemplateManagementViewModel
              index++)
         {
             EditingItems[index]
-                .SetDisplayOrder(index + 1);
+                .SetDisplayOrder(
+                    index + 1);
         }
     }
+
+
+    // ============================================
+    // Validation
+    // ============================================
 
     private bool ValidateEditInput()
     {
@@ -495,8 +805,9 @@ public sealed partial class InspectionTemplateManagementViewModel
 
         var emptyItem =
             EditingItems.FirstOrDefault(
-                x => string.IsNullOrWhiteSpace(
-                    x.ItemName));
+                x =>
+                    string.IsNullOrWhiteSpace(
+                        x.ItemName));
 
         if (emptyItem is not null)
         {
@@ -509,8 +820,12 @@ public sealed partial class InspectionTemplateManagementViewModel
 
         var invalidOrder =
             EditingItems
-                .GroupBy(x => x.DisplayOrder)
-                .FirstOrDefault(x => x.Count() > 1);
+                .GroupBy(
+                    x =>
+                        x.DisplayOrder)
+                .FirstOrDefault(
+                    x =>
+                        x.Count() > 1);
 
         if (invalidOrder is not null)
         {
@@ -557,6 +872,11 @@ public sealed partial class InspectionTemplateManagementViewModel
         return true;
     }
 
+
+    // ============================================
+    // Equipment Type Conversion
+    // ============================================
+
     private EquipmentType GetSelectedEquipmentType()
     {
         return SelectedEquipmentTypeName switch
@@ -576,19 +896,31 @@ public sealed partial class InspectionTemplateManagementViewModel
             "その他" =>
                 EquipmentType.Other,
 
-            _ => throw new InvalidOperationException(
-                $"未対応の設備種別です: " +
-                $"{SelectedEquipmentTypeName}")
+            _ =>
+                throw new InvalidOperationException(
+                    "未対応の設備種別です: " +
+                    SelectedEquipmentTypeName)
         };
     }
+
+
+    // ============================================
+    // Normalize
+    // ============================================
 
     private static string? NormalizeText(
         string? value)
     {
-        return string.IsNullOrWhiteSpace(value)
+        return string.IsNullOrWhiteSpace(
+                value)
             ? null
             : value.Trim();
     }
+
+
+    // ============================================
+    // List Item Conversion
+    // ============================================
 
     private static InspectionTemplateListItemViewModel
         CreateListItemViewModel(
@@ -596,19 +928,23 @@ public sealed partial class InspectionTemplateManagementViewModel
     {
         var items =
             template.Items
-                .OrderBy(x => x.DisplayOrder)
-                .Select(item =>
-                    new InspectionTemplateItemRowViewModel(
-                        item.Id,
-                        item.DisplayOrder,
-                        item.ItemName,
-                        item.InputType,
-                        GetInputTypeName(item.InputType),
-                        item.Unit,
-                        item.MinimumValue,
-                        item.MaximumValue,
-                        item.IsRequired,
-                        item.IsActive))
+                .OrderBy(
+                    x =>
+                        x.DisplayOrder)
+                .Select(
+                    item =>
+                        new InspectionTemplateItemRowViewModel(
+                            item.Id,
+                            item.DisplayOrder,
+                            item.ItemName,
+                            item.InputType,
+                            GetInputTypeName(
+                                item.InputType),
+                            item.Unit,
+                            item.MinimumValue,
+                            item.MaximumValue,
+                            item.IsRequired,
+                            item.IsActive))
                 .ToList();
 
         return new InspectionTemplateListItemViewModel(
@@ -620,6 +956,11 @@ public sealed partial class InspectionTemplateManagementViewModel
             template.IsActive,
             items);
     }
+
+
+    // ============================================
+    // Equipment Type Display
+    // ============================================
 
     private static string GetEquipmentTypeName(
         EquipmentType equipmentType)
@@ -641,9 +982,15 @@ public sealed partial class InspectionTemplateManagementViewModel
             EquipmentType.Other =>
                 "その他",
 
-            _ => equipmentType.ToString()
+            _ =>
+                equipmentType.ToString()
         };
     }
+
+
+    // ============================================
+    // Input Type Display
+    // ============================================
 
     private static string GetInputTypeName(
         InspectionInputType inputType)
@@ -662,7 +1009,8 @@ public sealed partial class InspectionTemplateManagementViewModel
             InspectionInputType.Text =>
                 "文字入力",
 
-            _ => inputType.ToString()
+            _ =>
+                inputType.ToString()
         };
     }
 }

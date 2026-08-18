@@ -13,11 +13,33 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class InspectionStatusViewModel
     : ViewModelBase
 {
-    private readonly InspectionRepository
-        _inspectionRepository;
+    // ============================================
+    // Dependencies
+    // ============================================
+
+    private readonly Func<
+        Task<IReadOnlyList<InspectionListData>>>
+        _loadInspectionsAsync;
+
+
+    // ============================================
+    // Data
+    // ============================================
 
     private IReadOnlyList<InspectionListData>
         _allInspections = [];
+
+    private List<InspectionListData>
+        _filteredInspections = [];
+
+
+    private const int PageSize = 5;
+
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
 
     public InspectionStatusViewModel(
         InspectionRepository inspectionRepository)
@@ -25,88 +47,239 @@ public sealed partial class InspectionStatusViewModel
         ArgumentNullException.ThrowIfNull(
             inspectionRepository);
 
-        _inspectionRepository =
-            inspectionRepository;
 
-        StatusFilters.Add(
-            new InspectionStatusFilterOptionViewModel(
-                "すべて",
-                null));
+        /*
+         * GetAllAsyncはoptional CancellationTokenを持つため、
+         * method groupではなくlambdaでラップする。
+         */
+        _loadInspectionsAsync =
+            () =>
+                inspectionRepository
+                    .GetAllAsync();
 
-        StatusFilters.Add(
-            new InspectionStatusFilterOptionViewModel(
-                "未実施",
-                InspectionStatus.NotStarted));
 
-        StatusFilters.Add(
-            new InspectionStatusFilterOptionViewModel(
-                "実施中",
-                InspectionStatus.InProgress));
+        InitializeFilters();
 
-        StatusFilters.Add(
-            new InspectionStatusFilterOptionViewModel(
-                "完了・承認待ち",
-                InspectionStatus.Completed));
 
-        StatusFilters.Add(
-            new InspectionStatusFilterOptionViewModel(
-                "承認済み",
-                InspectionStatus.Approved));
-
-        StatusFilters.Add(
-            new InspectionStatusFilterOptionViewModel(
-                "差し戻し",
-                InspectionStatus.Returned));
-
-        SelectedStatusFilter =
-            StatusFilters.First();
-
+        /*
+         * 本番では従来どおり
+         * 生成直後に自動ロードする。
+         */
         _ = LoadAsync();
     }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal InspectionStatusViewModel(
+        Func<
+            Task<IReadOnlyList<InspectionListData>>>
+            loadInspectionsAsync)
+    {
+        ArgumentNullException.ThrowIfNull(
+            loadInspectionsAsync);
+
+
+        _loadInspectionsAsync =
+            loadInspectionsAsync;
+
+
+        InitializeFilters();
+
+
+        /*
+         * テストでは自動ロードしない。
+         * LoadCommandから明示的に実行する。
+         */
+    }
+
+
+    // ============================================
+    // Basic
+    // ============================================
 
     public string Title =>
         "点検実施状況";
 
+
     public string Description =>
         "点検の実施状況、異常件数、登録写真を確認します。";
+
+
+    // ============================================
+    // Collections
+    // ============================================
 
     public ObservableCollection<
         InspectionStatusListItemViewModel>
         Items
-    { get; } = [];
+    {
+        get;
+    } = [];
+
 
     public ObservableCollection<
         InspectionStatusFilterOptionViewModel>
         StatusFilters
-    { get; } = [];
+    {
+        get;
+    } = [];
+
+
+    // ============================================
+    // Search / Filter
+    // ============================================
 
     [ObservableProperty]
-    private string searchText = string.Empty;
+    private string
+        searchText =
+            string.Empty;
+
 
     [ObservableProperty]
     private InspectionStatusFilterOptionViewModel?
         selectedStatusFilter;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
-    private bool isLoading;
+
+    // ============================================
+    // Loading
+    // ============================================
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
-    private string? errorMessage;
+    [NotifyPropertyChangedFor(
+        nameof(IsEmpty))]
+    private bool
+        isLoading;
 
+
+    // ============================================
+    // Error
+    // ============================================
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(HasError))]
+    private string?
+        errorMessage;
 
 
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
             ErrorMessage);
 
+
     public bool IsEmpty =>
         !IsLoading &&
         Items.Count == 0;
 
+
     public string CountText =>
         $"{_filteredInspections.Count}件";
+
+
+    // ============================================
+    // Page
+    // ============================================
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(PageText))]
+    [NotifyPropertyChangedFor(
+        nameof(HasPreviousPage))]
+    [NotifyPropertyChangedFor(
+        nameof(HasNextPage))]
+    private int
+        currentPage = 1;
+
+
+    public int TotalPages =>
+        Math.Max(
+            1,
+            (int)Math.Ceiling(
+                _filteredInspections.Count /
+                (double)PageSize));
+
+
+    public string PageText =>
+        $"{CurrentPage} / {TotalPages}";
+
+
+    public bool HasPreviousPage =>
+        CurrentPage > 1;
+
+
+    public bool HasNextPage =>
+        CurrentPage < TotalPages;
+
+
+    // ============================================
+    // Detail
+    // ============================================
+
+    public Action<Guid>?
+        DetailRequested
+    {
+        get;
+        set;
+    }
+
+
+    // ============================================
+    // Filter Initialize
+    // ============================================
+
+    private void InitializeFilters()
+    {
+        StatusFilters.Clear();
+
+
+        StatusFilters.Add(
+            new InspectionStatusFilterOptionViewModel(
+                "すべて",
+                null));
+
+
+        StatusFilters.Add(
+            new InspectionStatusFilterOptionViewModel(
+                "未実施",
+                InspectionStatus.NotStarted));
+
+
+        StatusFilters.Add(
+            new InspectionStatusFilterOptionViewModel(
+                "実施中",
+                InspectionStatus.InProgress));
+
+
+        StatusFilters.Add(
+            new InspectionStatusFilterOptionViewModel(
+                "完了・承認待ち",
+                InspectionStatus.Completed));
+
+
+        StatusFilters.Add(
+            new InspectionStatusFilterOptionViewModel(
+                "承認済み",
+                InspectionStatus.Approved));
+
+
+        StatusFilters.Add(
+            new InspectionStatusFilterOptionViewModel(
+                "差し戻し",
+                InspectionStatus.Returned));
+
+
+        SelectedStatusFilter =
+            StatusFilters.First();
+    }
+
+
+    // ============================================
+    // Search Changed
+    // ============================================
 
     partial void OnSearchTextChanged(
         string value)
@@ -114,11 +287,22 @@ public sealed partial class InspectionStatusViewModel
         ApplyFilter();
     }
 
+
+    // ============================================
+    // Status Filter Changed
+    // ============================================
+
     partial void OnSelectedStatusFilterChanged(
-        InspectionStatusFilterOptionViewModel? value)
+        InspectionStatusFilterOptionViewModel?
+            value)
     {
         ApplyFilter();
     }
+
+
+    // ============================================
+    // Load
+    // ============================================
 
     [RelayCommand]
     private async Task LoadAsync()
@@ -128,14 +312,19 @@ public sealed partial class InspectionStatusViewModel
             return;
         }
 
+
         try
         {
-            IsLoading = true;
-            ErrorMessage = null;
+            IsLoading =
+                true;
+
+            ErrorMessage =
+                null;
+
 
             _allInspections =
-                await _inspectionRepository
-                    .GetAllAsync();
+                await _loadInspectionsAsync();
+
 
             ApplyFilter();
         }
@@ -148,118 +337,117 @@ public sealed partial class InspectionStatusViewModel
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
+
 
             OnPropertyChanged(
                 nameof(IsEmpty));
         }
     }
 
+
+    // ============================================
+    // Filter
+    // ============================================
+
     private void ApplyFilter()
     {
-        IEnumerable<InspectionListData> query =
-            _allInspections;
+        IEnumerable<InspectionListData>
+            query =
+                _allInspections;
+
 
         if (SelectedStatusFilter?.Status is
             InspectionStatus selectedStatus)
         {
-            query = query.Where(x =>
-                x.Status == selectedStatus);
+            query =
+                query.Where(
+                    x =>
+                        x.Status ==
+                        selectedStatus);
         }
+
 
         var keyword =
             SearchText.Trim();
 
-        if (!string.IsNullOrWhiteSpace(keyword))
+
+        if (!string.IsNullOrWhiteSpace(
+                keyword))
         {
-            query = query.Where(x =>
-                x.FactorySiteName.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase) ||
-                x.LocationName.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase) ||
-                x.EquipmentCode.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase) ||
-                x.EquipmentName.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase) ||
-                x.TemplateName.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase) ||
-                x.OperatorName.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase));
+            query =
+                query.Where(
+                    x =>
+                        x.FactorySiteName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
+
+                        x.LocationName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
+
+                        x.EquipmentCode.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
+
+                        x.EquipmentName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
+
+                        x.TemplateName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
+
+                        x.OperatorName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase));
         }
+
 
         _filteredInspections =
             query.ToList();
 
-        CurrentPage = 1;
+
+        /*
+         * 検索条件・ステータス条件が変わったら
+         * 必ず1ページ目へ戻す。
+         */
+        CurrentPage =
+            1;
+
 
         ApplyPage();
     }
 
-    private const int PageSize = 5;
 
-    private List<InspectionListData> _filteredInspections = [];
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PageText))]
-    [NotifyPropertyChangedFor(nameof(HasPreviousPage))]
-    [NotifyPropertyChangedFor(nameof(HasNextPage))]
-    private int currentPage = 1;
-
-    public int TotalPages =>
-        Math.Max(
-            1,
-            (int)Math.Ceiling(
-                _filteredInspections.Count /
-                (double)PageSize));
-
-    public string PageText =>
-        $"{CurrentPage} / {TotalPages}";
-
-    public bool HasPreviousPage =>
-        CurrentPage > 1;
-
-    public bool HasNextPage =>
-        CurrentPage < TotalPages;
-
-    public Action<Guid>? DetailRequested
-    { get; set; }
-
-    private void OpenDetail(
-    Guid scheduleId)
-    {
-        if (scheduleId == Guid.Empty)
-        {
-            return;
-        }
-
-        DetailRequested?.Invoke(
-            scheduleId);
-    }
+    // ============================================
+    // Page
+    // ============================================
 
     private void ApplyPage()
     {
         Items.Clear();
+
 
         var pageItems =
             _filteredInspections
                 .Skip(
                     (CurrentPage - 1) *
                     PageSize)
-                .Take(PageSize);
+                .Take(
+                    PageSize);
 
-        foreach (var inspection in pageItems)
+
+        foreach (var inspection
+                 in pageItems)
         {
             Items.Add(
                 new InspectionStatusListItemViewModel(
                     inspection,
                     OpenDetail));
         }
+
 
         OnPropertyChanged(
             nameof(IsEmpty));
@@ -280,6 +468,11 @@ public sealed partial class InspectionStatusViewModel
             nameof(HasNextPage));
     }
 
+
+    // ============================================
+    // Previous Page
+    // ============================================
+
     [RelayCommand]
     private void PreviousPage()
     {
@@ -288,10 +481,17 @@ public sealed partial class InspectionStatusViewModel
             return;
         }
 
+
         CurrentPage--;
+
 
         ApplyPage();
     }
+
+
+    // ============================================
+    // Next Page
+    // ============================================
 
     [RelayCommand]
     private void NextPage()
@@ -301,11 +501,32 @@ public sealed partial class InspectionStatusViewModel
             return;
         }
 
+
         CurrentPage++;
+
 
         ApplyPage();
     }
+
+
+    // ============================================
+    // Open Detail
+    // ============================================
+
+    private void OpenDetail(
+        Guid scheduleId)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            return;
+        }
+
+
+        DetailRequested?.Invoke(
+            scheduleId);
+    }
 }
+
 
 public sealed class
     InspectionStatusFilterOptionViewModel
@@ -317,11 +538,23 @@ public sealed class
         ArgumentException.ThrowIfNullOrWhiteSpace(
             displayName);
 
-        DisplayName = displayName;
-        Status = status;
+
+        DisplayName =
+            displayName;
+
+        Status =
+            status;
     }
 
-    public string DisplayName { get; }
 
-    public InspectionStatus? Status { get; }
+    public string DisplayName
+    {
+        get;
+    }
+
+
+    public InspectionStatus? Status
+    {
+        get;
+    }
 }

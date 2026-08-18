@@ -5,7 +5,6 @@ using FacilityInspection.Domain.Inspections;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
 namespace FacilityInspection.ViewModels;
@@ -13,11 +12,20 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class ApprovalPendingDetailViewModel
     : ViewModelBase
 {
-    private readonly InspectionRepository
-        _inspectionRepository;
-
     private readonly Guid
-    _operatorId;
+        _operatorId;
+
+    private readonly Func<
+        Task<InspectionDetailData?>>
+        _loadDetailAsync;
+
+    private readonly Func<Task>
+        _approveAsync;
+
+    private readonly Func<
+        string,
+        Task>
+        _returnAsync;
 
 
     // ============================================
@@ -36,6 +44,7 @@ public sealed partial class ApprovalPendingDetailViewModel
 
     // ============================================
     // Constructor
+    // 本番用
     // ============================================
 
     public ApprovalPendingDetailViewModel(
@@ -60,16 +69,91 @@ public sealed partial class ApprovalPendingDetailViewModel
                 nameof(operatorId));
         }
 
-        _inspectionRepository =
-            inspectionRepository;
+        ScheduleId =
+            scheduleId;
 
         _operatorId =
             operatorId;
 
+        _loadDetailAsync =
+            () =>
+                inspectionRepository
+                    .GetDetailAsync(
+                        scheduleId);
+
+        _approveAsync =
+            () =>
+                inspectionRepository
+                    .ApproveAsync(
+                        scheduleId,
+                        operatorId);
+
+        _returnAsync =
+            reason =>
+                inspectionRepository
+                    .ReturnAsync(
+                        scheduleId,
+                        reason,
+                        operatorId);
+
+        _ = LoadAsync();
+    }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal ApprovalPendingDetailViewModel(
+        Guid scheduleId,
+        Guid operatorId,
+        Func<
+            Task<InspectionDetailData?>>
+            loadDetailAsync,
+        Func<Task> approveAsync,
+        Func<
+            string,
+            Task>
+            returnAsync)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検予定IDを指定してください。",
+                nameof(scheduleId));
+        }
+
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "操作担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            loadDetailAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            approveAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            returnAsync);
+
         ScheduleId =
             scheduleId;
 
-        _ = LoadAsync();
+        _operatorId =
+            operatorId;
+
+        _loadDetailAsync =
+            loadDetailAsync;
+
+        _approveAsync =
+            approveAsync;
+
+        _returnAsync =
+            returnAsync;
     }
 
 
@@ -77,7 +161,10 @@ public sealed partial class ApprovalPendingDetailViewModel
     // Basic
     // ============================================
 
-    public Guid ScheduleId { get; }
+    public Guid ScheduleId
+    {
+        get;
+    }
 
     public string Title =>
         "点検承認";
@@ -333,7 +420,8 @@ public sealed partial class ApprovalPendingDetailViewModel
 
         try
         {
-            IsLoading = true;
+            IsLoading =
+                true;
 
             ErrorMessage =
                 null;
@@ -345,9 +433,7 @@ public sealed partial class ApprovalPendingDetailViewModel
                 null;
 
             var detail =
-                await _inspectionRepository
-                    .GetDetailAsync(
-                        ScheduleId);
+                await _loadDetailAsync();
 
             if (detail is null)
             {
@@ -397,6 +483,7 @@ public sealed partial class ApprovalPendingDetailViewModel
 
 
             Photos.Clear();
+
             GeneralPhotos.Clear();
 
             foreach (var photo in
@@ -459,10 +546,7 @@ public sealed partial class ApprovalPendingDetailViewModel
             OperationErrorMessage =
                 null;
 
-            await _inspectionRepository
-                .ApproveAsync(
-                    ScheduleId,
-                    _operatorId);
+            await _approveAsync();
 
             OperationMessage =
                 "点検を承認しました。";
@@ -556,11 +640,8 @@ public sealed partial class ApprovalPendingDetailViewModel
             OperationErrorMessage =
                 null;
 
-            await _inspectionRepository
-                .ReturnAsync(
-                    ScheduleId,
-                    ReturnReason,
-                    _operatorId);
+            await _returnAsync(
+                ReturnReason);
 
             IsReturnDialogOpen =
                 false;

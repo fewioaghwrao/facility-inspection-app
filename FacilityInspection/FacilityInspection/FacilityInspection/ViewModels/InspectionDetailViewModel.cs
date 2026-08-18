@@ -5,7 +5,6 @@ using FacilityInspection.Domain.Inspections;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
 namespace FacilityInspection.ViewModels;
@@ -13,8 +12,14 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class InspectionDetailViewModel
     : ViewModelBase
 {
-    private readonly InspectionRepository
-        _inspectionRepository;
+    private readonly Func<
+        Task<InspectionDetailData?>>
+        _loadDetailAsync;
+
+
+    // ============================================
+    // Navigation
+    // ============================================
 
     /// <summary>
     /// 詳細画面から一覧へ戻る要求。
@@ -24,6 +29,12 @@ public sealed partial class InspectionDetailViewModel
         get;
         set;
     }
+
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
 
     public InspectionDetailViewModel(
         InspectionRepository inspectionRepository,
@@ -39,97 +50,200 @@ public sealed partial class InspectionDetailViewModel
                 nameof(scheduleId));
         }
 
-        _inspectionRepository =
-            inspectionRepository;
+        ScheduleId =
+            scheduleId;
+
+        /*
+         * optional CancellationToken を持つメソッドなので、
+         * method group ではなく lambda でラップする。
+         */
+        _loadDetailAsync =
+            () =>
+                inspectionRepository
+                    .GetDetailAsync(
+                        scheduleId);
+
+        /*
+         * 本番画面では従来どおり
+         * 生成直後に自動ロードする。
+         */
+        _ = LoadAsync();
+    }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal InspectionDetailViewModel(
+        Guid scheduleId,
+        Func<Task<InspectionDetailData?>>
+            loadDetailAsync)
+    {
+        if (scheduleId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検予定IDを指定してください。",
+                nameof(scheduleId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            loadDetailAsync);
 
         ScheduleId =
             scheduleId;
 
-        _ = LoadAsync();
+        _loadDetailAsync =
+            loadDetailAsync;
+
+        /*
+         * テスト用コンストラクタでは
+         * 自動ロードしない。
+         *
+         * LoadCommand.ExecuteAsync() で
+         * 明示的にロードする。
+         */
     }
 
-    public Guid ScheduleId { get; }
+
+    // ============================================
+    // Basic
+    // ============================================
+
+    public Guid ScheduleId
+    {
+        get;
+    }
+
 
     public string Title =>
         "点検実施詳細";
 
+
     public string Description =>
         "点検の実施内容、異常、写真を確認します。";
+
+
+    // ============================================
+    // State
+    // ============================================
 
     [ObservableProperty]
     private bool isLoading;
 
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
+    [NotifyPropertyChangedFor(
+        nameof(HasError))]
     private string? errorMessage;
+
+
+    // ============================================
+    // Inspection
+    // ============================================
 
     [ObservableProperty]
     private Guid? inspectionId;
 
+
     [ObservableProperty]
     private DateOnly scheduledDate;
+
 
     [ObservableProperty]
     private string factorySiteName =
         string.Empty;
 
+
     [ObservableProperty]
     private string locationName =
         string.Empty;
+
 
     [ObservableProperty]
     private string equipmentCode =
         string.Empty;
 
+
     [ObservableProperty]
     private string equipmentName =
         string.Empty;
+
 
     [ObservableProperty]
     private string templateName =
         string.Empty;
 
+
     [ObservableProperty]
     private string operatorName =
         string.Empty;
 
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StatusText))]
-    [NotifyPropertyChangedFor(nameof(StatusBackground))]
-    [NotifyPropertyChangedFor(nameof(StatusForeground))]
+    [NotifyPropertyChangedFor(
+        nameof(StatusText))]
+    [NotifyPropertyChangedFor(
+        nameof(StatusBackground))]
+    [NotifyPropertyChangedFor(
+        nameof(StatusForeground))]
     private InspectionStatus status =
         InspectionStatus.NotStarted;
+
+
+    // ============================================
+    // Detail Collections
+    // ============================================
 
     public ObservableCollection<
         InspectionResultDetailItemViewModel>
         Results
-    { get; } = [];
+    {
+        get;
+    } = [];
+
 
     public ObservableCollection<
         InspectionPhotoDetailItemViewModel>
         Photos
-    { get; } = [];
+    {
+        get;
+    } = [];
+
 
     public ObservableCollection<
         InspectionPhotoDetailItemViewModel>
         GeneralPhotos
-    { get; } = [];
+    {
+        get;
+    } = [];
+
+
+    // ============================================
+    // Calculated Properties
+    // ============================================
 
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
             ErrorMessage);
 
+
     public bool HasInspection =>
         InspectionId.HasValue;
+
 
     public bool HasResults =>
         Results.Count > 0;
 
+
     public bool HasPhotos =>
         Photos.Count > 0;
 
+
     public bool HasGeneralPhotos =>
         GeneralPhotos.Count > 0;
+
 
     public string ScheduledDateText =>
         ScheduledDate == default
@@ -137,11 +251,13 @@ public sealed partial class InspectionDetailViewModel
             : ScheduledDate.ToString(
                 "yyyy/MM/dd");
 
+
     public string LocationDisplayName =>
         string.IsNullOrWhiteSpace(
             FactorySiteName)
             ? "-"
             : $"{FactorySiteName} / {LocationName}";
+
 
     public string EquipmentDisplayName =>
         string.IsNullOrWhiteSpace(
@@ -149,20 +265,30 @@ public sealed partial class InspectionDetailViewModel
             ? "-"
             : $"{EquipmentCode}  {EquipmentName}";
 
+
     public string ResultCountText =>
         $"{Results.Count}項目";
 
+
     public int AbnormalCount =>
-        Results.Count(x =>
-            x.IsAbnormal);
+        Results.Count(
+            x =>
+                x.IsAbnormal);
+
 
     public string AbnormalCountText =>
         AbnormalCount == 0
             ? "異常なし"
             : $"異常 {AbnormalCount}件";
 
+
     public string PhotoCountText =>
         $"{Photos.Count}枚";
+
+
+    // ============================================
+    // Status Display
+    // ============================================
 
     public string StatusText =>
         Status switch
@@ -186,6 +312,7 @@ public sealed partial class InspectionDetailViewModel
                 Status.ToString()
         };
 
+
     public string StatusBackground =>
         Status switch
         {
@@ -207,6 +334,7 @@ public sealed partial class InspectionDetailViewModel
             _ =>
                 "#F1F5F9"
         };
+
 
     public string StatusForeground =>
         Status switch
@@ -230,6 +358,11 @@ public sealed partial class InspectionDetailViewModel
                 "#475569"
         };
 
+
+    // ============================================
+    // Load
+    // ============================================
+
     [RelayCommand]
     private async Task LoadAsync()
     {
@@ -240,13 +373,16 @@ public sealed partial class InspectionDetailViewModel
 
         try
         {
-            IsLoading = true;
-            ErrorMessage = null;
+            IsLoading =
+                true;
+
+            ErrorMessage =
+                null;
+
 
             var detail =
-                await _inspectionRepository
-                    .GetDetailAsync(
-                        ScheduleId);
+                await _loadDetailAsync();
+
 
             if (detail is null)
             {
@@ -256,60 +392,87 @@ public sealed partial class InspectionDetailViewModel
                 return;
             }
 
+
             InspectionId =
                 detail.InspectionId;
+
 
             ScheduledDate =
                 detail.ScheduledDate;
 
+
             FactorySiteName =
                 detail.FactorySiteName;
+
 
             LocationName =
                 detail.LocationName;
 
+
             EquipmentCode =
                 detail.EquipmentCode;
+
 
             EquipmentName =
                 detail.EquipmentName;
 
+
             TemplateName =
                 detail.TemplateName;
+
 
             OperatorName =
                 detail.OperatorName;
 
+
             Status =
                 detail.Status;
 
+
+            // ----------------------------------------
+            // Results
+            // ----------------------------------------
+
             Results.Clear();
 
-            foreach (var result in
-                     detail.Results)
+
+            foreach (var result
+                     in detail.Results)
             {
                 Results.Add(
                     new InspectionResultDetailItemViewModel(
                         result));
             }
 
+
+            // ----------------------------------------
+            // Photos
+            // ----------------------------------------
+
             Photos.Clear();
+
             GeneralPhotos.Clear();
 
-            foreach (var photo in
-                     detail.Photos)
+
+            foreach (var photo
+                     in detail.Photos)
             {
                 var item =
                     new InspectionPhotoDetailItemViewModel(
                         photo);
 
-                Photos.Add(item);
+
+                Photos.Add(
+                    item);
+
 
                 if (item.IsGeneralPhoto)
                 {
-                    GeneralPhotos.Add(item);
+                    GeneralPhotos.Add(
+                        item);
                 }
             }
+
 
             NotifyCalculatedProperties();
         }
@@ -322,15 +485,26 @@ public sealed partial class InspectionDetailViewModel
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
         }
     }
+
+
+    // ============================================
+    // Back
+    // ============================================
 
     [RelayCommand]
     private void Back()
     {
         BackRequested?.Invoke();
     }
+
+
+    // ============================================
+    // Notify
+    // ============================================
 
     private void NotifyCalculatedProperties()
     {
