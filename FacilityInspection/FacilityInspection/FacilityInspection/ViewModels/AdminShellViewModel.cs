@@ -11,48 +11,65 @@ public sealed partial class AdminShellViewModel
     private readonly Action
         _logoutRequested;
 
-    private readonly AdminDashboardViewModel
+    private readonly ViewModelBase
         _dashboardViewModel;
 
-    private readonly EquipmentManagementViewModel
+    private readonly ViewModelBase
         _equipmentManagementViewModel;
 
-    private readonly ScheduleCalendarViewModel
+    private readonly ViewModelBase
         _scheduleCalendarViewModel;
 
-    private readonly InspectionStatusViewModel
+    private readonly ViewModelBase
         _inspectionStatusViewModel;
 
-    private readonly AbnormalListViewModel
+    private readonly ViewModelBase
         _abnormalListViewModel;
 
-    private readonly InspectionTemplateManagementViewModel
+    private readonly ViewModelBase
         _inspectionTemplateManagementViewModel;
 
-    private readonly OperatorManagementViewModel
+    private readonly ViewModelBase
         _operatorManagementViewModel;
 
-    private readonly InspectionRepository
-        _inspectionRepository;
-
-    private readonly NotStartedListViewModel
+    private readonly ViewModelBase
         _notStartedListViewModel;
 
-    private readonly AuditLogViewModel
+    private readonly ViewModelBase
         _auditLogViewModel;
 
-    private readonly ApprovalPendingListViewModel
+    private readonly ViewModelBase
         _approvalPendingListViewModel;
 
-    private readonly Guid
-    _operatorId;
+    private readonly ViewModelBase
+        _backupRestoreViewModel;
 
-    private readonly BackupRestoreViewModel
-    _backupRestoreViewModel;
+    private readonly Guid
+        _operatorId;
+
+    private readonly Action
+        _refreshDashboard;
+
+    private readonly Action
+        _reloadApprovalPending;
+
+    private readonly Func<
+        Guid,
+        Action,
+        ViewModelBase>
+        _createInspectionDetailViewModel;
+
+    private readonly Func<
+        Guid,
+        Guid,
+        Action,
+        ViewModelBase>
+        _createApprovalPendingDetailViewModel;
 
 
     // ============================================
     // Constructor
+    // 本番用
     // ============================================
 
     public AdminShellViewModel(
@@ -73,7 +90,161 @@ public sealed partial class AdminShellViewModel
             operatorManagementViewModel,
         InspectionRepository inspectionRepository,
         Action logoutRequested)
+        : this(
+            operatorId,
+            displayName,
+            dashboardViewModel,
+            equipmentManagementViewModel,
+            scheduleCalendarViewModel,
+            inspectionStatusViewModel,
+            abnormalListViewModel,
+            notStartedListViewModel,
+            auditLogViewModel,
+            approvalPendingListViewModel,
+            backupRestoreViewModel,
+            inspectionTemplateManagementViewModel,
+            operatorManagementViewModel,
+
+            refreshDashboard:
+                () =>
+                    dashboardViewModel
+                        .Refresh(),
+
+            reloadApprovalPending:
+                () =>
+                    approvalPendingListViewModel
+                        .ReloadCommand
+                        .Execute(null),
+
+            createInspectionDetailViewModel:
+                (scheduleId, backRequested) =>
+                {
+                    var detailViewModel =
+                        new InspectionDetailViewModel(
+                            inspectionRepository,
+                            scheduleId);
+
+                    detailViewModel.BackRequested =
+                        backRequested;
+
+                    return detailViewModel;
+                },
+
+            createApprovalPendingDetailViewModel:
+                (
+                    scheduleId,
+                    currentOperatorId,
+                    backRequested) =>
+                {
+                    var detailViewModel =
+                        new ApprovalPendingDetailViewModel(
+                            inspectionRepository,
+                            scheduleId,
+                            currentOperatorId);
+
+                    detailViewModel.BackRequested =
+                        backRequested;
+
+                    return detailViewModel;
+                },
+
+            logoutRequested)
     {
+        ArgumentNullException.ThrowIfNull(
+            inspectionRepository);
+
+
+        // ========================================
+        // 点検実施状況 → 点検詳細
+        // ========================================
+
+        inspectionStatusViewModel.DetailRequested =
+            OpenInspectionDetail;
+
+
+        // ========================================
+        // 異常一覧 → 点検詳細
+        // ========================================
+
+        abnormalListViewModel.DetailRequested =
+            OpenAbnormalDetail;
+
+
+        // ========================================
+        // 未実施一覧 → 点検詳細
+        // ========================================
+
+        notStartedListViewModel.DetailRequested =
+            OpenNotStartedDetail;
+
+
+        // ========================================
+        // 完了・承認待ち一覧 → 点検詳細
+        // ========================================
+
+        approvalPendingListViewModel.DetailRequested =
+            OpenApprovalPendingDetail;
+
+
+        // ========================================
+        // Dashboard → 各管理画面
+        // ========================================
+
+        dashboardViewModel.InspectionStatusRequested =
+            OpenInspectionStatus;
+
+        dashboardViewModel.NotStartedRequested =
+            OpenNotStartedList;
+
+        dashboardViewModel.ApprovalPendingRequested =
+            OpenApprovalPending;
+
+        dashboardViewModel.AbnormalListRequested =
+            OpenAbnormalList;
+    }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal AdminShellViewModel(
+        Guid operatorId,
+        string displayName,
+        ViewModelBase dashboardViewModel,
+        ViewModelBase equipmentManagementViewModel,
+        ViewModelBase scheduleCalendarViewModel,
+        ViewModelBase inspectionStatusViewModel,
+        ViewModelBase abnormalListViewModel,
+        ViewModelBase notStartedListViewModel,
+        ViewModelBase auditLogViewModel,
+        ViewModelBase approvalPendingListViewModel,
+        ViewModelBase backupRestoreViewModel,
+        ViewModelBase inspectionTemplateManagementViewModel,
+        ViewModelBase operatorManagementViewModel,
+        Action refreshDashboard,
+        Action reloadApprovalPending,
+        Func<
+            Guid,
+            Action,
+            ViewModelBase>
+            createInspectionDetailViewModel,
+        Func<
+            Guid,
+            Guid,
+            Action,
+            ViewModelBase>
+            createApprovalPendingDetailViewModel,
+        Action logoutRequested)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "操作担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
         ArgumentException.ThrowIfNullOrWhiteSpace(
             displayName);
 
@@ -102,23 +273,32 @@ public sealed partial class AdminShellViewModel
             approvalPendingListViewModel);
 
         ArgumentNullException.ThrowIfNull(
+            backupRestoreViewModel);
+
+        ArgumentNullException.ThrowIfNull(
             inspectionTemplateManagementViewModel);
 
         ArgumentNullException.ThrowIfNull(
             operatorManagementViewModel);
 
         ArgumentNullException.ThrowIfNull(
-            inspectionRepository);
+            refreshDashboard);
+
+        ArgumentNullException.ThrowIfNull(
+            reloadApprovalPending);
+
+        ArgumentNullException.ThrowIfNull(
+            createInspectionDetailViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            createApprovalPendingDetailViewModel);
 
         ArgumentNullException.ThrowIfNull(
             logoutRequested);
 
-        ArgumentNullException.ThrowIfNull(
-    backupRestoreViewModel);
 
-        _backupRestoreViewModel =
-            backupRestoreViewModel;
-
+        _operatorId =
+            operatorId;
 
         DisplayName =
             displayName;
@@ -147,59 +327,29 @@ public sealed partial class AdminShellViewModel
         _approvalPendingListViewModel =
             approvalPendingListViewModel;
 
+        _backupRestoreViewModel =
+            backupRestoreViewModel;
+
         _inspectionTemplateManagementViewModel =
             inspectionTemplateManagementViewModel;
 
         _operatorManagementViewModel =
             operatorManagementViewModel;
 
-        _inspectionRepository =
-            inspectionRepository;
+        _refreshDashboard =
+            refreshDashboard;
+
+        _reloadApprovalPending =
+            reloadApprovalPending;
+
+        _createInspectionDetailViewModel =
+            createInspectionDetailViewModel;
+
+        _createApprovalPendingDetailViewModel =
+            createApprovalPendingDetailViewModel;
 
         _logoutRequested =
             logoutRequested;
-
-
-        if (operatorId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "操作担当者IDを指定してください。",
-                nameof(operatorId));
-        }
-
-        _operatorId =
-            operatorId;
-
-        // ========================================
-        // 点検実施状況 → 点検詳細
-        // ========================================
-
-        _inspectionStatusViewModel.DetailRequested =
-            OpenInspectionDetail;
-
-
-        // ========================================
-        // 異常一覧 → 点検詳細
-        // ========================================
-
-        _abnormalListViewModel.DetailRequested =
-            OpenAbnormalDetail;
-
-
-        // ========================================
-        // 未実施一覧 → 点検詳細
-        // ========================================
-
-        _notStartedListViewModel.DetailRequested =
-            OpenNotStartedDetail;
-
-
-        // ========================================
-        // 完了・承認待ち一覧 → 点検詳細
-        // ========================================
-
-        _approvalPendingListViewModel.DetailRequested =
-            OpenApprovalPendingDetail;
 
 
         // ========================================
@@ -211,22 +361,6 @@ public sealed partial class AdminShellViewModel
 
         SelectedMenu =
             AdminMenuItem.Dashboard;
-
-        // ========================================
-        // Dashboard → 各管理画面
-        // ========================================
-
-        _dashboardViewModel.InspectionStatusRequested =
-            OpenInspectionStatus;
-
-        _dashboardViewModel.NotStartedRequested =
-            OpenNotStartedList;
-
-        _dashboardViewModel.ApprovalPendingRequested =
-            OpenApprovalPending;
-
-        _dashboardViewModel.AbnormalListRequested =
-            OpenAbnormalList;
     }
 
 
@@ -234,7 +368,10 @@ public sealed partial class AdminShellViewModel
     // Header
     // ============================================
 
-    public string DisplayName { get; }
+    public string DisplayName
+    {
+        get;
+    }
 
 
     // ============================================
@@ -242,7 +379,8 @@ public sealed partial class AdminShellViewModel
     // ============================================
 
     [ObservableProperty]
-    private ViewModelBase currentContent = null!;
+    private ViewModelBase currentContent =
+        null!;
 
 
     // ============================================
@@ -271,7 +409,7 @@ public sealed partial class AdminShellViewModel
     [NotifyPropertyChangedFor(
         nameof(IsAuditLogSelected))]
     [NotifyPropertyChangedFor(
-    nameof(IsBackupRestoreSelected))]
+        nameof(IsBackupRestoreSelected))]
     private AdminMenuItem selectedMenu;
 
 
@@ -330,8 +468,9 @@ public sealed partial class AdminShellViewModel
         AdminMenuItem.AuditLog;
 
     public bool IsBackupRestoreSelected =>
-    SelectedMenu ==
-    AdminMenuItem.BackupRestore;
+        SelectedMenu ==
+        AdminMenuItem.BackupRestore;
+
 
     // ============================================
     // Dashboard
@@ -344,7 +483,7 @@ public sealed partial class AdminShellViewModel
          * 他画面で点検状態が変更されている可能性があるため、
          * ダッシュボードへ戻るたびに最新状態を取得する。
          */
-        _dashboardViewModel.Refresh();
+        _refreshDashboard();
 
         CurrentContent =
             _dashboardViewModel;
@@ -418,7 +557,7 @@ public sealed partial class AdminShellViewModel
     // Inspection Status → Detail
     // ============================================
 
-    private void OpenInspectionDetail(
+    internal void OpenInspectionDetail(
         Guid scheduleId)
     {
         if (scheduleId == Guid.Empty)
@@ -427,16 +566,9 @@ public sealed partial class AdminShellViewModel
         }
 
         var detailViewModel =
-            new InspectionDetailViewModel(
-                _inspectionRepository,
-                scheduleId);
-
-        /*
-         * 点検実施状況から詳細を開いた場合は、
-         * 戻るボタンで点検実施状況へ戻る。
-         */
-        detailViewModel.BackRequested =
-            OpenInspectionStatus;
+            _createInspectionDetailViewModel(
+                scheduleId,
+                OpenInspectionStatus);
 
         CurrentContent =
             detailViewModel;
@@ -450,7 +582,7 @@ public sealed partial class AdminShellViewModel
     // Abnormal List → Detail
     // ============================================
 
-    private void OpenAbnormalDetail(
+    internal void OpenAbnormalDetail(
         Guid scheduleId)
     {
         if (scheduleId == Guid.Empty)
@@ -459,16 +591,9 @@ public sealed partial class AdminShellViewModel
         }
 
         var detailViewModel =
-            new InspectionDetailViewModel(
-                _inspectionRepository,
-                scheduleId);
-
-        /*
-         * 異常一覧から詳細を開いた場合は、
-         * 戻るボタンで異常一覧へ戻る。
-         */
-        detailViewModel.BackRequested =
-            OpenAbnormalList;
+            _createInspectionDetailViewModel(
+                scheduleId,
+                OpenAbnormalList);
 
         CurrentContent =
             detailViewModel;
@@ -528,7 +653,7 @@ public sealed partial class AdminShellViewModel
     // Not Started List → Detail
     // ============================================
 
-    private void OpenNotStartedDetail(
+    internal void OpenNotStartedDetail(
         Guid scheduleId)
     {
         if (scheduleId == Guid.Empty)
@@ -537,16 +662,9 @@ public sealed partial class AdminShellViewModel
         }
 
         var detailViewModel =
-            new InspectionDetailViewModel(
-                _inspectionRepository,
-                scheduleId);
-
-        /*
-         * 未実施一覧から開いた場合は、
-         * 戻るボタンで未実施一覧へ戻す。
-         */
-        detailViewModel.BackRequested =
-            OpenNotStartedList;
+            _createInspectionDetailViewModel(
+                scheduleId,
+                OpenNotStartedList);
 
         CurrentContent =
             detailViewModel;
@@ -567,9 +685,7 @@ public sealed partial class AdminShellViewModel
          * 承認や差し戻し後に一覧へ戻ったとき、
          * 最新の状態を取得する。
          */
-        _approvalPendingListViewModel
-            .ReloadCommand
-            .Execute(null);
+        _reloadApprovalPending();
 
         CurrentContent =
             _approvalPendingListViewModel;
@@ -583,7 +699,7 @@ public sealed partial class AdminShellViewModel
     // Approval Pending List → Detail
     // ============================================
 
-    private void OpenApprovalPendingDetail(
+    internal void OpenApprovalPendingDetail(
         Guid scheduleId)
     {
         if (scheduleId == Guid.Empty)
@@ -592,13 +708,10 @@ public sealed partial class AdminShellViewModel
         }
 
         var detailViewModel =
-            new ApprovalPendingDetailViewModel(
-                _inspectionRepository,
+            _createApprovalPendingDetailViewModel(
                 scheduleId,
-                _operatorId);
-
-        detailViewModel.BackRequested =
-            OpenApprovalPending;
+                _operatorId,
+                OpenApprovalPending);
 
         CurrentContent =
             detailViewModel;
@@ -606,6 +719,7 @@ public sealed partial class AdminShellViewModel
         SelectedMenu =
             AdminMenuItem.ApprovalPending;
     }
+
 
     // ============================================
     // Audit Log
@@ -620,6 +734,7 @@ public sealed partial class AdminShellViewModel
         SelectedMenu =
             AdminMenuItem.AuditLog;
     }
+
 
     // ============================================
     // Backup / Restore
@@ -647,12 +762,14 @@ public sealed partial class AdminShellViewModel
             true;
     }
 
+
     [RelayCommand]
     private void CancelLogout()
     {
         IsLogoutDialogOpen =
             false;
     }
+
 
     [RelayCommand]
     private void ConfirmLogout()

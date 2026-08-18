@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Data;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -10,8 +11,14 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class ApprovalPendingListViewModel
     : ViewModelBase
 {
-    private readonly InspectionRepository
-        _inspectionRepository;
+    private readonly Func<
+        Task<IReadOnlyList<InspectionListData>>>
+        _loadApprovalPendingAsync;
+
+
+    // ============================================
+    // Navigation
+    // ============================================
 
     public Action<Guid>? DetailRequested
     {
@@ -19,10 +26,20 @@ public sealed partial class ApprovalPendingListViewModel
         set;
     }
 
+
+    // ============================================
+    // Items
+    // ============================================
+
     public ObservableCollection<
         ApprovalPendingListItemViewModel>
         Items
     { get; } = [];
+
+
+    // ============================================
+    // State
+    // ============================================
 
     [ObservableProperty]
     private bool isLoading;
@@ -34,17 +51,48 @@ public sealed partial class ApprovalPendingListViewModel
         !IsLoading &&
         Items.Count == 0;
 
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
+
     public ApprovalPendingListViewModel(
         InspectionRepository inspectionRepository)
     {
         ArgumentNullException.ThrowIfNull(
             inspectionRepository);
 
-        _inspectionRepository =
-            inspectionRepository;
+        _loadApprovalPendingAsync =
+            () =>
+                inspectionRepository
+                    .GetApprovalPendingAsync();
 
         _ = LoadAsync();
     }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal ApprovalPendingListViewModel(
+        Func<
+            Task<IReadOnlyList<InspectionListData>>>
+            loadApprovalPendingAsync)
+    {
+        ArgumentNullException.ThrowIfNull(
+            loadApprovalPendingAsync);
+
+        _loadApprovalPendingAsync =
+            loadApprovalPendingAsync;
+    }
+
+
+    // ============================================
+    // Reload
+    // ============================================
 
     [RelayCommand]
     private async Task ReloadAsync()
@@ -52,16 +100,23 @@ public sealed partial class ApprovalPendingListViewModel
         await LoadAsync();
     }
 
+
+    // ============================================
+    // Load
+    // ============================================
+
     private async Task LoadAsync()
     {
         try
         {
-            IsLoading = true;
-            ErrorMessage = null;
+            IsLoading =
+                true;
+
+            ErrorMessage =
+                null;
 
             var rows =
-                await _inspectionRepository
-                    .GetApprovalPendingAsync();
+                await _loadApprovalPendingAsync();
 
             Items.Clear();
 
@@ -96,18 +151,24 @@ public sealed partial class ApprovalPendingListViewModel
         catch (Exception exception)
         {
             ErrorMessage =
-                $"承認待ち一覧を取得できませんでした。" +
-                $"{Environment.NewLine}" +
+                "承認待ち一覧を取得できませんでした。" +
+                Environment.NewLine +
                 exception.Message;
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
 
             OnPropertyChanged(
                 nameof(IsEmpty));
         }
     }
+
+
+    // ============================================
+    // Detail
+    // ============================================
 
     private void OpenDetail(
         Guid scheduleId)

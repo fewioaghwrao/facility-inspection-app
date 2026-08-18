@@ -38,8 +38,9 @@ public sealed partial class AuditLogViewModel
 {
     private const int PageSize = 10;
 
-    private readonly AuditLogRepository
-        _auditLogRepository;
+    private readonly Func<
+        Task<IReadOnlyList<AuditLogListData>>>
+        _loadAuditLogsAsync;
 
     private IReadOnlyList<AuditLogListData>
         _allItems = [];
@@ -50,6 +51,7 @@ public sealed partial class AuditLogViewModel
 
     // ============================================
     // Constructor
+    // 本番用
     // ============================================
 
     public AuditLogViewModel(
@@ -58,10 +60,43 @@ public sealed partial class AuditLogViewModel
         ArgumentNullException.ThrowIfNull(
             auditLogRepository);
 
-        _auditLogRepository =
-            auditLogRepository;
+        _loadAuditLogsAsync =
+            () =>
+                auditLogRepository
+                    .GetAllAsync();
+
+        InitializeFilters();
+
+        _ = LoadAsync();
+    }
 
 
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal AuditLogViewModel(
+        Func<
+            Task<IReadOnlyList<AuditLogListData>>>
+            loadAuditLogsAsync)
+    {
+        ArgumentNullException.ThrowIfNull(
+            loadAuditLogsAsync);
+
+        _loadAuditLogsAsync =
+            loadAuditLogsAsync;
+
+        InitializeFilters();
+    }
+
+
+    // ============================================
+    // Filter Initialization
+    // ============================================
+
+    private void InitializeFilters()
+    {
         // ----------------------------------------
         // 操作種別
         // ----------------------------------------
@@ -108,9 +143,6 @@ public sealed partial class AuditLogViewModel
 
         SelectedEntityFilter =
             EntityFilterOptions[0];
-
-
-        _ = LoadAsync();
     }
 
 
@@ -131,7 +163,6 @@ public sealed partial class AuditLogViewModel
 
     public string Title =>
         "操作履歴";
-
 
     public string Description =>
         "システム内で実行された主要な操作を時系列で確認できます。";
@@ -310,8 +341,7 @@ public sealed partial class AuditLogViewModel
                 null;
 
             _allItems =
-                await _auditLogRepository
-                    .GetAllAsync();
+                await _loadAuditLogsAsync();
 
             ApplyFilter();
         }
@@ -393,9 +423,9 @@ public sealed partial class AuditLogViewModel
         {
             query =
                 query.Where(x =>
-                MatchesKeyword(
-                    x,
-                    keyword));
+                    MatchesKeyword(
+                        x,
+                        keyword));
         }
 
 
