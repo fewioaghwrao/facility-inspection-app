@@ -5,7 +5,6 @@ using FacilityInspection.Domain.Operators;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace FacilityInspection.ViewModels;
@@ -15,10 +14,46 @@ public sealed partial class OperatorManagementViewModel
 {
     private const int MinimumPasswordLength = 8;
 
-    private readonly OperatorRepository
-        _operatorRepository;
 
-    private readonly Guid _currentOperatorId;
+    // ============================================
+    // Dependencies
+    // ============================================
+
+    private readonly Guid
+        _currentOperatorId;
+
+    private readonly Func<
+        Task<IReadOnlyList<Operator>>>
+        _getAllAsync;
+
+    private readonly Func<
+        string,
+        string,
+        OperatorRole,
+        string,
+        Task>
+        _createAsync;
+
+    private readonly Func<
+        Guid,
+        string,
+        string,
+        OperatorRole,
+        string?,
+        Task>
+        _updateAsync;
+
+    private readonly Func<
+        Guid,
+        bool,
+        Task>
+        _setActiveAsync;
+
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
 
     public OperatorManagementViewModel(
         OperatorRepository operatorRepository,
@@ -27,133 +62,368 @@ public sealed partial class OperatorManagementViewModel
         ArgumentNullException.ThrowIfNull(
             operatorRepository);
 
-        _operatorRepository = operatorRepository;
-        _currentOperatorId = currentOperatorId;
+        if (currentOperatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "現在の担当者IDを指定してください。",
+                nameof(currentOperatorId));
+        }
 
+
+        _currentOperatorId =
+            currentOperatorId;
+
+
+        /*
+         * Repository側のCancellationTokenや
+         * 戻り値をViewModelから切り離す。
+         */
+        _getAllAsync =
+            async () =>
+                await operatorRepository
+                    .GetAllAsync();
+
+
+        _createAsync =
+            async (
+                loginId,
+                displayName,
+                role,
+                password) =>
+            {
+                await operatorRepository
+                    .CreateAsync(
+                        loginId,
+                        displayName,
+                        role,
+                        password);
+            };
+
+
+        _updateAsync =
+            async (
+                operatorId,
+                loginId,
+                displayName,
+                role,
+                newPassword) =>
+            {
+                await operatorRepository
+                    .UpdateAsync(
+                        operatorId,
+                        loginId,
+                        displayName,
+                        role,
+                        newPassword);
+            };
+
+
+        _setActiveAsync =
+            async (
+                operatorId,
+                isActive) =>
+            {
+                await operatorRepository
+                    .SetActiveAsync(
+                        operatorId,
+                        isActive);
+            };
+
+
+        /*
+         * 本番では従来どおり
+         * 生成時に自動ロードする。
+         */
         _ = LoadOperatorsAsync();
     }
 
-    public ObservableCollection<OperatorListItemViewModel>
-        Operators
-    { get; } = [];
 
-    public IReadOnlyList<string> RoleChoices { get; } =
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal OperatorManagementViewModel(
+        Guid currentOperatorId,
+        Func<
+            Task<IReadOnlyList<Operator>>>
+            getAllAsync,
+        Func<
+            string,
+            string,
+            OperatorRole,
+            string,
+            Task>
+            createAsync,
+        Func<
+            Guid,
+            string,
+            string,
+            OperatorRole,
+            string?,
+            Task>
+            updateAsync,
+        Func<
+            Guid,
+            bool,
+            Task>
+            setActiveAsync)
+    {
+        if (currentOperatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "現在の担当者IDを指定してください。",
+                nameof(currentOperatorId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            getAllAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            createAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            updateAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            setActiveAsync);
+
+
+        _currentOperatorId =
+            currentOperatorId;
+
+        _getAllAsync =
+            getAllAsync;
+
+        _createAsync =
+            createAsync;
+
+        _updateAsync =
+            updateAsync;
+
+        _setActiveAsync =
+            setActiveAsync;
+
+
+        /*
+         * テスト用では自動ロードしない。
+         */
+    }
+
+
+    // ============================================
+    // Operators
+    // ============================================
+
+    public ObservableCollection<
+        OperatorListItemViewModel>
+        Operators
+    {
+        get;
+    } = [];
+
+
+    // ============================================
+    // Role
+    // ============================================
+
+    public IReadOnlyList<string>
+        RoleChoices
+    {
+        get;
+    } =
     [
         "点検担当者",
         "保全責任者"
     ];
 
+
+    // ============================================
+    // Loading
+    // ============================================
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(
+        nameof(IsEmpty))]
     private bool isLoading;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasError))]
-    private string? errorMessage;
+
+    // ============================================
+    // Error
+    // ============================================
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasOperationMessage))]
+    [NotifyPropertyChangedFor(
+        nameof(HasError))]
+    private string? errorMessage;
+
+
+    // ============================================
+    // Operation Message
+    // ============================================
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(HasOperationMessage))]
     private string? operationMessage;
+
+
+    // ============================================
+    // Editor
+    // ============================================
 
     [ObservableProperty]
     private bool isEditorOpen;
 
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EditorTitle))]
-    [NotifyPropertyChangedFor(nameof(EditorDescription))]
-    [NotifyPropertyChangedFor(nameof(SaveButtonText))]
-    [NotifyPropertyChangedFor(nameof(PasswordLabel))]
-    [NotifyPropertyChangedFor(nameof(PasswordWatermark))]
+    [NotifyPropertyChangedFor(
+        nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(
+        nameof(EditorDescription))]
+    [NotifyPropertyChangedFor(
+        nameof(SaveButtonText))]
+    [NotifyPropertyChangedFor(
+        nameof(PasswordLabel))]
+    [NotifyPropertyChangedFor(
+        nameof(PasswordWatermark))]
     private bool isCreateMode;
+
 
     [ObservableProperty]
     private Guid? editingOperatorId;
 
-    [ObservableProperty]
-    private OperatorRole? originalEditingRole;
 
     [ObservableProperty]
-    private string editLoginId = string.Empty;
+    private OperatorRole?
+        originalEditingRole;
+
 
     [ObservableProperty]
-    private string editDisplayName = string.Empty;
+    private string editLoginId =
+        string.Empty;
+
 
     [ObservableProperty]
-    private string selectedRoleName = "点検担当者";
+    private string editDisplayName =
+        string.Empty;
+
 
     [ObservableProperty]
-    private string editPassword = string.Empty;
+    private string selectedRoleName =
+        "点検担当者";
+
+
+    [ObservableProperty]
+    private string editPassword =
+        string.Empty;
+
 
     [ObservableProperty]
     private string editPasswordConfirmation =
         string.Empty;
 
+
     [ObservableProperty]
     private bool isSaving;
 
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasEditorError))]
+    [NotifyPropertyChangedFor(
+        nameof(HasEditorError))]
     private string? editorErrorMessage;
 
+
+    // ============================================
+    // Calculated
+    // ============================================
+
     public bool HasError =>
-        !string.IsNullOrWhiteSpace(ErrorMessage);
+        !string.IsNullOrWhiteSpace(
+            ErrorMessage);
+
 
     public bool HasOperationMessage =>
-        !string.IsNullOrWhiteSpace(OperationMessage);
+        !string.IsNullOrWhiteSpace(
+            OperationMessage);
+
 
     public bool HasEditorError =>
         !string.IsNullOrWhiteSpace(
             EditorErrorMessage);
+
 
     public bool IsEmpty =>
         !IsLoading &&
         Operators.Count == 0 &&
         !HasError;
 
+
+    // ============================================
+    // Editor Display
+    // ============================================
+
     public string EditorTitle =>
         IsCreateMode
             ? "担当者の新規登録"
             : "担当者の編集";
+
 
     public string EditorDescription =>
         IsCreateMode
             ? "ログイン情報と権限を設定して担当者を登録します。"
             : "担当者名・ログインID・権限を変更します。";
 
+
     public string SaveButtonText =>
         IsCreateMode
             ? "登録"
             : "保存";
+
 
     public string PasswordLabel =>
         IsCreateMode
             ? "パスワード"
             : "新しいパスワード";
 
+
     public string PasswordWatermark =>
         IsCreateMode
             ? "8文字以上で入力"
             : "変更しない場合は空欄";
 
+
+    // ============================================
+    // Load
+    // ============================================
+
     [RelayCommand]
-    private async Task LoadOperatorsAsync()
+    internal async Task LoadOperatorsAsync()
     {
         if (IsLoading)
         {
             return;
         }
 
+
         try
         {
-            IsLoading = true;
-            ErrorMessage = null;
+            IsLoading =
+                true;
+
+            ErrorMessage =
+                null;
+
 
             var operators =
-                await _operatorRepository.GetAllAsync();
+                await _getAllAsync();
+
 
             Operators.Clear();
 
-            foreach (var operatorEntity in operators)
+
+            foreach (var operatorEntity in
+                     operators)
             {
                 Operators.Add(
                     CreateListItemViewModel(
@@ -163,17 +433,25 @@ public sealed partial class OperatorManagementViewModel
         catch (Exception exception)
         {
             ErrorMessage =
-                $"担当者一覧を読み込めませんでした。" +
-                $"{Environment.NewLine}" +
+                "担当者一覧を読み込めませんでした。" +
+                Environment.NewLine +
                 exception.Message;
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
 
-            OnPropertyChanged(nameof(IsEmpty));
+
+            OnPropertyChanged(
+                nameof(IsEmpty));
         }
     }
+
+
+    // ============================================
+    // Create Editor
+    // ============================================
 
     [RelayCommand]
     private void OpenCreateEditor()
@@ -183,47 +461,103 @@ public sealed partial class OperatorManagementViewModel
             return;
         }
 
-        IsCreateMode = true;
-        EditingOperatorId = null;
-        OriginalEditingRole = null;
 
-        EditLoginId = string.Empty;
-        EditDisplayName = string.Empty;
-        SelectedRoleName = RoleChoices[0];
-        EditPassword = string.Empty;
-        EditPasswordConfirmation = string.Empty;
+        IsCreateMode =
+            true;
 
-        EditorErrorMessage = null;
-        OperationMessage = null;
-        IsEditorOpen = true;
+        EditingOperatorId =
+            null;
+
+        OriginalEditingRole =
+            null;
+
+
+        EditLoginId =
+            string.Empty;
+
+        EditDisplayName =
+            string.Empty;
+
+        SelectedRoleName =
+            RoleChoices[0];
+
+        EditPassword =
+            string.Empty;
+
+        EditPasswordConfirmation =
+            string.Empty;
+
+
+        EditorErrorMessage =
+            null;
+
+        OperationMessage =
+            null;
+
+        IsEditorOpen =
+            true;
     }
+
+
+    // ============================================
+    // Edit Editor
+    // ============================================
 
     private void OpenEditEditor(
         OperatorListItemViewModel item)
     {
-        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(
+            item);
+
 
         if (IsSaving)
         {
             return;
         }
 
-        IsCreateMode = false;
-        EditingOperatorId = item.Id;
-        OriginalEditingRole = item.Role;
 
-        EditLoginId = item.LoginId;
-        EditDisplayName = item.DisplayName;
+        IsCreateMode =
+            false;
+
+        EditingOperatorId =
+            item.Id;
+
+        OriginalEditingRole =
+            item.Role;
+
+
+        EditLoginId =
+            item.LoginId;
+
+        EditDisplayName =
+            item.DisplayName;
+
         SelectedRoleName =
-            ConvertRoleToName(item.Role);
+            ConvertRoleToName(
+                item.Role);
 
-        EditPassword = string.Empty;
-        EditPasswordConfirmation = string.Empty;
 
-        EditorErrorMessage = null;
-        OperationMessage = null;
-        IsEditorOpen = true;
+        EditPassword =
+            string.Empty;
+
+        EditPasswordConfirmation =
+            string.Empty;
+
+
+        EditorErrorMessage =
+            null;
+
+        OperationMessage =
+            null;
+
+        IsEditorOpen =
+            true;
     }
+
+
+    // ============================================
+    // Cancel Editor
+    // ============================================
 
     [RelayCommand]
     private void CancelEditor()
@@ -233,10 +567,21 @@ public sealed partial class OperatorManagementViewModel
             return;
         }
 
-        IsEditorOpen = false;
-        EditorErrorMessage = null;
+
+        IsEditorOpen =
+            false;
+
+        EditorErrorMessage =
+            null;
+
+
         ClearEditorValues();
     }
+
+
+    // ============================================
+    // Save
+    // ============================================
 
     [RelayCommand]
     private async Task SaveOperatorAsync()
@@ -246,32 +591,51 @@ public sealed partial class OperatorManagementViewModel
             return;
         }
 
+
         if (!ValidateEditor())
         {
             return;
         }
 
+
         try
         {
-            IsSaving = true;
-            EditorErrorMessage = null;
-            OperationMessage = null;
+            IsSaving =
+                true;
+
+            EditorErrorMessage =
+                null;
+
+            OperationMessage =
+                null;
+
 
             var role =
                 ConvertNameToRole(
                     SelectedRoleName);
 
+
+            // ------------------------------------
+            // Create
+            // ------------------------------------
+
             if (IsCreateMode)
             {
-                await _operatorRepository.CreateAsync(
+                await _createAsync(
                     EditLoginId.Trim(),
                     EditDisplayName.Trim(),
                     role,
                     EditPassword);
 
+
                 OperationMessage =
                     "担当者を登録しました。";
             }
+
+            // ------------------------------------
+            // Update
+            // ------------------------------------
+
             else
             {
                 if (!EditingOperatorId.HasValue)
@@ -280,64 +644,98 @@ public sealed partial class OperatorManagementViewModel
                         "編集対象の担当者が選択されていません。");
                 }
 
+
+                /*
+                 * 現在ログイン中の担当者は
+                 * 自分自身の権限を変更できない。
+                 */
                 if (EditingOperatorId.Value ==
                         _currentOperatorId &&
                     OriginalEditingRole.HasValue &&
-                    role != OriginalEditingRole.Value)
+                    role !=
+                        OriginalEditingRole.Value)
                 {
                     throw new InvalidOperationException(
                         "現在ログイン中の担当者は、自分自身の権限を変更できません。");
                 }
 
+
                 var newPassword =
-                    string.IsNullOrEmpty(EditPassword)
+                    string.IsNullOrEmpty(
+                        EditPassword)
                         ? null
                         : EditPassword;
 
-                await _operatorRepository.UpdateAsync(
+
+                await _updateAsync(
                     EditingOperatorId.Value,
                     EditLoginId.Trim(),
                     EditDisplayName.Trim(),
                     role,
                     newPassword);
 
+
                 OperationMessage =
                     "担当者情報を更新しました。";
             }
 
-            IsEditorOpen = false;
+
+            IsEditorOpen =
+                false;
+
+
             ClearEditorValues();
 
+
+            /*
+             * DB更新後に最新一覧を再取得する。
+             */
             await LoadOperatorsAsync();
         }
         catch (Exception exception)
         {
             EditorErrorMessage =
                 IsCreateMode
-                    ? $"担当者を登録できませんでした。" +
-                      $"{Environment.NewLine}" +
+                    ? "担当者を登録できませんでした。" +
+                      Environment.NewLine +
                       exception.Message
-                    : $"担当者情報を更新できませんでした。" +
-                      $"{Environment.NewLine}" +
+
+                    : "担当者情報を更新できませんでした。" +
+                      Environment.NewLine +
                       exception.Message;
         }
         finally
         {
-            IsSaving = false;
+            IsSaving =
+                false;
         }
     }
+
+
+    // ============================================
+    // Toggle Active
+    // ============================================
 
     private async Task ToggleActiveAsync(
         OperatorListItemViewModel item)
     {
-        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(
+            item);
+
 
         if (IsSaving)
         {
             return;
         }
 
-        if (item.Id == _currentOperatorId)
+
+        /*
+         * OperatorListItemViewModel側でも
+         * CanExecute=falseになるが、
+         * ViewModel側でも防御する。
+         */
+        if (item.Id ==
+            _currentOperatorId)
         {
             ErrorMessage =
                 "現在ログイン中の担当者は無効化できません。";
@@ -345,41 +743,61 @@ public sealed partial class OperatorManagementViewModel
             return;
         }
 
+
         try
         {
-            IsSaving = true;
-            ErrorMessage = null;
-            OperationMessage = null;
+            IsSaving =
+                true;
+
+            ErrorMessage =
+                null;
+
+            OperationMessage =
+                null;
+
 
             var newActiveState =
                 !item.IsActive;
 
-            await _operatorRepository.SetActiveAsync(
+
+            await _setActiveAsync(
                 item.Id,
                 newActiveState);
+
 
             OperationMessage =
                 newActiveState
                     ? "担当者を有効化しました。"
                     : "担当者を無効化しました。";
 
+
             await LoadOperatorsAsync();
         }
         catch (Exception exception)
         {
             ErrorMessage =
-                $"担当者の状態を変更できませんでした。" +
-                $"{Environment.NewLine}" +
+                "担当者の状態を変更できませんでした。" +
+                Environment.NewLine +
                 exception.Message;
         }
         finally
         {
-            IsSaving = false;
+            IsSaving =
+                false;
         }
     }
 
+
+    // ============================================
+    // Validation
+    // ============================================
+
     private bool ValidateEditor()
     {
+        // ----------------------------------------
+        // Login ID
+        // ----------------------------------------
+
         if (string.IsNullOrWhiteSpace(
                 EditLoginId))
         {
@@ -389,13 +807,20 @@ public sealed partial class OperatorManagementViewModel
             return false;
         }
 
-        if (EditLoginId.Trim().Length > 50)
+
+        if (EditLoginId.Trim().Length >
+            50)
         {
             EditorErrorMessage =
                 "ログインIDは50文字以内で入力してください。";
 
             return false;
         }
+
+
+        // ----------------------------------------
+        // Display Name
+        // ----------------------------------------
 
         if (string.IsNullOrWhiteSpace(
                 EditDisplayName))
@@ -406,13 +831,20 @@ public sealed partial class OperatorManagementViewModel
             return false;
         }
 
-        if (EditDisplayName.Trim().Length > 100)
+
+        if (EditDisplayName.Trim().Length >
+            100)
         {
             EditorErrorMessage =
                 "表示名は100文字以内で入力してください。";
 
             return false;
         }
+
+
+        // ----------------------------------------
+        // Role
+        // ----------------------------------------
 
         if (string.IsNullOrWhiteSpace(
                 SelectedRoleName))
@@ -423,18 +855,31 @@ public sealed partial class OperatorManagementViewModel
             return false;
         }
 
+
+        // ----------------------------------------
+        // Password
+        // ----------------------------------------
+
         var passwordEntered =
-            !string.IsNullOrEmpty(EditPassword) ||
+            !string.IsNullOrEmpty(
+                EditPassword) ||
             !string.IsNullOrEmpty(
                 EditPasswordConfirmation);
 
-        if (IsCreateMode && !passwordEntered)
+
+        /*
+         * 新規登録の場合、
+         * パスワードは必須。
+         */
+        if (IsCreateMode &&
+            !passwordEntered)
         {
             EditorErrorMessage =
                 "パスワードを入力してください。";
 
             return false;
         }
+
 
         if (passwordEntered)
         {
@@ -447,6 +892,7 @@ public sealed partial class OperatorManagementViewModel
                 return false;
             }
 
+
             if (EditPassword !=
                 EditPasswordConfirmation)
             {
@@ -457,8 +903,14 @@ public sealed partial class OperatorManagementViewModel
             }
         }
 
+
         return true;
     }
+
+
+    // ============================================
+    // Create List Item
+    // ============================================
 
     private OperatorListItemViewModel
         CreateListItemViewModel(
@@ -477,19 +929,43 @@ public sealed partial class OperatorManagementViewModel
             ToggleActiveAsync);
     }
 
+
+    // ============================================
+    // Clear Editor
+    // ============================================
+
     private void ClearEditorValues()
     {
-        EditingOperatorId = null;
-        OriginalEditingRole = null;
-        EditLoginId = string.Empty;
-        EditDisplayName = string.Empty;
-        SelectedRoleName = RoleChoices[0];
-        EditPassword = string.Empty;
-        EditPasswordConfirmation = string.Empty;
+        EditingOperatorId =
+            null;
+
+        OriginalEditingRole =
+            null;
+
+        EditLoginId =
+            string.Empty;
+
+        EditDisplayName =
+            string.Empty;
+
+        SelectedRoleName =
+            RoleChoices[0];
+
+        EditPassword =
+            string.Empty;
+
+        EditPasswordConfirmation =
+            string.Empty;
     }
 
-    private static OperatorRole ConvertNameToRole(
-        string roleName)
+
+    // ============================================
+    // Role Name -> Role
+    // ============================================
+
+    private static OperatorRole
+        ConvertNameToRole(
+            string roleName)
     {
         return roleName switch
         {
@@ -499,13 +975,20 @@ public sealed partial class OperatorManagementViewModel
             "保全責任者" =>
                 OperatorRole.MaintenanceManager,
 
-            _ => throw new InvalidOperationException(
-                $"未対応の権限です: {roleName}")
+            _ =>
+                throw new InvalidOperationException(
+                    $"未対応の権限です: {roleName}")
         };
     }
 
-    private static string ConvertRoleToName(
-        OperatorRole role)
+
+    // ============================================
+    // Role -> Role Name
+    // ============================================
+
+    private static string
+        ConvertRoleToName(
+            OperatorRole role)
     {
         return role switch
         {
@@ -515,7 +998,8 @@ public sealed partial class OperatorManagementViewModel
             OperatorRole.MaintenanceManager =>
                 "保全責任者",
 
-            _ => role.ToString()
+            _ =>
+                role.ToString()
         };
     }
 }

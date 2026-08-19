@@ -13,8 +13,24 @@ namespace FacilityInspection.ViewModels;
 public sealed partial class MemberDashboardViewModel
     : ViewModelBase
 {
-    private readonly ScheduleRepository
-        _scheduleRepository;
+    // ============================================
+    // Dependencies
+    // ============================================
+
+    private readonly Func<
+        Guid,
+        DateOnly,
+        Task<IReadOnlyList<InspectionSchedule>>>
+        _getDayForOperatorAsync;
+
+    private readonly Func<
+        Guid,
+        DateOnly,
+        Task<IReadOnlyList<InspectionSchedule>>>
+        _getMonthForOperatorAsync;
+
+    private readonly Func<DateOnly>
+        _todayProvider;
 
     private readonly Guid
         _operatorId;
@@ -22,11 +38,22 @@ public sealed partial class MemberDashboardViewModel
     private readonly Action<Guid>
         _openInspection;
 
+
+    // ============================================
+    // Loaded Data
+    // ============================================
+
     private IReadOnlyList<InspectionSchedule>
         _monthSchedules = [];
 
     private IReadOnlyList<InspectionSchedule>
         _todaySchedules = [];
+
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
 
     public MemberDashboardViewModel(
         Guid operatorId,
@@ -46,79 +73,214 @@ public sealed partial class MemberDashboardViewModel
         ArgumentNullException.ThrowIfNull(
             openInspection);
 
-        _operatorId = operatorId;
-        _scheduleRepository = scheduleRepository;
-        _openInspection = openInspection;
 
-        var today =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+        _operatorId =
+            operatorId;
 
-        DisplayedMonth =
-            new DateOnly(
-                today.Year,
-                today.Month,
-                1);
+        _openInspection =
+            openInspection;
 
-        SelectedDate = today;
 
+        /*
+         * Repository側はoptional CancellationTokenを持つため、
+         * method groupではなくlambdaでラップする。
+         */
+        _getDayForOperatorAsync =
+            (id, date) =>
+                scheduleRepository
+                    .GetDayForOperatorAsync(
+                        id,
+                        date);
+
+        _getMonthForOperatorAsync =
+            (id, month) =>
+                scheduleRepository
+                    .GetMonthForOperatorAsync(
+                        id,
+                        month);
+
+
+        _todayProvider =
+            () =>
+                DateOnly.FromDateTime(
+                    DateTime.Today);
+
+
+        InitializeCurrentDate();
+
+
+        /*
+         * 本番では従来どおり
+         * 生成後に自動ロードする。
+         */
         _ = InitializeAsync();
     }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal MemberDashboardViewModel(
+        Guid operatorId,
+        Func<
+            Guid,
+            DateOnly,
+            Task<IReadOnlyList<InspectionSchedule>>>
+            getDayForOperatorAsync,
+        Func<
+            Guid,
+            DateOnly,
+            Task<IReadOnlyList<InspectionSchedule>>>
+            getMonthForOperatorAsync,
+        Action<Guid> openInspection,
+        Func<DateOnly> todayProvider)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            getDayForOperatorAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            getMonthForOperatorAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            openInspection);
+
+        ArgumentNullException.ThrowIfNull(
+            todayProvider);
+
+
+        _operatorId =
+            operatorId;
+
+        _getDayForOperatorAsync =
+            getDayForOperatorAsync;
+
+        _getMonthForOperatorAsync =
+            getMonthForOperatorAsync;
+
+        _openInspection =
+            openInspection;
+
+        _todayProvider =
+            todayProvider;
+
+
+        InitializeCurrentDate();
+
+
+        /*
+         * テスト用では自動ロードしない。
+         * InitializeAsync または各Commandを
+         * テスト側から明示的に実行する。
+         */
+    }
+
+
+    // ============================================
+    // Basic Information
+    // ============================================
 
     public string Title =>
         "点検担当者予定";
 
+
     public string Description =>
         "担当する点検予定をカレンダーから確認し、点検を開始します。";
 
-    public ObservableCollection<CalendarDayViewModel>
+
+    public string InformationMessage =>
+        "カレンダーの日付を選択し、点検対象設備から点検を開始してください。";
+
+
+    // ============================================
+    // Collections
+    // ============================================
+
+    public ObservableCollection<
+        CalendarDayViewModel>
         CalendarDays
     { get; } = [];
 
-    public ObservableCollection<MemberScheduleItemViewModel>
+
+    public ObservableCollection<
+        MemberScheduleItemViewModel>
         SelectedDaySchedules
     { get; } = [];
+
+
+    // ============================================
+    // Date
+    // ============================================
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(MonthTitle))]
     private DateOnly displayedMonth;
 
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(SelectedDateTitle))]
     private DateOnly selectedDate;
+
+
+    // ============================================
+    // Loading
+    // ============================================
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(IsSelectedDayEmpty))]
     private bool isLoading;
 
+
+    // ============================================
+    // Error
+    // ============================================
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(HasError))]
     private string? errorMessage;
 
+
+    // ============================================
+    // Calculated Properties
+    // ============================================
+
     public string MonthTitle =>
         $"{DisplayedMonth.Year}年" +
         $"{DisplayedMonth.Month}月";
+
 
     public string SelectedDateTitle =>
         $"{SelectedDate.Year}年" +
         $"{SelectedDate.Month}月" +
         $"{SelectedDate.Day}日の点検予定";
 
+
     public string SelectedDayScheduleCountText =>
         $"全 {SelectedDaySchedules.Count} 件";
 
+
     public int TodayScheduleCount =>
         _todaySchedules.Count;
+
 
     public int InProgressCount =>
         _todaySchedules.Count(
             schedule =>
                 GetStatus(schedule) ==
                     InspectionStatus.InProgress);
+
 
     public int CompletedCount =>
         _todaySchedules.Count(
@@ -127,52 +289,84 @@ public sealed partial class MemberDashboardViewModel
                     InspectionStatus.Completed or
                     InspectionStatus.Approved);
 
+
     public int AbnormalityCount =>
         _todaySchedules.Sum(
             schedule =>
                 schedule.Inspection?
                     .Results
-                    .Count(result =>
-                        result.IsAbnormal)
+                    .Count(
+                        result =>
+                            result.IsAbnormal)
                 ?? 0);
+
 
     public bool IsSelectedDayEmpty =>
         !IsLoading &&
         SelectedDaySchedules.Count == 0;
 
+
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
             ErrorMessage);
 
-    public string InformationMessage =>
-        "カレンダーの日付を選択し、点検対象設備から点検を開始してください。";
 
-    private async Task InitializeAsync()
+    // ============================================
+    // Initial Date
+    // ============================================
+
+    private void InitializeCurrentDate()
     {
-        IsLoading = true;
-        ErrorMessage = null;
+        var today =
+            _todayProvider();
+
+
+        DisplayedMonth =
+            new DateOnly(
+                today.Year,
+                today.Month,
+                1);
+
+        SelectedDate =
+            today;
+    }
+
+
+    // ============================================
+    // Initialize
+    // ============================================
+
+    internal async Task InitializeAsync()
+    {
+        IsLoading =
+            true;
+
+        ErrorMessage =
+            null;
+
 
         try
         {
             var today =
-                DateOnly.FromDateTime(
-                    DateTime.Today);
+                _todayProvider();
+
 
             var todayTask =
-                _scheduleRepository
-                    .GetDayForOperatorAsync(
-                        _operatorId,
-                        today);
+                _getDayForOperatorAsync(
+                    _operatorId,
+                    today);
+
 
             var monthTask =
-                _scheduleRepository
-                    .GetMonthForOperatorAsync(
-                        _operatorId,
-                        DisplayedMonth);
+                _getMonthForOperatorAsync(
+                    _operatorId,
+                    DisplayedMonth);
+
 
             await Task.WhenAll(
                 todayTask,
                 monthTask);
+
 
             _todaySchedules =
                 await todayTask;
@@ -180,8 +374,11 @@ public sealed partial class MemberDashboardViewModel
             _monthSchedules =
                 await monthTask;
 
+
             BuildCalendarDays();
+
             BuildSelectedDaySchedules();
+
             RefreshSummaryCards();
         }
         catch (Exception exception)
@@ -193,27 +390,39 @@ public sealed partial class MemberDashboardViewModel
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
+
 
             OnPropertyChanged(
                 nameof(IsSelectedDayEmpty));
         }
     }
 
+
+    // ============================================
+    // Load Month
+    // ============================================
+
     private async Task LoadMonthAsync()
     {
-        IsLoading = true;
-        ErrorMessage = null;
+        IsLoading =
+            true;
+
+        ErrorMessage =
+            null;
+
 
         try
         {
             _monthSchedules =
-                await _scheduleRepository
-                    .GetMonthForOperatorAsync(
-                        _operatorId,
-                        DisplayedMonth);
+                await _getMonthForOperatorAsync(
+                    _operatorId,
+                    DisplayedMonth);
+
 
             BuildCalendarDays();
+
             BuildSelectedDaySchedules();
         }
         catch (Exception exception)
@@ -225,31 +434,50 @@ public sealed partial class MemberDashboardViewModel
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
+
 
             OnPropertyChanged(
                 nameof(IsSelectedDayEmpty));
         }
     }
 
+
+    // ============================================
+    // Previous Month
+    // ============================================
+
     [RelayCommand]
     private Task PreviousMonthAsync()
     {
-        return MoveMonthAsync(-1);
+        return MoveMonthAsync(
+            -1);
     }
+
+
+    // ============================================
+    // Next Month
+    // ============================================
 
     [RelayCommand]
     private Task NextMonthAsync()
     {
-        return MoveMonthAsync(1);
+        return MoveMonthAsync(
+            1);
     }
+
+
+    // ============================================
+    // Go To Today
+    // ============================================
 
     [RelayCommand]
     private async Task GoToTodayAsync()
     {
         var today =
-            DateOnly.FromDateTime(
-                DateTime.Today);
+            _todayProvider();
+
 
         DisplayedMonth =
             new DateOnly(
@@ -257,16 +485,28 @@ public sealed partial class MemberDashboardViewModel
                 today.Month,
                 1);
 
-        SelectedDate = today;
+        SelectedDate =
+            today;
+
 
         await InitializeAsync();
     }
+
+
+    // ============================================
+    // Refresh
+    // ============================================
 
     [RelayCommand]
     private Task RefreshAsync()
     {
         return InitializeAsync();
     }
+
+
+    // ============================================
+    // Move Month
+    // ============================================
 
     private async Task MoveMonthAsync(
         int months)
@@ -275,6 +515,7 @@ public sealed partial class MemberDashboardViewModel
             DisplayedMonth.AddMonths(
                 months);
 
+
         var selectedDay =
             Math.Min(
                 SelectedDate.Day,
@@ -282,11 +523,13 @@ public sealed partial class MemberDashboardViewModel
                     targetMonth.Year,
                     targetMonth.Month));
 
+
         DisplayedMonth =
             new DateOnly(
                 targetMonth.Year,
                 targetMonth.Month,
                 1);
+
 
         SelectedDate =
             new DateOnly(
@@ -294,12 +537,19 @@ public sealed partial class MemberDashboardViewModel
                 targetMonth.Month,
                 selectedDay);
 
+
         await LoadMonthAsync();
     }
+
+
+    // ============================================
+    // Build Calendar
+    // ============================================
 
     private void BuildCalendarDays()
     {
         CalendarDays.Clear();
+
 
         var monthStart =
             new DateOnly(
@@ -307,12 +557,15 @@ public sealed partial class MemberDashboardViewModel
                 DisplayedMonth.Month,
                 1);
 
+
         var startOffset =
             (int)monthStart.DayOfWeek;
+
 
         var gridStart =
             monthStart.AddDays(
                 -startOffset);
+
 
         for (var index = 0;
              index < 42;
@@ -322,16 +575,20 @@ public sealed partial class MemberDashboardViewModel
                 gridStart.AddDays(
                     index);
 
+
             var schedules =
                 _monthSchedules
-                    .Where(schedule =>
-                        schedule.ScheduledDate ==
+                    .Where(
+                        schedule =>
+                            schedule.ScheduledDate ==
                             date)
                     .ToList();
+
 
             var overdueCount =
                 schedules.Count(
                     IsOverdue);
+
 
             var completedCount =
                 schedules.Count(
@@ -339,6 +596,7 @@ public sealed partial class MemberDashboardViewModel
                         GetStatus(schedule) is
                             InspectionStatus.Completed or
                             InspectionStatus.Approved);
+
 
             var day =
                 new CalendarDayViewModel(
@@ -352,26 +610,45 @@ public sealed partial class MemberDashboardViewModel
                     completedCount,
                     SelectCalendarDay);
 
-            day.IsSelected =
-                date == SelectedDate;
 
-            CalendarDays.Add(day);
+            day.IsSelected =
+                date ==
+                SelectedDate;
+
+
+            CalendarDays.Add(
+                day);
         }
     }
+
+
+    // ============================================
+    // Select Calendar Day
+    // ============================================
 
     private void SelectCalendarDay(
         CalendarDayViewModel day)
     {
-        _ = SelectCalendarDayAsync(
-            day);
+        _ =
+            SelectCalendarDayAsync(
+                day);
     }
 
-    private async Task SelectCalendarDayAsync(
+
+    /*
+     * テストから非同期処理を確実にawaitするためinternal。
+     */
+    internal async Task SelectCalendarDayAsync(
         CalendarDayViewModel day)
     {
         ArgumentNullException.ThrowIfNull(
             day);
 
+
+        /*
+         * 前月・翌月の日付セルを選択した場合は
+         * 表示月そのものを移動する。
+         */
         if (day.Date.Month !=
                 DisplayedMonth.Month ||
             day.Date.Year !=
@@ -383,49 +660,65 @@ public sealed partial class MemberDashboardViewModel
                     day.Date.Month,
                     1);
 
+
             SelectedDate =
                 day.Date;
 
+
             await LoadMonthAsync();
+
 
             return;
         }
 
+
         SelectedDate =
             day.Date;
+
 
         foreach (var calendarDay
                  in CalendarDays)
         {
             calendarDay.IsSelected =
                 calendarDay.Date ==
-                    SelectedDate;
+                SelectedDate;
         }
+
 
         BuildSelectedDaySchedules();
     }
+
+
+    // ============================================
+    // Build Selected Day Schedules
+    // ============================================
 
     private void BuildSelectedDaySchedules()
     {
         SelectedDaySchedules.Clear();
 
+
         foreach (var schedule in
                  _monthSchedules
-                     .Where(schedule =>
-                         schedule.ScheduledDate ==
+                     .Where(
+                         schedule =>
+                             schedule.ScheduledDate ==
                              SelectedDate)
-                     .OrderBy(schedule =>
-                         schedule.Equipment
-                             .Location
-                             .FactorySite
-                             .Name)
-                     .ThenBy(schedule =>
-                         schedule.Equipment
-                             .Location
-                             .Name)
-                     .ThenBy(schedule =>
-                         schedule.Equipment
-                             .EquipmentCode))
+                     .OrderBy(
+                         schedule =>
+                             schedule.Equipment
+                                 .Location
+                                 .FactorySite
+                                 .Name)
+                     .ThenBy(
+                         schedule =>
+                             schedule.Equipment
+                                 .Location
+                                 .Name)
+                     .ThenBy(
+                         schedule =>
+                             schedule.Equipment
+                                 .EquipmentCode))
         {
             SelectedDaySchedules.Add(
                 new MemberScheduleItemViewModel(
@@ -445,17 +738,25 @@ public sealed partial class MemberDashboardViewModel
                     schedule.InspectionTemplate
                         .Name,
                     schedule.Notes,
-                    GetStatus(schedule),
+                    GetStatus(
+                        schedule),
                     _openInspection));
         }
 
+
         OnPropertyChanged(
             nameof(IsSelectedDayEmpty));
+
 
         OnPropertyChanged(
             nameof(
                 SelectedDayScheduleCountText));
     }
+
+
+    // ============================================
+    // Summary
+    // ============================================
 
     private void RefreshSummaryCards()
     {
@@ -472,6 +773,11 @@ public sealed partial class MemberDashboardViewModel
             nameof(AbnormalityCount));
     }
 
+
+    // ============================================
+    // Status
+    // ============================================
+
     private static InspectionStatus GetStatus(
         InspectionSchedule schedule)
     {
@@ -479,14 +785,19 @@ public sealed partial class MemberDashboardViewModel
             InspectionStatus.NotStarted;
     }
 
-    private static bool IsOverdue(
+
+    // ============================================
+    // Overdue
+    // ============================================
+
+    private bool IsOverdue(
         InspectionSchedule schedule)
     {
-        return !schedule.IsCancelled &&
+        return
+            !schedule.IsCancelled &&
             GetStatus(schedule) ==
                 InspectionStatus.NotStarted &&
             schedule.ScheduledDate <
-                DateOnly.FromDateTime(
-                    DateTime.Today);
+                _todayProvider();
     }
 }

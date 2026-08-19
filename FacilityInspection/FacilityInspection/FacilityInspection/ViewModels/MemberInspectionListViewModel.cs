@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using FacilityInspection.Data;
 using FacilityInspection.Domain.Inspections;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -13,12 +14,31 @@ public sealed partial class MemberInspectionListViewModel
 {
     private const int PageSize = 5;
 
+
+    // ============================================
+    // Dependencies
+    // ============================================
+
     private readonly Guid
         _operatorId;
 
-    private readonly InspectionRepository
-        _inspectionRepository;
+    private readonly Func<
+        Guid,
+        Task<int>>
+        _getCountForOperatorAsync;
 
+    private readonly Func<
+        Guid,
+        int,
+        int,
+        Task<IReadOnlyList<InspectionListData>>>
+        _getPageForOperatorAsync;
+
+
+    // ============================================
+    // Constructor
+    // 本番用
+    // ============================================
 
     public MemberInspectionListViewModel(
         Guid operatorId,
@@ -34,28 +54,115 @@ public sealed partial class MemberInspectionListViewModel
         ArgumentNullException.ThrowIfNull(
             inspectionRepository);
 
+
         _operatorId =
             operatorId;
 
-        _inspectionRepository =
-            inspectionRepository;
 
+        /*
+         * Repository側にはoptional CancellationTokenがあるため
+         * method groupではなくlambdaでラップする。
+         */
+        _getCountForOperatorAsync =
+            id =>
+                inspectionRepository
+                    .GetCountForOperatorAsync(
+                        id);
+
+
+        _getPageForOperatorAsync =
+            (
+                id,
+                pageNumber,
+                pageSize) =>
+                inspectionRepository
+                    .GetPageForOperatorAsync(
+                        id,
+                        pageNumber,
+                        pageSize);
+
+
+        /*
+         * 本番では従来どおり
+         * コンストラクタ生成後に自動ロードする。
+         */
         _ = LoadAsync();
     }
 
 
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal MemberInspectionListViewModel(
+        Guid operatorId,
+        Func<
+            Guid,
+            Task<int>>
+            getCountForOperatorAsync,
+        Func<
+            Guid,
+            int,
+            int,
+            Task<IReadOnlyList<InspectionListData>>>
+            getPageForOperatorAsync)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            getCountForOperatorAsync);
+
+        ArgumentNullException.ThrowIfNull(
+            getPageForOperatorAsync);
+
+
+        _operatorId =
+            operatorId;
+
+        _getCountForOperatorAsync =
+            getCountForOperatorAsync;
+
+        _getPageForOperatorAsync =
+            getPageForOperatorAsync;
+
+
+        /*
+         * テスト用では自動ロードしない。
+         */
+    }
+
+
+    // ============================================
+    // Basic Information
+    // ============================================
+
     public string Title =>
         "点検一覧";
+
 
     public string Description =>
         "担当している点検を確認できます。";
 
+
+    // ============================================
+    // Items
+    // ============================================
 
     public ObservableCollection<
         MemberInspectionListItemViewModel>
         Items
     { get; } = [];
 
+
+    // ============================================
+    // Loading
+    // ============================================
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
@@ -67,11 +174,19 @@ public sealed partial class MemberInspectionListViewModel
     private bool isLoading;
 
 
+    // ============================================
+    // Error
+    // ============================================
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(HasError))]
     private string? errorMessage;
 
+
+    // ============================================
+    // Paging
+    // ============================================
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
@@ -92,6 +207,10 @@ public sealed partial class MemberInspectionListViewModel
         nameof(CanNextPage))]
     private int totalCount;
 
+
+    // ============================================
+    // Calculated Properties
+    // ============================================
 
     public bool HasError =>
         !string.IsNullOrWhiteSpace(
@@ -130,7 +249,7 @@ public sealed partial class MemberInspectionListViewModel
 
 
     // ============================================
-    // 前ページ
+    // Previous Page
     // ============================================
 
     [RelayCommand]
@@ -141,14 +260,16 @@ public sealed partial class MemberInspectionListViewModel
             return;
         }
 
+
         PageNumber--;
+
 
         await LoadPageAsync();
     }
 
 
     // ============================================
-    // 次ページ
+    // Next Page
     // ============================================
 
     [RelayCommand]
@@ -159,47 +280,60 @@ public sealed partial class MemberInspectionListViewModel
             return;
         }
 
+
         PageNumber++;
+
 
         await LoadPageAsync();
     }
 
 
     // ============================================
-    // 更新
+    // Refresh
     // ============================================
 
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        PageNumber = 1;
+        PageNumber =
+            1;
+
 
         await LoadAsync();
     }
 
 
     // ============================================
-    // 初期読込
+    // Initial / Full Load
     // ============================================
 
-    private async Task LoadAsync()
+    internal async Task LoadAsync()
     {
-        IsLoading = true;
-        ErrorMessage = null;
+        IsLoading =
+            true;
+
+        ErrorMessage =
+            null;
+
 
         try
         {
             TotalCount =
-                await _inspectionRepository
-                    .GetCountForOperatorAsync(
-                        _operatorId);
+                await _getCountForOperatorAsync(
+                    _operatorId);
 
+
+            /*
+             * 削除等によって総件数が減り、
+             * 現在ページが存在しなくなった場合に補正する。
+             */
             if (PageNumber > TotalPages)
             {
                 PageNumber =
                     TotalPages;
             }
 
+
             await LoadPageCoreAsync();
         }
         catch (Exception exception)
@@ -211,7 +345,9 @@ public sealed partial class MemberInspectionListViewModel
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
+
 
             RefreshCalculatedProperties();
         }
@@ -219,13 +355,17 @@ public sealed partial class MemberInspectionListViewModel
 
 
     // ============================================
-    // ページ切替
+    // Page Load
     // ============================================
 
     private async Task LoadPageAsync()
     {
-        IsLoading = true;
-        ErrorMessage = null;
+        IsLoading =
+            true;
+
+        ErrorMessage =
+            null;
+
 
         try
         {
@@ -240,23 +380,30 @@ public sealed partial class MemberInspectionListViewModel
         }
         finally
         {
-            IsLoading = false;
+            IsLoading =
+                false;
+
 
             RefreshCalculatedProperties();
         }
     }
 
 
+    // ============================================
+    // Page Load Core
+    // ============================================
+
     private async Task LoadPageCoreAsync()
     {
         var rows =
-            await _inspectionRepository
-                .GetPageForOperatorAsync(
-                    _operatorId,
-                    PageNumber,
-                    PageSize);
+            await _getPageForOperatorAsync(
+                _operatorId,
+                PageNumber,
+                PageSize);
+
 
         Items.Clear();
+
 
         foreach (var row in rows)
         {
@@ -265,9 +412,14 @@ public sealed partial class MemberInspectionListViewModel
                     row));
         }
 
+
         RefreshCalculatedProperties();
     }
 
+
+    // ============================================
+    // Calculated Properties Refresh
+    // ============================================
 
     private void RefreshCalculatedProperties()
     {
@@ -304,21 +456,26 @@ public sealed class MemberInspectionListItemViewModel
         ArgumentNullException.ThrowIfNull(
             data);
 
+
         ScheduledDateText =
             $"{data.ScheduledDate.Year}/" +
             $"{data.ScheduledDate.Month:00}/" +
             $"{data.ScheduledDate.Day:00}";
 
+
         EquipmentText =
             $"{data.EquipmentCode} " +
             $"{data.EquipmentName}";
+
 
         LocationText =
             $"{data.FactorySiteName} / " +
             $"{data.LocationName}";
 
+
         TemplateName =
             data.TemplateName;
+
 
         StatusText =
             data.Status switch
@@ -342,22 +499,47 @@ public sealed class MemberInspectionListItemViewModel
                     "-"
             };
 
+
         AbnormalCount =
             data.AbnormalCount;
     }
 
 
-    public string ScheduledDateText { get; }
+    public string ScheduledDateText
+    {
+        get;
+    }
 
-    public string EquipmentText { get; }
 
-    public string LocationText { get; }
+    public string EquipmentText
+    {
+        get;
+    }
 
-    public string TemplateName { get; }
 
-    public string StatusText { get; }
+    public string LocationText
+    {
+        get;
+    }
 
-    public int AbnormalCount { get; }
+
+    public string TemplateName
+    {
+        get;
+    }
+
+
+    public string StatusText
+    {
+        get;
+    }
+
+
+    public int AbnormalCount
+    {
+        get;
+    }
+
 
     public string AbnormalText =>
         AbnormalCount > 0
