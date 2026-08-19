@@ -8,22 +8,52 @@ namespace FacilityInspection.ViewModels;
 public partial class MemberShellViewModel
     : ViewModelBase
 {
+    // ============================================
+    // Basic
+    // ============================================
+
     private readonly Action
         _logout;
 
     private readonly Guid
         _operatorId;
 
-    private readonly ScheduleRepository
-        _scheduleRepository;
 
-    private readonly InspectionRepository
-        _inspectionRepository;
+    // ============================================
+    // ViewModel Factories
+    // ============================================
 
-    private MemberDashboardViewModel?
+    private readonly Func<
+        Guid,
+        Action<Guid>,
+        ViewModelBase>
+        _createDashboardViewModel;
+
+    private readonly Func<
+        Guid,
+        ViewModelBase>
+        _createInspectionListViewModel;
+
+    private readonly Func<
+        ViewModelBase>
+        _createScheduleCalendarViewModel;
+
+    private readonly Func<
+        Guid,
+        Guid,
+        Action,
+        ViewModelBase>
+        _createInspectionEntryViewModel;
+
+
+    // ============================================
+    // Cached ViewModels
+    // ============================================
+
+    private ViewModelBase?
         _dashboardViewModel;
 
-    private ScheduleCalendarViewModel?
+    private ViewModelBase?
         _scheduleCalendarViewModel;
 
 
@@ -32,7 +62,8 @@ public partial class MemberShellViewModel
     // ============================================
 
     [ObservableProperty]
-    private ViewModelBase currentContent;
+    private ViewModelBase
+        currentContent = null!;
 
 
     // ============================================
@@ -52,11 +83,13 @@ public partial class MemberShellViewModel
         nameof(IsDashboardSelected))]
     [NotifyPropertyChangedFor(
         nameof(IsInspectionListSelected))]
-    private MemberMenuItem selectedMenuItem;
+    private MemberMenuItem
+        selectedMenuItem;
 
 
     // ============================================
     // Constructor
+    // 本番用
     // ============================================
 
     public MemberShellViewModel(
@@ -85,25 +118,164 @@ public partial class MemberShellViewModel
         ArgumentNullException.ThrowIfNull(
             logout);
 
+
         _operatorId =
             operatorId;
 
         OperatorName =
             operatorName;
 
-        _scheduleRepository =
-            scheduleRepository;
+        _logout =
+            logout;
 
-        _inspectionRepository =
-            inspectionRepository;
+
+        // ========================================
+        // Dashboard Factory
+        // ========================================
+
+        _createDashboardViewModel =
+            (
+                id,
+                openInspection) =>
+                new MemberDashboardViewModel(
+                    id,
+                    scheduleRepository,
+                    openInspection);
+
+
+        // ========================================
+        // Inspection List Factory
+        // ========================================
+
+        _createInspectionListViewModel =
+            id =>
+                new MemberInspectionListViewModel(
+                    id,
+                    inspectionRepository);
+
+
+        // ========================================
+        // Schedule Calendar Factory
+        // ========================================
+
+        _createScheduleCalendarViewModel =
+            () =>
+                new ScheduleCalendarViewModel(
+                    scheduleRepository);
+
+
+        // ========================================
+        // Inspection Entry Factory
+        // ========================================
+
+        _createInspectionEntryViewModel =
+            (
+                scheduleId,
+                id,
+                back) =>
+                new InspectionEntryViewModel(
+                    scheduleId,
+                    id,
+                    inspectionRepository,
+                    back);
+
+
+        // ========================================
+        // Initial Page
+        // ========================================
+
+        CurrentContent =
+            GetDashboardViewModel();
+
+        SelectedMenuItem =
+            MemberMenuItem.Dashboard;
+    }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal MemberShellViewModel(
+        Guid operatorId,
+        string operatorName,
+        Action logout,
+        Func<
+            Guid,
+            Action<Guid>,
+            ViewModelBase>
+            createDashboardViewModel,
+        Func<
+            Guid,
+            ViewModelBase>
+            createInspectionListViewModel,
+        Func<
+            ViewModelBase>
+            createScheduleCalendarViewModel,
+        Func<
+            Guid,
+            Guid,
+            Action,
+            ViewModelBase>
+            createInspectionEntryViewModel)
+    {
+        if (operatorId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "点検担当者IDを指定してください。",
+                nameof(operatorId));
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            operatorName);
+
+        ArgumentNullException.ThrowIfNull(
+            logout);
+
+        ArgumentNullException.ThrowIfNull(
+            createDashboardViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            createInspectionListViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            createScheduleCalendarViewModel);
+
+        ArgumentNullException.ThrowIfNull(
+            createInspectionEntryViewModel);
+
+
+        _operatorId =
+            operatorId;
+
+        OperatorName =
+            operatorName;
 
         _logout =
             logout;
 
-        currentContent =
+        _createDashboardViewModel =
+            createDashboardViewModel;
+
+        _createInspectionListViewModel =
+            createInspectionListViewModel;
+
+        _createScheduleCalendarViewModel =
+            createScheduleCalendarViewModel;
+
+        _createInspectionEntryViewModel =
+            createInspectionEntryViewModel;
+
+
+        // ========================================
+        // Initial Page
+        // ========================================
+
+        CurrentContent =
             GetDashboardViewModel();
 
-        selectedMenuItem =
+        SelectedMenuItem =
             MemberMenuItem.Dashboard;
     }
 
@@ -112,7 +284,10 @@ public partial class MemberShellViewModel
     // ログインユーザー
     // ============================================
 
-    public string OperatorName { get; }
+    public string OperatorName
+    {
+        get;
+    }
 
 
     // ============================================
@@ -122,6 +297,7 @@ public partial class MemberShellViewModel
     public bool IsDashboardSelected =>
         SelectedMenuItem ==
             MemberMenuItem.Dashboard;
+
 
     public bool IsInspectionListSelected =>
         SelectedMenuItem ==
@@ -135,8 +311,13 @@ public partial class MemberShellViewModel
     [RelayCommand]
     private void OpenDashboard()
     {
+        /*
+         * Dashboardは最新状態を表示するため
+         * メニューから開くたび再生成する。
+         */
         ShowDashboard(
-            reload: true);
+            reload:
+                true);
     }
 
 
@@ -153,9 +334,9 @@ public partial class MemberShellViewModel
          * メニューを開くたびにVMを作り直す。
          */
         CurrentContent =
-            new MemberInspectionListViewModel(
-                _operatorId,
-                _inspectionRepository);
+            _createInspectionListViewModel(
+                _operatorId);
+
 
         SelectedMenuItem =
             MemberMenuItem.InspectionList;
@@ -174,6 +355,7 @@ public partial class MemberShellViewModel
     {
         CurrentContent =
             GetScheduleCalendarViewModel();
+
 
         SelectedMenuItem =
             MemberMenuItem.ScheduleCalendar;
@@ -206,6 +388,7 @@ public partial class MemberShellViewModel
         IsLogoutDialogOpen =
             false;
 
+
         _logout();
     }
 
@@ -214,13 +397,12 @@ public partial class MemberShellViewModel
     // Dashboard
     // ============================================
 
-    private MemberDashboardViewModel
+    private ViewModelBase
         GetDashboardViewModel()
     {
         return _dashboardViewModel ??=
-            new MemberDashboardViewModel(
+            _createDashboardViewModel(
                 _operatorId,
-                _scheduleRepository,
                 OpenInspection);
     }
 
@@ -229,12 +411,11 @@ public partial class MemberShellViewModel
     // Schedule Calendar
     // ============================================
 
-    private ScheduleCalendarViewModel
+    private ViewModelBase
         GetScheduleCalendarViewModel()
     {
         return _scheduleCalendarViewModel ??=
-            new ScheduleCalendarViewModel(
-                _scheduleRepository);
+            _createScheduleCalendarViewModel();
     }
 
 
@@ -246,11 +427,11 @@ public partial class MemberShellViewModel
         Guid scheduleId)
     {
         CurrentContent =
-            new InspectionEntryViewModel(
+            _createInspectionEntryViewModel(
                 scheduleId,
                 _operatorId,
-                _inspectionRepository,
                 ReturnFromInspection);
+
 
         /*
          * 点検実施画面は「点検予定」から開始するため、
@@ -272,7 +453,8 @@ public partial class MemberShellViewModel
          * Dashboardを再生成する。
          */
         ShowDashboard(
-            reload: true);
+            reload:
+                true);
     }
 
 
@@ -289,8 +471,10 @@ public partial class MemberShellViewModel
                 null;
         }
 
+
         CurrentContent =
             GetDashboardViewModel();
+
 
         SelectedMenuItem =
             MemberMenuItem.Dashboard;

@@ -17,6 +17,11 @@ public sealed partial class OperatorListItemViewModel
         Func<OperatorListItemViewModel, Task>
         _toggleActiveRequested;
 
+
+    // ============================================
+    // Constructor
+    // ============================================
+
     public OperatorListItemViewModel(
         Guid id,
         string loginId,
@@ -30,39 +35,106 @@ public sealed partial class OperatorListItemViewModel
         Func<OperatorListItemViewModel, Task>
             toggleActiveRequested)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(loginId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
-        ArgumentNullException.ThrowIfNull(editRequested);
-        ArgumentNullException.ThrowIfNull(toggleActiveRequested);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            loginId);
 
-        Id = id;
-        LoginId = loginId;
-        DisplayName = displayName;
-        Role = role;
-        IsActive = isActive;
-        LastLoginAt = lastLoginAt;
-        IsCurrentUser = isCurrentUser;
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            displayName);
 
-        _editRequested = editRequested;
-        _toggleActiveRequested = toggleActiveRequested;
+        ArgumentNullException.ThrowIfNull(
+            editRequested);
+
+        ArgumentNullException.ThrowIfNull(
+            toggleActiveRequested);
+
+
+        Id =
+            id;
+
+        LoginId =
+            loginId;
+
+        DisplayName =
+            displayName;
+
+        Role =
+            role;
+
+        IsActive =
+            isActive;
+
+        LastLoginAt =
+            lastLoginAt;
+
+        IsCurrentUser =
+            isCurrentUser;
+
+
+        _editRequested =
+            editRequested;
+
+        _toggleActiveRequested =
+            toggleActiveRequested;
     }
 
-    public Guid Id { get; }
 
-    public string LoginId { get; }
+    // ============================================
+    // Data
+    // ============================================
 
-    public string DisplayName { get; }
+    public Guid Id
+    {
+        get;
+    }
 
-    public OperatorRole Role { get; }
 
-    public bool IsActive { get; }
+    public string LoginId
+    {
+        get;
+    }
 
-    public DateTimeOffset? LastLoginAt { get; }
 
-    public bool IsCurrentUser { get; }
+    public string DisplayName
+    {
+        get;
+    }
+
+
+    public OperatorRole Role
+    {
+        get;
+    }
+
+
+    public bool IsActive
+    {
+        get;
+    }
+
+
+    public DateTimeOffset? LastLoginAt
+    {
+        get;
+    }
+
+
+    public bool IsCurrentUser
+    {
+        get;
+    }
+
+
+    // ============================================
+    // Active
+    // ============================================
 
     public bool CanToggleActive =>
         !IsCurrentUser;
+
+
+    // ============================================
+    // Role
+    // ============================================
 
     public string RoleName =>
         Role switch
@@ -73,20 +145,37 @@ public sealed partial class OperatorListItemViewModel
             OperatorRole.MaintenanceManager =>
                 "保全責任者",
 
-            _ => Role.ToString()
+            _ =>
+                Role.ToString()
         };
+
+
+    // ============================================
+    // Status
+    // ============================================
 
     public string StatusText =>
         IsActive
             ? "有効"
             : "無効";
 
+
+    // ============================================
+    // Last Login
+    // ============================================
+
     public string LastLoginAtText =>
         LastLoginAt.HasValue
             ? LastLoginAt.Value
                 .ToLocalTime()
-                .ToString("yyyy/MM/dd HH:mm")
+                .ToString(
+                    "yyyy/MM/dd HH:mm")
             : "未ログイン";
+
+
+    // ============================================
+    // Toggle Active
+    // ============================================
 
     public string ToggleActiveText =>
         IsCurrentUser
@@ -95,15 +184,29 @@ public sealed partial class OperatorListItemViewModel
                 ? "無効化"
                 : "有効化";
 
+
+    // ============================================
+    // Edit
+    // ============================================
+
     [RelayCommand]
     private void Edit()
     {
-        _editRequested(this);
+        _editRequested(
+            this);
     }
 
-    [RelayCommand]
+
+    // ============================================
+    // Toggle Active
+    // ============================================
+
+    [RelayCommand(
+        CanExecute =
+            nameof(CanToggleActive))]
     private async Task ToggleActiveAsync()
     {
-        await _toggleActiveRequested(this);
+        await _toggleActiveRequested(
+            this);
     }
 }

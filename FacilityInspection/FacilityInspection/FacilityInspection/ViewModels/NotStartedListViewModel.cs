@@ -14,8 +14,19 @@ public sealed partial class NotStartedListViewModel
 {
     private const int PageSize = 5;
 
-    private readonly InspectionRepository
-        _inspectionRepository;
+
+    // ============================================
+    // Dependencies
+    // ============================================
+
+    private readonly Func<
+        Task<IReadOnlyList<InspectionListData>>>
+        _loadNotStartedAsync;
+
+
+    // ============================================
+    // Data
+    // ============================================
 
     private IReadOnlyList<InspectionListData>
         _allItems = [];
@@ -26,6 +37,7 @@ public sealed partial class NotStartedListViewModel
 
     // ============================================
     // Constructor
+    // 本番用
     // ============================================
 
     public NotStartedListViewModel(
@@ -34,10 +46,46 @@ public sealed partial class NotStartedListViewModel
         ArgumentNullException.ThrowIfNull(
             inspectionRepository);
 
-        _inspectionRepository =
-            inspectionRepository;
 
+        /*
+         * Repository側にはoptional CancellationTokenがあるため、
+         * lambdaでラップする。
+         */
+        _loadNotStartedAsync =
+            () =>
+                inspectionRepository
+                    .GetNotStartedAsync();
+
+
+        /*
+         * 本番では従来どおり
+         * コンストラクタ生成後に自動ロードする。
+         */
         _ = LoadAsync();
+    }
+
+
+    // ============================================
+    // Constructor
+    // テスト用
+    // ============================================
+
+    internal NotStartedListViewModel(
+        Func<
+            Task<IReadOnlyList<InspectionListData>>>
+            loadNotStartedAsync)
+    {
+        ArgumentNullException.ThrowIfNull(
+            loadNotStartedAsync);
+
+
+        _loadNotStartedAsync =
+            loadNotStartedAsync;
+
+
+        /*
+         * テスト用では自動ロードしない。
+         */
     }
 
 
@@ -58,6 +106,7 @@ public sealed partial class NotStartedListViewModel
 
     public string Title =>
         "未実施一覧";
+
 
     public string Description =>
         "点検予定のうち、まだ点検が開始されていない項目を一覧表示します。";
@@ -176,12 +225,16 @@ public sealed partial class NotStartedListViewModel
     // ============================================
 
     [RelayCommand]
-    private async Task LoadAsync()
+    internal async Task LoadAsync()
     {
+        /*
+         * 多重読込防止。
+         */
         if (IsLoading)
         {
             return;
         }
+
 
         try
         {
@@ -191,9 +244,10 @@ public sealed partial class NotStartedListViewModel
             ErrorMessage =
                 null;
 
+
             _allItems =
-                await _inspectionRepository
-                    .GetNotStartedAsync();
+                await _loadNotStartedAsync();
+
 
             ApplyFilter();
         }
@@ -207,10 +261,20 @@ public sealed partial class NotStartedListViewModel
 
             Items.Clear();
 
+
+            /*
+             * エラー時に
+             * "2 / 1" 等にならないよう1ページ目へ戻す。
+             */
+            CurrentPage =
+                1;
+
+
             ErrorMessage =
                 "未実施一覧を読み込めませんでした。" +
                 Environment.NewLine +
                 ex.Message;
+
 
             NotifyListProperties();
         }
@@ -218,6 +282,7 @@ public sealed partial class NotStartedListViewModel
         {
             IsLoading =
                 false;
+
 
             OnPropertyChanged(
                 nameof(IsEmpty));
@@ -232,46 +297,57 @@ public sealed partial class NotStartedListViewModel
     private void ApplyFilter()
     {
         IEnumerable<InspectionListData>
-            query = _allItems;
+            query =
+                _allItems;
+
 
         var keyword =
             SearchText.Trim();
+
 
         if (!string.IsNullOrWhiteSpace(
                 keyword))
         {
             query =
-                query.Where(x =>
-                    x.FactorySiteName.Contains(
-                        keyword,
-                        StringComparison.OrdinalIgnoreCase) ||
+                query.Where(
+                    x =>
+                        x.FactorySiteName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
 
-                    x.LocationName.Contains(
-                        keyword,
-                        StringComparison.OrdinalIgnoreCase) ||
+                        x.LocationName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
 
-                    x.EquipmentCode.Contains(
-                        keyword,
-                        StringComparison.OrdinalIgnoreCase) ||
+                        x.EquipmentCode.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
 
-                    x.EquipmentName.Contains(
-                        keyword,
-                        StringComparison.OrdinalIgnoreCase) ||
+                        x.EquipmentName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
 
-                    x.TemplateName.Contains(
-                        keyword,
-                        StringComparison.OrdinalIgnoreCase) ||
+                        x.TemplateName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase) ||
 
-                    x.OperatorName.Contains(
-                        keyword,
-                        StringComparison.OrdinalIgnoreCase));
+                        x.OperatorName.Contains(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase));
         }
+
 
         _filteredItems =
             query.ToList();
 
+
+        /*
+         * 検索条件が変わったら
+         * 必ず1ページ目へ戻す。
+         */
         CurrentPage =
             1;
+
 
         ApplyPage();
     }
@@ -285,9 +361,11 @@ public sealed partial class NotStartedListViewModel
     {
         Items.Clear();
 
+
         var skip =
             (CurrentPage - 1) *
             PageSize;
+
 
         foreach (var source in
                  _filteredItems
@@ -299,6 +377,7 @@ public sealed partial class NotStartedListViewModel
                     source,
                     OpenDetail));
         }
+
 
         NotifyListProperties();
     }
@@ -315,6 +394,7 @@ public sealed partial class NotStartedListViewModel
         {
             return;
         }
+
 
         DetailRequested?.Invoke(
             scheduleId);
@@ -333,7 +413,9 @@ public sealed partial class NotStartedListViewModel
             return;
         }
 
+
         CurrentPage--;
+
 
         ApplyPage();
     }
@@ -351,7 +433,9 @@ public sealed partial class NotStartedListViewModel
             return;
         }
 
+
         CurrentPage++;
+
 
         ApplyPage();
     }
