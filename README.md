@@ -1,10 +1,28 @@
 # Facility Inspection App
 
+[![Repository](https://img.shields.io/badge/GitHub-facility--inspection--app-181717?logo=github&logoColor=white)](https://github.com/fewioaghwrao/facility-inspection-app)
+[![CI](https://github.com/fewioaghwrao/facility-inspection-app/actions/workflows/ci.yml/badge.svg)](https://github.com/fewioaghwrao/facility-inspection-app/actions/workflows/ci.yml)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
+![Avalonia](https://img.shields.io/badge/Avalonia-12.1.0-8B44AC)
+![SQLite](https://img.shields.io/badge/SQLite-EF%20Core-003B57?logo=sqlite&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-xUnit-512BD4)
+
+
 **Avalonia UI / C# / SQLite で構築した、設備点検・保守記録アプリです。**
 
 工場設備の点検業務を対象に、**点検予定の作成 → 担当者による点検実施 → 結果・写真の記録 → 保全管理者による確認・承認／差し戻し → 操作履歴の保存**までを一連の流れとして扱います。
 
 ローカルSQLiteを利用する構成とし、点検担当者と保全管理者で画面・操作を分離しています。
+
+---
+
+## 設計ドキュメント
+
+| 文書 | 内容 |
+|---|---|
+| [要件定義書](docs/FacilityInspection_要件定義書.md) | 業務要件、機能要件、データ要件、非機能要件、対象範囲を定義 |
+| [基本設計書](docs/FacilityInspection_基本設計書.md) | システム構成、画面、権限、状態遷移、論理データ設計を定義 |
+| [詳細設計書](docs/FacilityInspection_詳細設計書.md) | Domain、Repository、Service、ViewModel、DB制約、処理内容を定義 |
 
 ---
 
@@ -251,6 +269,8 @@ Operator
 | ORM | Entity Framework Core |
 | Database | SQLite |
 | Data Access | Repository パターン |
+| Testing | xUnit |
+| CI | GitHub Actions |
 | Diagram | draw.io / Mermaid |
 
 ---
@@ -295,6 +315,10 @@ UIロジックはViewModelへ分離し、データアクセスはRepository、�
 主要な構成は次のとおりです。
 
 ```text
+.github/
+└─ workflows/
+   └─ ci.yml                     # GitHub Actions CI
+
 FacilityInspection/
 ├─ FacilityInspection.slnx
 ├─ Directory.Packages.props
@@ -303,30 +327,35 @@ FacilityInspection/
 │  ├─ Program.cs
 │  └─ FacilityInspection.Desktop.csproj
 │
-└─ FacilityInspection/
-   ├─ Data/
-   │  ├─ Configurations/       # EF Core Entity Configuration
-   │  ├─ Seeds/                # 初期データ
-   │  ├─ InspectionDbContext.cs
-   │  ├─ InspectionRepository.cs
-   │  ├─ ScheduleRepository.cs
-   │  └─ ...
-   │
+├─ FacilityInspection/
+│  ├─ Data/
+│  │  ├─ Configurations/       # EF Core Entity Configuration
+│  │  ├─ Seeds/                # 初期データ
+│  │  ├─ InspectionDbContext.cs
+│  │  ├─ InspectionRepository.cs
+│  │  ├─ ScheduleRepository.cs
+│  │  └─ ...
+│  │
+│  ├─ Domain/
+│  │  ├─ AuditLogs/
+│  │  ├─ Equipments/
+│  │  ├─ Inspections/
+│  │  ├─ InspectionTemplates/
+│  │  ├─ Locations/
+│  │  ├─ Operators/
+│  │  └─ Sites/
+│  │
+│  ├─ Services/
+│  │  ├─ Authentication/
+│  │  └─ Backup/
+│  │
+│  ├─ ViewModels/
+│  └─ Views/
+│
+└─ FacilityInspection.Tests/
    ├─ Domain/
-   │  ├─ AuditLogs/
-   │  ├─ Equipments/
-   │  ├─ Inspections/
-   │  ├─ InspectionTemplates/
-   │  ├─ Locations/
-   │  ├─ Operators/
-   │  └─ Sites/
-   │
    ├─ Services/
-   │  ├─ Authentication/
-   │  └─ Backup/
-   │
-   ├─ ViewModels/
-   └─ Views/
+   └─ ViewModels/
 
 sample/
 ├─ database/
@@ -406,6 +435,74 @@ sample/database/facility-inspection-sample.db
 
 ---
 
+## 単体テスト
+
+主要なドメインロジック、Service、ViewModelを対象に、xUnitによる単体テストを実装しています。
+
+画面そのものの描画確認ではなく、業務ルール、状態遷移、入力検証、ページング、Repository / Serviceとの連携、例外発生時のエラー処理など、アプリケーションの振る舞いを中心に検証しています。
+
+### 主なテスト対象
+
+- 点検、点検結果、点検写真などのドメインロジック
+- ログイン認証
+- SQLiteデータベースのバックアップ / 復元
+- 点検結果の承認 / 差し戻し
+- ロール別ナビゲーション
+- 点検担当者ダッシュボード
+- 担当点検一覧
+- 未実施一覧
+- 担当者管理
+- 点検予定カレンダー
+- 点検予定の登録 / 編集 / 取消
+- ページング、フィルタ、入力バリデーション
+- Repository / Serviceで例外が発生した場合のエラー処理
+
+### ViewModelのテスト方針
+
+RepositoryやServiceへ直接依存するViewModelについては、本番用コンストラクタを維持しつつ、テスト用の `internal` コンストラクタからDelegateを注入できる構成としています。
+
+```text
+ViewModel
+   │
+   ├─ Production
+   │    └─ Repository / Service
+   │
+   └─ Unit Test
+        └─ Delegate / Test Double
+```
+
+これにより、実際のSQLiteデータベースへ接続せずに、ViewModel単体で成功時・失敗時の状態変化を検証できます。
+
+また、日付に依存する処理ではClockを注入し、「今日」「期限超過」「過去日の入力禁止」などをテスト実行日に左右されない形で検証しています。
+
+### テスト実行
+
+```bash
+dotnet test FacilityInspection/FacilityInspection.slnx
+```
+
+Release構成で実行する場合:
+
+```bash
+dotnet test FacilityInspection/FacilityInspection.slnx --configuration Release
+```
+
+### CI
+
+GitHub ActionsによるCIを用意し、Restore / Release Build / Unit Testを自動実行できる構成としています。
+
+```text
+Pull Request / Push
+        ↓
+     Restore
+        ↓
+  Release Build
+        ↓
+    Unit Test
+```
+
+---
+
 ## 実行方法
 
 ### 前提
@@ -423,6 +520,12 @@ dotnet restore FacilityInspection/FacilityInspection.slnx
 
 ```bash
 dotnet run --project FacilityInspection/FacilityInspection/FacilityInspection.Desktop/FacilityInspection.Desktop.csproj
+```
+
+### Test
+
+```bash
+dotnet test FacilityInspection/FacilityInspection.slnx
 ```
 
 > 実行に必要な.NET SDKのバージョンは、プロジェクト設定に合わせてください。
@@ -445,6 +548,9 @@ dotnet run --project FacilityInspection/FacilityInspection/FacilityInspection.De
 - SQLiteによるローカルデータ保存
 - EF Core ConfigurationによるDBマッピング分離
 - Repository / Service / ViewModel の責務分離
+- xUnitによるDomain / Service / ViewModelの単体テスト
+- Delegate注入・Clock注入によるテスト容易性を考慮したViewModel設計
+- GitHub ActionsによるBuild / Unit TestのCI自動化
 - データベースのバックアップ / 復元
 
 ---
