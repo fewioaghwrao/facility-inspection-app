@@ -101,7 +101,9 @@ Windowsでは概ね以下となる。
 %LOCALAPPDATA%\FacilityInspection\facility-inspection.db
 ```
 
-DBは起動時に`Database.EnsureCreated()`で初期化する。
+DBは起動時に`DatabaseInitializer`でEF Coreマイグレーションを適用して初期化・最新化する。
+旧バージョン（`EnsureCreated()`で作成したDB）は、初回マイグレーション適用済みとして履歴を登録したうえで以降のマイグレーションを適用する。
+バックアップ復元後にも同じ処理を行い、失敗した場合は復元前のDBに戻す。
 
 ### 3.4 写真保存先
 
@@ -135,7 +137,7 @@ DBの`InspectionPhotos.RelativePath`には`photos/...`から始まる相対パ�
 flowchart TD
     A[App起動] --> B[DB保存フォルダー作成]
     B --> C[InspectionDbContextFactory生成]
-    C --> D[EnsureCreated]
+    C --> D[マイグレーション適用]
     D --> E[Operator Seed]
     E --> F[FactorySite / Location Seed]
     F --> G[Equipment Seed]

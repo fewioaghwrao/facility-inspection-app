@@ -82,7 +82,7 @@ public partial class App : Application
         // ========================================
 
         InitializeDatabase(
-            dbContextFactory);
+            databasePath);
 
 
         // ========================================
@@ -167,9 +167,14 @@ public partial class App : Application
     new AuditLogRepository(
         dbContextFactory);
 
+        /*
+         * 復元したバックアップが旧スキーマの場合に備え、
+         * 復元後にもマイグレーションを適用する。
+         */
         var databaseBackupService =
-    new DatabaseBackupService(
-        databasePath);
+            new DatabaseBackupService(
+                databasePath,
+                DatabaseInitializer.Initialize);
 
         var backupFilePickerService =
             new BackupFilePickerService();
@@ -193,15 +198,17 @@ public partial class App : Application
 
     // ============================================
     // DB初期化
+    //
+    // マイグレーションを適用してスキーマを最新化する。
+    // EnsureCreatedで作成された旧DBも
+    // DatabaseInitializer側で移行する。
     // ============================================
 
     private static void InitializeDatabase(
-        InspectionDbContextFactory dbContextFactory)
+        string databasePath)
     {
-        using var dbContext =
-            dbContextFactory.CreateDbContext();
-
-        dbContext.Database.EnsureCreated();
+        DatabaseInitializer.Initialize(
+            databasePath);
     }
 
 

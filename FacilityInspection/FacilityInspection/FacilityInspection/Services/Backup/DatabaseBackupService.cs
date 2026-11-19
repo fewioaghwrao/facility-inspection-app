@@ -14,14 +14,25 @@ public sealed class DatabaseBackupService
     private readonly string
         _databasePath;
 
+    /// <summary>
+    /// 復元後にDBスキーマを最新化する処理。
+    /// 引数はDBファイルパス。nullの場合は何もしない。
+    /// </summary>
+    private readonly Action<string>?
+        _upgradeDatabase;
+
     public DatabaseBackupService(
-        string databasePath)
+        string databasePath,
+        Action<string>? upgradeDatabase = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             databasePath);
 
         _databasePath =
             databasePath;
+
+        _upgradeDatabase =
+            upgradeDatabase;
     }
 
 
@@ -221,6 +232,14 @@ public sealed class DatabaseBackupService
                 await ValidateDatabaseAsync(
                     _databasePath,
                     cancellationToken);
+
+                /*
+                 * 旧バージョンのバックアップを復元した場合に備え、
+                 * マイグレーションを適用する。
+                 * 失敗した場合は下のcatchで退避DBに戻す。
+                 */
+                _upgradeDatabase?.Invoke(
+                    _databasePath);
             }
             catch
             {

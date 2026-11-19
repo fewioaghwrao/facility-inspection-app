@@ -21,6 +21,8 @@ public sealed class InspectionRepositoryCompleteTests
 {
     private readonly string _testDirectory;
 
+    private readonly string _databasePath;
+
     private readonly InspectionDbContextFactory _dbContextFactory;
 
     private readonly InspectionRepository _repository;
@@ -47,14 +49,14 @@ public sealed class InspectionRepositoryCompleteTests
         Directory.CreateDirectory(
             _testDirectory);
 
-        var databasePath =
+        _databasePath =
             Path.Combine(
                 _testDirectory,
                 "facility-inspection.db");
 
         _dbContextFactory =
             new InspectionDbContextFactory(
-                databasePath);
+                _databasePath);
 
         _repository =
             new InspectionRepository(
@@ -382,10 +384,12 @@ public sealed class InspectionRepositoryCompleteTests
 
     private void SeedMinimumData()
     {
+        // 本番と同じくマイグレーションでスキーマを作成する
+        DatabaseInitializer.Initialize(
+            _databasePath);
+
         using var dbContext =
             _dbContextFactory.CreateDbContext();
-
-        dbContext.Database.EnsureCreated();
 
         var inspector =
             new Operator

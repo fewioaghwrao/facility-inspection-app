@@ -20,6 +20,11 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <!-- dotnet ef（マイグレーション作成）用。実行時には不要 -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
 	<PackageReference Include="Microsoft.Extensions.Identity.Core" />
   </ItemGroup>
 

@@ -497,6 +497,113 @@ public sealed class DatabaseBackupServiceTests
 
 
     [Fact]
+    public async Task RestoreFromAsync_WithUpgradeDatabase_InvokesUpgradeAfterRestore()
+    {
+        // Arrange
+        await CreateCompatibleDatabaseAsync(
+            _databasePath,
+            "current-data");
+
+        var backupPath =
+            Path.Combine(
+                _testDirectory,
+                "restore-source.db");
+
+        await CreateCompatibleDatabaseAsync(
+            backupPath,
+            "backup-data");
+
+        string? upgradedPath = null;
+        string? valueAtUpgrade = null;
+
+        var service =
+            new DatabaseBackupService(
+                _databasePath,
+                path =>
+                {
+                    upgradedPath = path;
+
+                    valueAtUpgrade =
+                        ReadTestValueAsync(path)
+                            .GetAwaiter()
+                            .GetResult();
+                });
+
+        await using var backupStream =
+            new FileStream(
+                backupPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+        // Act
+        await service.RestoreFromAsync(
+            backupStream);
+
+        // Assert
+        Assert.Equal(
+            _databasePath,
+            upgradedPath);
+
+        // 復元後のDBに対して呼ばれている
+        Assert.Equal(
+            "backup-data",
+            valueAtUpgrade);
+    }
+
+
+    [Fact]
+    public async Task RestoreFromAsync_WhenUpgradeDatabaseFails_RollsBackToCurrentDatabase()
+    {
+        // Arrange
+        await CreateCompatibleDatabaseAsync(
+            _databasePath,
+            "current-data");
+
+        var backupPath =
+            Path.Combine(
+                _testDirectory,
+                "restore-source.db");
+
+        await CreateCompatibleDatabaseAsync(
+            backupPath,
+            "backup-data");
+
+        var service =
+            new DatabaseBackupService(
+                _databasePath,
+                _ => throw new InvalidOperationException(
+                    "migration failed"));
+
+        await using var backupStream =
+            new FileStream(
+                backupPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+
+        // Act
+        var exception =
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.RestoreFromAsync(
+                    backupStream));
+
+        // Assert
+        Assert.Equal(
+            "migration failed",
+            exception.Message);
+
+        var currentValue =
+            await ReadTestValueAsync(
+                _databasePath);
+
+        Assert.Equal(
+            "current-data",
+            currentValue);
+    }
+
+
+    [Fact]
     public async Task RestoreFromAsync_WithNullBackupStream_ThrowsArgumentNullException()
     {
         // Arrange

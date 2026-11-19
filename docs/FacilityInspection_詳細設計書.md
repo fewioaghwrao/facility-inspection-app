@@ -135,7 +135,7 @@ SQLite DBの既定ファイル名は`facility-inspection.db`とする。
 起動時は以下の順序でDBおよびデモデータを初期化する。
 
 1. `InspectionDbContextFactory`生成
-2. `InspectionDbContext.Database.EnsureCreated()`
+2. `DatabaseInitializer.Initialize()`（マイグレーション適用。旧DBは履歴を登録して移行）
 3. 担当者シード
 4. 工場／設置場所シード
 5. 設備シード
@@ -147,6 +147,13 @@ SQLite DBの既定ファイル名は`facility-inspection.db`とする。
 11. `MainWindow`表示
 
 シード処理は参照先データを必要とするため、上記依存順序を維持する。
+
+#### マイグレーション運用
+
+- マイグレーションは`FacilityInspection/Data/Migrations`に格納する。
+- 初回マイグレーション`InitialCreate`は`EnsureCreated()`時代のスキーマと同一であることを前提に旧DBの移行に使用するため、再生成・変更しない。
+- モデルを変更した場合は`dotnet ef migrations add <名前>`で差分マイグレーションを追加する。
+- CIでは`dotnet ef migrations has-pending-model-changes`により、マイグレーション未作成のモデル変更を検出する。
 
 ---
 

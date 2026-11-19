@@ -35,12 +35,13 @@ public sealed class EquipmentRepository
 
         Directory.CreateDirectory(directoryPath);
 
-        await using var dbContext =
-            new InspectionDbContext(DatabasePath);
-
-        // FactorySiteConfiguration・LocationConfigurationの
-        // HasDataも初回DB作成時に反映される
-        await dbContext.Database.EnsureCreatedAsync();
+        /*
+         * スキーマ作成・更新はアプリ起動時の
+         * DatabaseInitializer（マイグレーション）で行う。
+         * ここでEnsureCreatedを呼ぶとマイグレーション管理外の
+         * DBが作られるため、呼び出さない。
+         */
+        await Task.CompletedTask;
     }
 
     /// <summary>
