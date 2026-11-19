@@ -53,6 +53,16 @@ public partial class MainViewModel
         currentPage = null!;
 
 
+    /// <summary>
+    /// 表示中の画面のうち、未保存変更の確認が必要な画面。
+    /// ウィンドウを閉じる前の確認に使用する。
+    /// </summary>
+    public INavigationGuard? ActiveNavigationGuard =>
+        CurrentPage is MemberShellViewModel memberShell
+            ? memberShell.ActiveNavigationGuard
+            : null;
+
+
     // ============================================
     // Constructor
     // 本番用

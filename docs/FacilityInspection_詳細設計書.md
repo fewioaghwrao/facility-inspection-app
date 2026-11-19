@@ -864,7 +864,17 @@ Inspectionとは1対0..1とし、Inspection側をCascade対象とする。
 6. `NotStarted`または`Returned`なら`Start`を実行する。
 7. `InProgress`なら、同一実施者の場合のみ再開を許可する。
 8. `Completed`または`Approved`は再開不可。
-9. 点検入力画面用`InspectionEntryData`を返す。
+9. 点検入力画面用`InspectionEntryData`を返す。保存済みの結果値と、結果に紐づく写真（`InspectionEntryPhotoData`）を含める。
+
+### 9.2.1a SaveDraftAsync（一時保存）
+
+`CompleteAsync`と共通の保存処理（`SaveResultsAsync`）を使用し、以下の点だけが異なる。
+
+- 必須項目の未入力を許可する（入力形式の検証は行う）。
+- 状態は`InProgress`のまま変更しない。
+- 完了の監査ログは記録しない。
+
+写真は項目ごとに、送信された一覧と同じ状態へ同期する。送信一覧に無い保存済み写真はDBから削除し、コミット後に`photos/`配下の実ファイルを削除する。実ファイル削除に失敗しても例外にはせず、起動時の写真整理（`InspectionPhotoCleaner`）で回収する。
 
 ### 9.2.2 CompleteAsync
 

@@ -315,9 +315,11 @@ public partial class MemberShellViewModel
          * Dashboardは最新状態を表示するため
          * メニューから開くたび再生成する。
          */
-        ShowDashboard(
-            reload:
-                true);
+        LeaveCurrentContent(
+            () =>
+                ShowDashboard(
+                    reload:
+                        true));
     }
 
 
@@ -333,13 +335,16 @@ public partial class MemberShellViewModel
          * 常に最新DBから表示できるよう、
          * メニューを開くたびにVMを作り直す。
          */
-        CurrentContent =
-            _createInspectionListViewModel(
-                _operatorId);
+        LeaveCurrentContent(
+            () =>
+            {
+                CurrentContent =
+                    _createInspectionListViewModel(
+                        _operatorId);
 
-
-        SelectedMenuItem =
-            MemberMenuItem.InspectionList;
+                SelectedMenuItem =
+                    MemberMenuItem.InspectionList;
+            });
     }
 
 
@@ -353,12 +358,15 @@ public partial class MemberShellViewModel
     [RelayCommand]
     private void OpenScheduleCalendar()
     {
-        CurrentContent =
-            GetScheduleCalendarViewModel();
+        LeaveCurrentContent(
+            () =>
+            {
+                CurrentContent =
+                    GetScheduleCalendarViewModel();
 
-
-        SelectedMenuItem =
-            MemberMenuItem.ScheduleCalendar;
+                SelectedMenuItem =
+                    MemberMenuItem.ScheduleCalendar;
+            });
     }
 
 
@@ -369,6 +377,22 @@ public partial class MemberShellViewModel
     [RelayCommand]
     private void OpenLogoutDialog()
     {
+        /*
+         * 点検入力中に保存していない変更がある場合は、
+         * 点検画面の確認ダイアログで移動を選んだ時点でログアウトする
+         * （確認ダイアログを二重に表示しない）。
+         */
+        if (ActiveNavigationGuard is
+            {
+                HasUnsavedChanges: true
+            } guard)
+        {
+            guard.RequestLeave(
+                _logout);
+
+            return;
+        }
+
         IsLogoutDialogOpen =
             true;
     }
@@ -390,6 +414,35 @@ public partial class MemberShellViewModel
 
 
         _logout();
+    }
+
+
+    // ============================================
+    // 画面離脱ガード
+    // ============================================
+
+    /// <summary>
+    /// 表示中の画面が未保存変更を持つ可能性がある場合、その画面。
+    /// </summary>
+    public INavigationGuard? ActiveNavigationGuard =>
+        CurrentContent as INavigationGuard;
+
+
+    /// <summary>
+    /// 表示中の画面に離脱可否を確認してから画面を切り替える。
+    /// </summary>
+    private void LeaveCurrentContent(
+        Action navigate)
+    {
+        if (ActiveNavigationGuard is { } guard)
+        {
+            guard.RequestLeave(
+                navigate);
+
+            return;
+        }
+
+        navigate();
     }
 
 

@@ -4,12 +4,14 @@ using FacilityInspection.Domain.Inspections;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FacilityInspection.ViewModels;
 
 public sealed class InspectionEntryViewModel
-    : ViewModelBase
+    : ViewModelBase,
+      INavigationGuard
 {
     private readonly Guid
         _scheduleId;
@@ -39,6 +41,12 @@ public sealed class InspectionEntryViewModel
         _cleanupUnsavedPhotos;
 
 
+    private readonly Func<
+        IReadOnlyCollection<
+            InspectionCompletionItemData>,
+        Task>
+        _saveDraftAsync;
+
     private readonly Action
         _backRequested;
 
@@ -50,6 +58,27 @@ public sealed class InspectionEntryViewModel
     private bool _isLoading;
 
     private bool _isSaving;
+
+    private string?
+        _draftStatusMessage;
+
+    private bool
+        _isLeaveConfirmVisible;
+
+    private string?
+        _leaveErrorMessage;
+
+    /// <summary>
+    /// 最後に読み込み・保存した時点の入力内容。
+    /// </summary>
+    private string?
+        _savedSnapshot;
+
+    /// <summary>
+    /// 離脱確認で「移動する」を選んだときに実行する処理。
+    /// </summary>
+    private Action?
+        _pendingLeaveAction;
 
     private bool
         _isCompletionConfirmVisible;
@@ -155,6 +184,15 @@ public sealed class InspectionEntryViewModel
                         items);
 
 
+        _saveDraftAsync =
+            items =>
+                inspectionRepository
+                    .SaveDraftAsync(
+                        scheduleId,
+                        operatorId,
+                        items);
+
+
         /*
          * 本番では実際の写真ファイルを削除する。
          */
@@ -183,6 +221,22 @@ public sealed class InspectionEntryViewModel
             new RelayCommand(
                 FinishCompletion);
 
+        SaveDraftCommand =
+            new AsyncRelayCommand(
+                SaveDraftAsync);
+
+        CancelLeaveCommand =
+            new RelayCommand(
+                CancelLeave);
+
+        DiscardAndLeaveCommand =
+            new RelayCommand(
+                DiscardAndLeave);
+
+        SaveDraftAndLeaveCommand =
+            new AsyncRelayCommand(
+                SaveDraftAndLeaveAsync);
+
 
         /*
          * 本番では従来どおり
@@ -209,7 +263,12 @@ public sealed class InspectionEntryViewModel
             completeAsync,
         Action<InspectionEntryItemViewModel>
             cleanupUnsavedPhotos,
-        Action backRequested)
+        Action backRequested,
+        Func<
+            IReadOnlyCollection<
+                InspectionCompletionItemData>,
+            Task>?
+            saveDraftAsync = null)
     {
         if (scheduleId == Guid.Empty)
         {
@@ -253,6 +312,10 @@ public sealed class InspectionEntryViewModel
         _cleanupUnsavedPhotos =
             cleanupUnsavedPhotos;
 
+        _saveDraftAsync =
+            saveDraftAsync ??
+            (_ => Task.CompletedTask);
+
         _backRequested =
             backRequested;
 
@@ -276,6 +339,22 @@ public sealed class InspectionEntryViewModel
         FinishCompletionCommand =
             new RelayCommand(
                 FinishCompletion);
+
+        SaveDraftCommand =
+            new AsyncRelayCommand(
+                SaveDraftAsync);
+
+        CancelLeaveCommand =
+            new RelayCommand(
+                CancelLeave);
+
+        DiscardAndLeaveCommand =
+            new RelayCommand(
+                DiscardAndLeave);
+
+        SaveDraftAndLeaveCommand =
+            new AsyncRelayCommand(
+                SaveDraftAndLeaveAsync);
 
 
         /*
@@ -344,6 +423,104 @@ public sealed class InspectionEntryViewModel
     {
         get;
     }
+
+
+    public IAsyncRelayCommand
+        SaveDraftCommand
+    {
+        get;
+    }
+
+
+    // ============================================
+    // Draft
+    // ============================================
+
+    public string? DraftStatusMessage
+    {
+        get =>
+            _draftStatusMessage;
+        private set
+        {
+            if (SetProperty(
+                    ref _draftStatusMessage,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(
+                        HasDraftStatusMessage));
+            }
+        }
+    }
+
+
+    public bool HasDraftStatusMessage =>
+        !string.IsNullOrWhiteSpace(
+            DraftStatusMessage);
+
+
+    // ============================================
+    // Leave Confirm（未保存変更の確認）
+    // ============================================
+
+    public IRelayCommand
+        CancelLeaveCommand
+    {
+        get;
+    }
+
+
+    public IRelayCommand
+        DiscardAndLeaveCommand
+    {
+        get;
+    }
+
+
+    public IAsyncRelayCommand
+        SaveDraftAndLeaveCommand
+    {
+        get;
+    }
+
+
+    public bool IsLeaveConfirmVisible
+    {
+        get =>
+            _isLeaveConfirmVisible;
+        private set =>
+            SetProperty(
+                ref _isLeaveConfirmVisible,
+                value);
+    }
+
+
+    public string? LeaveErrorMessage
+    {
+        get =>
+            _leaveErrorMessage;
+        private set
+        {
+            if (SetProperty(
+                    ref _leaveErrorMessage,
+                    value))
+            {
+                OnPropertyChanged(
+                    nameof(
+                        HasLeaveError));
+            }
+        }
+    }
+
+
+    public bool HasLeaveError =>
+        !string.IsNullOrWhiteSpace(
+            LeaveErrorMessage);
+
+
+    public string LeaveConfirmMessage =>
+        "保存していない入力内容があります。" +
+        "このまま移動すると、前回の保存以降に入力した内容と追加した写真は失われます。";
 
 
     public IRelayCommand
@@ -589,6 +766,7 @@ public sealed class InspectionEntryViewModel
 
 
     public string NextStepMessage =>
+        "途中で中断する場合は「一時保存」を押してください。" +
         "入力内容を確認し、問題がなければ点検を完了します。";
 
 
@@ -654,6 +832,8 @@ public sealed class InspectionEntryViewModel
                     new InspectionEntryItemViewModel(
                         item));
             }
+
+            AcceptChanges();
         }
         catch (Exception exception)
         {
@@ -665,6 +845,100 @@ public sealed class InspectionEntryViewModel
         finally
         {
             IsLoading =
+                false;
+        }
+    }
+
+
+    // ============================================
+    // Save Draft
+    // ============================================
+
+    private async Task SaveDraftAsync()
+    {
+        await SaveDraftCoreAsync();
+    }
+
+
+    /// <returns>保存できた場合はtrue。</returns>
+    private async Task<bool> SaveDraftCoreAsync()
+    {
+        if (IsSaving)
+        {
+            return false;
+        }
+
+        ValidationMessage =
+            null;
+
+        DraftStatusMessage =
+            null;
+
+        var draftItems =
+            new List<
+                InspectionCompletionItemData>(
+                Items.Count);
+
+        var errorCount =
+            0;
+
+        foreach (var item
+                 in Items)
+        {
+            if (item.TryCreateDraftData(
+                    out var draftItem))
+            {
+                draftItems.Add(
+                    draftItem);
+            }
+            else
+            {
+                errorCount++;
+            }
+        }
+
+        if (errorCount > 0)
+        {
+            ValidationMessage =
+                $"入力内容に {errorCount} 件のエラーがあります。" +
+                "赤字の項目を修正してから一時保存してください。";
+
+            return false;
+        }
+
+        IsSaving =
+            true;
+
+        try
+        {
+            await _saveDraftAsync(
+                draftItems);
+
+            foreach (var item
+                     in Items)
+            {
+                item.MarkPhotosPersisted();
+            }
+
+            DraftStatusMessage =
+                $"一時保存しました（{DateTime.Now:HH:mm}）";
+
+            AcceptChanges();
+
+            return true;
+        }
+        catch (Exception exception)
+        {
+            ValidationMessage =
+                "一時保存できませんでした。" +
+                Environment.NewLine +
+                exception.Message;
+
+            return false;
+        }
+        finally
+        {
+            IsSaving =
                 false;
         }
     }
@@ -801,6 +1075,8 @@ public sealed class InspectionEntryViewModel
 
             _pendingCompletionItems =
                 null;
+
+            AcceptChanges();
         }
         catch (Exception exception)
         {
@@ -837,12 +1113,143 @@ public sealed class InspectionEntryViewModel
 
     private void Back()
     {
+        RequestLeave(
+            _backRequested);
+    }
+
+
+    // ============================================
+    // Unsaved Changes（画面離脱ガード）
+    // ============================================
+
+    /// <summary>
+    /// 読み込み時・一時保存時・完了時から入力内容が変わっているか。
+    /// 読み込み前（スナップショット未作成）は変更なしとして扱う。
+    /// </summary>
+    public bool HasUnsavedChanges =>
+        _savedSnapshot is not null &&
+        !string.Equals(
+            _savedSnapshot,
+            CreateSnapshot(),
+            StringComparison.Ordinal);
+
+
+    public void RequestLeave(
+        Action proceed)
+    {
+        ArgumentNullException.ThrowIfNull(
+            proceed);
+
+        if (IsSaving ||
+            IsLeaveConfirmVisible)
+        {
+            return;
+        }
+
+        if (HasUnsavedChanges)
+        {
+            _pendingLeaveAction =
+                proceed;
+
+            LeaveErrorMessage =
+                null;
+
+            IsLeaveConfirmVisible =
+                true;
+
+            return;
+        }
+
+        Leave(
+            proceed);
+    }
+
+
+    private void CancelLeave()
+    {
         if (IsSaving)
         {
             return;
         }
 
+        IsLeaveConfirmVisible =
+            false;
 
+        LeaveErrorMessage =
+            null;
+
+        _pendingLeaveAction =
+            null;
+    }
+
+
+    private void DiscardAndLeave()
+    {
+        if (IsSaving)
+        {
+            return;
+        }
+
+        var proceed =
+            _pendingLeaveAction;
+
+        IsLeaveConfirmVisible =
+            false;
+
+        LeaveErrorMessage =
+            null;
+
+        _pendingLeaveAction =
+            null;
+
+        if (proceed is not null)
+        {
+            Leave(
+                proceed);
+        }
+    }
+
+
+    private async Task SaveDraftAndLeaveAsync()
+    {
+        var proceed =
+            _pendingLeaveAction;
+
+        if (proceed is null)
+        {
+            IsLeaveConfirmVisible =
+                false;
+
+            return;
+        }
+
+        LeaveErrorMessage =
+            null;
+
+        if (!await SaveDraftCoreAsync())
+        {
+            LeaveErrorMessage =
+                "一時保存できなかったため、画面を移動していません。" +
+                Environment.NewLine +
+                (ValidationMessage ?? string.Empty);
+
+            return;
+        }
+
+        IsLeaveConfirmVisible =
+            false;
+
+        _pendingLeaveAction =
+            null;
+
+        Leave(
+            proceed);
+    }
+
+
+    private void Leave(
+        Action proceed)
+    {
         foreach (var item
                  in Items)
         {
@@ -857,8 +1264,23 @@ public sealed class InspectionEntryViewModel
                 item);
         }
 
+        proceed();
+    }
 
-        _backRequested();
+
+    private void AcceptChanges()
+    {
+        _savedSnapshot =
+            CreateSnapshot();
+    }
+
+
+    private string CreateSnapshot()
+    {
+        return string.Join(
+            '\n',
+            Items.Select(x =>
+                x.CreateStateSnapshot()));
     }
 
 

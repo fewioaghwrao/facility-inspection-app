@@ -13,7 +13,8 @@ public sealed class InspectionEntryPhotoViewModel : ViewModelBase
         string fileName,
         string relativePath,
         DateTime capturedAtUtc,
-        Action<InspectionEntryPhotoViewModel> removeRequested)
+        Action<InspectionEntryPhotoViewModel> removeRequested,
+        bool isPersisted = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             fileName);
@@ -36,6 +37,9 @@ public sealed class InspectionEntryPhotoViewModel : ViewModelBase
         _removeRequested =
             removeRequested;
 
+        IsPersisted =
+            isPersisted;
+
         RemoveCommand =
             new RelayCommand(
                 Remove);
@@ -46,6 +50,17 @@ public sealed class InspectionEntryPhotoViewModel : ViewModelBase
     public string RelativePath { get; }
 
     public DateTime CapturedAtUtc { get; }
+
+    /// <summary>
+    /// DBに保存済みの写真かどうか。
+    /// 保存済みの写真は、画面で削除しても保存するまで実ファイルを消さない。
+    /// </summary>
+    public bool IsPersisted { get; private set; }
+
+    internal void MarkPersisted()
+    {
+        IsPersisted = true;
+    }
 
     public IRelayCommand RemoveCommand { get; }
 

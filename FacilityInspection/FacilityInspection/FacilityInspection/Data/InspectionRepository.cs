@@ -3,6 +3,7 @@ using FacilityInspection.Domain.InspectionTemplates;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -141,7 +142,16 @@ public sealed record InspectionEntryItemData(
     bool? CheckValue,
     decimal? NumericValue,
     string? TextValue,
-    string? Comment);
+    string? Comment,
+    IReadOnlyList<InspectionEntryPhotoData>? Photos = null);
+
+/// <summary>
+/// 点検入力画面で表示する保存済み写真。
+/// </summary>
+public sealed record InspectionEntryPhotoData(
+    Guid PhotoId,
+    string RelativePath,
+    DateTime CapturedAtUtc);
 
 
 public sealed record InspectionCompletionPhotoData(
@@ -162,19 +172,31 @@ public sealed class InspectionRepository
     private readonly InspectionDbContextFactory
         _dbContextFactory;
 
+    /// <summary>
+    /// DBから外した写真の実ファイルを削除する処理。
+    /// 引数は写真の相対パス。
+    /// </summary>
+    private readonly Action<string>
+        _deletePhotoFile;
+
 
     // ============================================
     // Constructor
     // ============================================
 
     public InspectionRepository(
-        InspectionDbContextFactory dbContextFactory)
+        InspectionDbContextFactory dbContextFactory,
+        Action<string>? deletePhotoFile = null)
     {
         ArgumentNullException.ThrowIfNull(
             dbContextFactory);
 
         _dbContextFactory =
             dbContextFactory;
+
+        _deletePhotoFile =
+            deletePhotoFile ??
+            InspectionPhotoStorage.DeleteIfExists;
     }
 
 
@@ -221,6 +243,10 @@ public sealed class InspectionRepository
                     x.Inspection)
                     .ThenInclude(x =>
                         x!.Results)
+                .Include(x =>
+                    x.Inspection)
+                    .ThenInclude(x =>
+                        x!.Photos)
                 .AsSplitQuery()
                 .SingleOrDefaultAsync(
                     x =>
@@ -344,7 +370,10 @@ public sealed class InspectionRepository
                         existingResult?.CheckValue,
                         existingResult?.NumericValue,
                         existingResult?.TextValue,
-                        existingResult?.Comment);
+                        existingResult?.Comment,
+                        CreateEntryPhotos(
+                            inspection,
+                            existingResult));
                 })
                 .ToList();
 
@@ -371,14 +400,61 @@ public sealed class InspectionRepository
 
 
     // ============================================
-    // 点検担当者向け 点検完了
+    // 点検担当者向け 一時保存
     // ============================================
 
-    public async Task CompleteAsync(
+    /// <summary>
+    /// 実施中の点検の入力内容と写真を保存する。
+    /// 状態は「実施中」のまま変更しない。
+    /// 必須項目が未入力でも保存できる（入力形式の検証は行う）。
+    /// </summary>
+    public Task SaveDraftAsync(
         Guid scheduleId,
         Guid operatorId,
         IReadOnlyCollection<InspectionCompletionItemData> items,
         CancellationToken cancellationToken = default)
+    {
+        return SaveResultsAsync(
+            scheduleId,
+            operatorId,
+            items,
+            complete: false,
+            cancellationToken);
+    }
+
+
+    // ============================================
+    // 点検担当者向け 点検完了
+    // ============================================
+
+    /// <summary>
+    /// 入力内容と写真を保存し、点検を「完了・承認待ち」にする。
+    /// </summary>
+    public Task CompleteAsync(
+        Guid scheduleId,
+        Guid operatorId,
+        IReadOnlyCollection<InspectionCompletionItemData> items,
+        CancellationToken cancellationToken = default)
+    {
+        return SaveResultsAsync(
+            scheduleId,
+            operatorId,
+            items,
+            complete: true,
+            cancellationToken);
+    }
+
+
+    // ============================================
+    // 点検結果保存（一時保存・完了 共通）
+    // ============================================
+
+    private async Task SaveResultsAsync(
+        Guid scheduleId,
+        Guid operatorId,
+        IReadOnlyCollection<InspectionCompletionItemData> items,
+        bool complete,
+        CancellationToken cancellationToken)
     {
         if (scheduleId == Guid.Empty)
         {
@@ -444,7 +520,9 @@ public sealed class InspectionRepository
             InspectionStatus.InProgress)
         {
             throw new InvalidOperationException(
-                "実施中の点検だけ完了できます。");
+                complete
+                    ? "実施中の点検だけ完了できます。"
+                    : "実施中の点検だけ一時保存できます。");
         }
 
         if (inspection.PerformedByOperatorId !=
@@ -546,6 +624,9 @@ public sealed class InspectionRepository
             new HashSet<string>(
                 StringComparer.OrdinalIgnoreCase);
 
+        var removedPhotoPaths =
+            new List<string>();
+
         foreach (var templateItem
                  in templateItems)
         {
@@ -555,7 +636,8 @@ public sealed class InspectionRepository
 
             ValidateCompletionItem(
                 templateItem,
-                input);
+                input,
+                requireValues: complete);
 
             if (!existingResults.TryGetValue(
                     templateItem.Id,
@@ -591,60 +673,202 @@ public sealed class InspectionRepository
                 isAbnormal,
                 input.Comment);
 
-            foreach (var photoInput in
-                     input.Photos)
-            {
-                if (string.IsNullOrWhiteSpace(
-                        photoInput.RelativePath))
-                {
-                    throw new InvalidOperationException(
-                        $"「{templateItem.ItemName}」の写真パスが不正です。");
-                }
-
-                if (!submittedPhotoPaths.Add(
-                        photoInput.RelativePath))
-                {
-                    throw new InvalidOperationException(
-                        "同じ写真が重複して指定されています。");
-                }
-
-                var photo =
-                    new InspectionPhoto(
-                        inspection.Id,
-                        photoInput.RelativePath,
-                        photoInput.CapturedAtUtc,
-                        nextPhotoDisplayOrder++,
-                        result.Id,
-                        null);
-
-
-                dbContext
-    .Set<InspectionPhoto>()
-    .Add(photo);
-            }
+            SyncResultPhotos(
+                dbContext,
+                inspection,
+                result,
+                templateItem.ItemName,
+                input.Photos,
+                submittedPhotoPaths,
+                removedPhotoPaths,
+                ref nextPhotoDisplayOrder);
         }
 
-        var beforeStatus =
-            inspection.Status;
+        if (complete)
+        {
+            var beforeStatus =
+                inspection.Status;
 
-        inspection.Complete(
-            DateTime.UtcNow);
+            inspection.Complete(
+                DateTime.UtcNow);
 
-        var auditLog =
-            new AuditLog(
-                operatorId,
-                AuditActionType.InspectionComplete,
-                AuditEntityType.Inspection,
-                inspection.Id,
-                beforeStatus.ToString(),
-                inspection.Status.ToString(),
-                null);
+            var auditLog =
+                new AuditLog(
+                    operatorId,
+                    AuditActionType.InspectionComplete,
+                    AuditEntityType.Inspection,
+                    inspection.Id,
+                    beforeStatus.ToString(),
+                    inspection.Status.ToString(),
+                    null);
 
-        dbContext.AuditLogs.Add(
-            auditLog);
+            dbContext.AuditLogs.Add(
+                auditLog);
+        }
 
         await dbContext.SaveChangesAsync(
             cancellationToken);
+
+        /*
+         * DBの更新が確定してから実ファイルを削除する。
+         * 削除に失敗しても点検データは保存済みのため例外にしない。
+         * 残ったファイルは起動時の写真整理で回収する。
+         */
+        DeleteRemovedPhotoFiles(
+            removedPhotoPaths);
+    }
+
+
+    /// <summary>
+    /// 点検結果に紐づく写真を、画面から送られた一覧と同じ状態にする。
+    /// 一覧に無い保存済み写真は削除し、一覧にだけある写真は追加する。
+    /// </summary>
+    private static void SyncResultPhotos(
+        InspectionDbContext dbContext,
+        Inspection inspection,
+        InspectionResult result,
+        string itemName,
+        IReadOnlyList<InspectionCompletionPhotoData> photoInputs,
+        HashSet<string> submittedPhotoPaths,
+        List<string> removedPhotoPaths,
+        ref int nextPhotoDisplayOrder)
+    {
+        var desiredPaths =
+            new HashSet<string>(
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (var photoInput in
+                 photoInputs)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    photoInput.RelativePath))
+            {
+                throw new InvalidOperationException(
+                    $"「{itemName}」の写真パスが不正です。");
+            }
+
+            if (!submittedPhotoPaths.Add(
+                    photoInput.RelativePath))
+            {
+                throw new InvalidOperationException(
+                    "同じ写真が重複して指定されています。");
+            }
+
+            desiredPaths.Add(
+                photoInput.RelativePath);
+        }
+
+        var existingPhotos =
+            inspection.Photos
+                .Where(x =>
+                    x.InspectionResultId == result.Id)
+                .ToList();
+
+        foreach (var existingPhoto in
+                 existingPhotos)
+        {
+            if (desiredPaths.Contains(
+                    existingPhoto.RelativePath))
+            {
+                continue;
+            }
+
+            dbContext
+                .Set<InspectionPhoto>()
+                .Remove(existingPhoto);
+
+            removedPhotoPaths.Add(
+                existingPhoto.RelativePath);
+        }
+
+        var existingPaths =
+            existingPhotos
+                .Select(x =>
+                    x.RelativePath)
+                .ToHashSet(
+                    StringComparer.OrdinalIgnoreCase);
+
+        foreach (var photoInput in
+                 photoInputs)
+        {
+            if (existingPaths.Contains(
+                    photoInput.RelativePath))
+            {
+                continue;
+            }
+
+            var photo =
+                new InspectionPhoto(
+                    inspection.Id,
+                    photoInput.RelativePath,
+                    photoInput.CapturedAtUtc,
+                    nextPhotoDisplayOrder++,
+                    result.Id,
+                    null);
+
+            dbContext
+                .Set<InspectionPhoto>()
+                .Add(photo);
+        }
+    }
+
+
+    private void DeleteRemovedPhotoFiles(
+        IEnumerable<string> relativePaths)
+    {
+        foreach (var relativePath in
+                 relativePaths)
+        {
+            /*
+             * アプリが保存した写真（photos/配下）だけを削除対象にする。
+             * サンプル画像などは削除しない。
+             */
+            if (!relativePath
+                    .Replace('\\', '/')
+                    .StartsWith(
+                        "photos/",
+                        StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            try
+            {
+                _deletePhotoFile(
+                    relativePath);
+            }
+            catch (Exception exception) when (
+                exception is IOException or
+                UnauthorizedAccessException or
+                ArgumentException)
+            {
+                // 起動時の写真整理で回収する
+            }
+        }
+    }
+
+
+    private static IReadOnlyList<InspectionEntryPhotoData>
+        CreateEntryPhotos(
+            Inspection inspection,
+            InspectionResult? result)
+    {
+        if (result is null)
+        {
+            return [];
+        }
+
+        return inspection.Photos
+            .Where(x =>
+                x.InspectionResultId == result.Id)
+            .OrderBy(x =>
+                x.DisplayOrder)
+            .Select(x =>
+                new InspectionEntryPhotoData(
+                    x.Id,
+                    x.RelativePath,
+                    x.CapturedAtUtc))
+            .ToList();
     }
 
 
@@ -1374,7 +1598,8 @@ public sealed class InspectionRepository
 
     private static void ValidateCompletionItem(
         InspectionTemplateItem templateItem,
-        InspectionCompletionItemData input)
+        InspectionCompletionItemData input,
+        bool requireValues)
     {
         ArgumentNullException.ThrowIfNull(
             input.Photos);
@@ -1383,7 +1608,8 @@ public sealed class InspectionRepository
         {
             case InspectionInputType.NormalAbnormal:
             case InspectionInputType.DoneNotDone:
-                if (templateItem.IsRequired &&
+                if (requireValues &&
+                    templateItem.IsRequired &&
                     !input.CheckValue.HasValue)
                 {
                     throw new InvalidOperationException(
@@ -1401,7 +1627,8 @@ public sealed class InspectionRepository
                 break;
 
             case InspectionInputType.Numeric:
-                if (templateItem.IsRequired &&
+                if (requireValues &&
+                    templateItem.IsRequired &&
                     !input.NumericValue.HasValue)
                 {
                     throw new InvalidOperationException(
@@ -1419,7 +1646,8 @@ public sealed class InspectionRepository
                 break;
 
             case InspectionInputType.Text:
-                if (templateItem.IsRequired &&
+                if (requireValues &&
+                    templateItem.IsRequired &&
                     string.IsNullOrWhiteSpace(
                         input.TextValue))
                 {

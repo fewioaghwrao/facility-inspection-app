@@ -400,7 +400,7 @@
                     BorderThickness="1"
                     CornerRadius="12">
 
-                    <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                         <Button
                             Grid.Column="0"
                             Content="カレンダーへ戻る"
@@ -408,17 +408,38 @@
                             MinWidth="140"
                             Height="40" />
 
-                        <TextBlock
+                        <StackPanel
                             Grid.Column="1"
                             Margin="16,0"
-                            Text="{Binding NextStepMessage}"
-                            VerticalAlignment="Center"
-                            Foreground="#64748B"
-                            FontSize="12"
-                            TextWrapping="Wrap" />
+                            Spacing="4"
+                            VerticalAlignment="Center">
+
+                            <TextBlock
+                                Text="{Binding NextStepMessage}"
+                                Foreground="#64748B"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+
+                            <TextBlock
+                                IsVisible="{Binding HasDraftStatusMessage}"
+                                Text="{Binding DraftStatusMessage}"
+                                Foreground="#15803D"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
 
                         <Button
                             Grid.Column="2"
+                            Margin="0,0,8,0"
+                            Content="一時保存"
+                            Command="{Binding SaveDraftCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            MinWidth="110"
+                            Height="40" />
+
+                        <Button
+                            Grid.Column="3"
                             Content="入力内容を確認"
                             Command="{Binding ReviewCompletionCommand}"
                             MinWidth="150"
@@ -510,6 +531,88 @@
                             Command="{Binding ConfirmCompletionCommand}"
                             IsEnabled="{Binding IsNotSaving}"
                             MinWidth="110"
+                            Height="40" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- 未保存変更の確認 -->
+        <Border
+            IsVisible="{Binding IsLeaveConfirmVisible}"
+            Background="#990F172A">
+
+            <Border
+                Width="560"
+                Padding="24"
+                Margin="20"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="#FFFFFF"
+                BorderBrush="#CBD5E1"
+                BorderThickness="1"
+                CornerRadius="16">
+
+                <StackPanel Spacing="18">
+                    <StackPanel Spacing="6">
+                        <TextBlock
+                            Text="入力内容が保存されていません"
+                            FontSize="22"
+                            FontWeight="Bold"
+                            Foreground="#0F172A" />
+
+                        <TextBlock
+                            Text="{Binding LeaveConfirmMessage}"
+                            Foreground="#475569"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Border
+                        IsVisible="{Binding HasLeaveError}"
+                        Padding="12"
+                        Background="#FEF2F2"
+                        BorderBrush="#FECACA"
+                        BorderThickness="1"
+                        CornerRadius="8">
+
+                        <TextBlock
+                            Text="{Binding LeaveErrorMessage}"
+                            Foreground="#B91C1C"
+                            TextWrapping="Wrap" />
+                    </Border>
+
+                    <TextBlock
+                        IsVisible="{Binding IsSaving}"
+                        Text="入力内容を一時保存しています..."
+                        Foreground="#475569" />
+
+                    <Grid
+                        ColumnDefinitions="*,Auto,Auto,Auto"
+                        ColumnSpacing="10">
+
+                        <Button
+                            Grid.Column="1"
+                            Content="キャンセル"
+                            Command="{Binding CancelLeaveCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            MinWidth="100"
+                            Height="40" />
+
+                        <Button
+                            Grid.Column="2"
+                            Content="保存せずに移動"
+                            Command="{Binding DiscardAndLeaveCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            Foreground="#B91C1C"
+                            MinWidth="130"
+                            Height="40" />
+
+                        <Button
+                            Grid.Column="3"
+                            Content="一時保存して移動"
+                            Command="{Binding SaveDraftAndLeaveCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            MinWidth="140"
                             Height="40" />
                     </Grid>
                 </StackPanel>
