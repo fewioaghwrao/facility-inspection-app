@@ -20,6 +20,12 @@ public static class InspectionPhotoStorage
                 Environment.SpecialFolder.LocalApplicationData),
             ApplicationFolderName);
 
+    /// <summary>
+    /// 写真の相対パスの基準となるアプリ専用データ領域。
+    /// </summary>
+    public static string RootDirectoryPath =>
+        RootDirectory;
+
     public static async Task<string> SaveAsync(
         Stream source,
         Guid scheduleId,

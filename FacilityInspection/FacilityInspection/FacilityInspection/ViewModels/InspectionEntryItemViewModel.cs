@@ -3,6 +3,7 @@ using FacilityInspection.Domain.InspectionTemplates;
 using System;
 using System.Globalization;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 
 namespace FacilityInspection.ViewModels;
@@ -45,6 +46,25 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
         _comment =
             data.Comment
             ?? string.Empty;
+
+        /*
+         * 一時保存・差し戻し前に保存済みの写真を表示する。
+         */
+        if (data.Photos is not null)
+        {
+            foreach (var savedPhoto in
+                     data.Photos)
+            {
+                Photos.Add(
+                    new InspectionEntryPhotoViewModel(
+                        Path.GetFileName(
+                            savedPhoto.RelativePath),
+                        savedPhoto.RelativePath,
+                        savedPhoto.CapturedAtUtc,
+                        RemovePhoto,
+                        isPersisted: true));
+            }
+        }
     }
 
     public Guid TemplateItemId { get; }
@@ -287,7 +307,31 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
         !string.IsNullOrWhiteSpace(
             ValidationMessage);
 
+    /// <summary>
+    /// 点検完了用の入力データを作成する。必須項目を検証する。
+    /// </summary>
     public bool TryCreateCompletionData(
+        out InspectionCompletionItemData data)
+    {
+        return TryCreateItemData(
+            requireValues: true,
+            out data);
+    }
+
+    /// <summary>
+    /// 一時保存用の入力データを作成する。
+    /// 必須項目は未入力でもよいが、入力形式（数値など）は検証する。
+    /// </summary>
+    public bool TryCreateDraftData(
+        out InspectionCompletionItemData data)
+    {
+        return TryCreateItemData(
+            requireValues: false,
+            out data);
+    }
+
+    private bool TryCreateItemData(
+        bool requireValues,
         out InspectionCompletionItemData data)
     {
         ValidationMessage = null;
@@ -302,7 +346,8 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
             case InspectionInputType.DoneNotDone:
                 checkValue = CheckValue;
 
-                if (IsRequired &&
+                if (requireValues &&
+                    IsRequired &&
                     !checkValue.HasValue)
                 {
                     return FailValidation(
@@ -319,7 +364,8 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
                 if (string.IsNullOrWhiteSpace(
                         numericText))
                 {
-                    if (IsRequired)
+                    if (requireValues &&
+                        IsRequired)
                     {
                         return FailValidation(
                             "数値を入力してください。",
@@ -347,7 +393,8 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
                 var normalizedText =
                     TextValue.Trim();
 
-                if (IsRequired &&
+                if (requireValues &&
+                    IsRequired &&
                     string.IsNullOrWhiteSpace(
                         normalizedText))
                 {
@@ -413,11 +460,20 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
         ClearPhotoError();
     }
 
+    /// <summary>
+    /// 画面を離れるときに、保存していない写真の実ファイルを削除する。
+    /// DBに保存済みの写真は削除しない。
+    /// </summary>
     public void CleanupUnsavedPhotos()
     {
         foreach (var photo in
                  Photos.ToList())
         {
+            if (photo.IsPersisted)
+            {
+                continue;
+            }
+
             InspectionPhotoStorage
                 .DeleteIfExists(
                     photo.RelativePath);
@@ -430,6 +486,18 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
 
         OnPropertyChanged(
             nameof(PhotoCountText));
+    }
+
+    /// <summary>
+    /// 一時保存に成功した後、表示中の写真を保存済みとして扱う。
+    /// </summary>
+    public void MarkPhotosPersisted()
+    {
+        foreach (var photo in
+                 Photos)
+        {
+            photo.MarkPersisted();
+        }
     }
 
     public void SetPhotoError(
@@ -455,9 +523,17 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(
             photo);
 
-        InspectionPhotoStorage
-            .DeleteIfExists(
-                photo.RelativePath);
+        /*
+         * 保存済みの写真は、一時保存または完了でDBから外れたときに
+         * Repository側で実ファイルを削除する。
+         * ここで消すと、保存せずに戻った場合に写真が失われる。
+         */
+        if (!photo.IsPersisted)
+        {
+            InspectionPhotoStorage
+                .DeleteIfExists(
+                    photo.RelativePath);
+        }
 
         Photos.Remove(
             photo);

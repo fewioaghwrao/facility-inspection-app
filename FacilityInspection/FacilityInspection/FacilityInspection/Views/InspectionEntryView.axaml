@@ -400,7 +400,7 @@
                     BorderThickness="1"
                     CornerRadius="12">
 
-                    <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
                         <Button
                             Grid.Column="0"
                             Content="カレンダーへ戻る"
@@ -408,17 +408,38 @@
                             MinWidth="140"
                             Height="40" />
 
-                        <TextBlock
+                        <StackPanel
                             Grid.Column="1"
                             Margin="16,0"
-                            Text="{Binding NextStepMessage}"
-                            VerticalAlignment="Center"
-                            Foreground="#64748B"
-                            FontSize="12"
-                            TextWrapping="Wrap" />
+                            Spacing="4"
+                            VerticalAlignment="Center">
+
+                            <TextBlock
+                                Text="{Binding NextStepMessage}"
+                                Foreground="#64748B"
+                                FontSize="12"
+                                TextWrapping="Wrap" />
+
+                            <TextBlock
+                                IsVisible="{Binding HasDraftStatusMessage}"
+                                Text="{Binding DraftStatusMessage}"
+                                Foreground="#15803D"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
 
                         <Button
                             Grid.Column="2"
+                            Margin="0,0,8,0"
+                            Content="一時保存"
+                            Command="{Binding SaveDraftCommand}"
+                            IsEnabled="{Binding IsNotSaving}"
+                            MinWidth="110"
+                            Height="40" />
+
+                        <Button
+                            Grid.Column="3"
                             Content="入力内容を確認"
                             Command="{Binding ReviewCompletionCommand}"
                             MinWidth="150"

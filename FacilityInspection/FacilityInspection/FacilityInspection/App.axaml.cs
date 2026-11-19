@@ -130,6 +130,17 @@ public partial class App : Application
 
 
         // ========================================
+        // 写真整理
+        //
+        // 異常終了などでDBに登録されないまま残った写真を
+        // ゴミ箱フォルダーへ移動する。
+        // ========================================
+
+        CleanupOrphanPhotos(
+            dbContextFactory);
+
+
+        // ========================================
         // Service
         // ========================================
 
@@ -209,6 +220,39 @@ public partial class App : Application
     {
         DatabaseInitializer.Initialize(
             databasePath);
+    }
+
+
+    // ============================================
+    // 写真整理
+    // ============================================
+
+    private static void CleanupOrphanPhotos(
+        InspectionDbContextFactory dbContextFactory)
+    {
+        try
+        {
+            var cleaner =
+                new InspectionPhotoCleaner(
+                    dbContextFactory,
+                    InspectionPhotoStorage.RootDirectoryPath);
+
+            cleaner
+                .CleanupAsync(
+                    minimumOrphanAge:
+                        TimeSpan.FromHours(1),
+                    trashRetention:
+                        TimeSpan.FromDays(30))
+                .GetAwaiter()
+                .GetResult();
+        }
+        catch (Exception)
+        {
+            /*
+             * 写真整理に失敗しても業務は継続できるため、
+             * 起動を止めない。
+             */
+        }
     }
 
 
