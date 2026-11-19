@@ -43,6 +43,16 @@ jobs:
           --configuration Release
           --no-restore
 
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Check pending model changes
+        run: >
+          dotnet ef migrations has-pending-model-changes
+          --project FacilityInspection/FacilityInspection/FacilityInspection
+          --configuration Release
+          --no-build
+
       - name: Test
         run: >
           dotnet test

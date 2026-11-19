@@ -575,12 +575,8 @@ public sealed class InspectionRepository
                     result);
 
                 dbContext
-    .Set<InspectionResult>()
-    .Add(result);
-
-                existingResults.Add(
-                    templateItem.Id,
-                    result);
+                    .Set<InspectionResult>()
+                    .Add(result);
             }
 
             var isAbnormal =

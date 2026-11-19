@@ -374,6 +374,17 @@ SQLiteを使用しています。
 
 また、各エンティティのマッピングは `Data/Configurations` に分離し、`IEntityTypeConfiguration<T>` の実装を `ApplyConfigurationsFromAssembly` でまとめて適用しています。
 
+スキーマは EF Core のマイグレーション（`Data/Migrations`）で管理しています。アプリ起動時とバックアップ復元後に `DatabaseInitializer` が未適用のマイグレーションを適用します。`EnsureCreated()` で作成された旧バージョンのDBも、そのまま移行できます。
+
+モデルを変更したときは、リポジトリのルートで次を実行してマイグレーションを追加します。
+
+```bash
+dotnet tool restore
+dotnet ef migrations add <マイグレーション名> \
+  --project FacilityInspection/FacilityInspection/FacilityInspection \
+  --output-dir Data/Migrations
+```
+
 リポジトリには動作確認用のサンプルDBを含めています。
 
 ```text
