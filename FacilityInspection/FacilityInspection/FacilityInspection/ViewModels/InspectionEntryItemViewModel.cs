@@ -489,6 +489,23 @@ public sealed class InspectionEntryItemViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// 未保存変更の判定に使う、現在の入力内容の文字列表現。
+    /// </summary>
+    internal string CreateStateSnapshot()
+    {
+        return string.Join(
+            '\u001F',
+            CheckValue?.ToString() ?? string.Empty,
+            NumericText.Trim(),
+            TextValue.Trim(),
+            Comment.Trim(),
+            string.Join(
+                '\u001E',
+                Photos.Select(x =>
+                    x.RelativePath)));
+    }
+
+    /// <summary>
     /// 一時保存に成功した後、表示中の写真を保存済みとして扱う。
     /// </summary>
     public void MarkPhotosPersisted()
